@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        mono: ["IBM Plex Mono", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +61,30 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // War Room Status Colors
+        status: {
+          safe: "hsl(var(--status-safe))",
+          "safe-bg": "hsl(var(--status-safe-bg))",
+          "at-risk": "hsl(var(--status-at-risk))",
+          "at-risk-bg": "hsl(var(--status-at-risk-bg))",
+          unsafe: "hsl(var(--status-unsafe))",
+          "unsafe-bg": "hsl(var(--status-unsafe-bg))",
+          neutral: "hsl(var(--status-neutral))",
+          "neutral-bg": "hsl(var(--status-neutral-bg))",
+        },
+        // KPI Colors
+        kpi: {
+          green: "hsl(var(--kpi-green))",
+          yellow: "hsl(var(--kpi-yellow))",
+          red: "hsl(var(--kpi-red))",
+          blue: "hsl(var(--kpi-blue))",
+        },
+        // Surfaces
+        surface: {
+          elevated: "hsl(var(--surface-elevated))",
+          hover: "hsl(var(--surface-hover))",
+          active: "hsl(var(--surface-active))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +93,27 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-in": {
+          from: { opacity: "0", transform: "translateX(-10px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.3s ease-out",
+        "slide-in": "slide-in 0.3s ease-out",
       },
     },
   },
