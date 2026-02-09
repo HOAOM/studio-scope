@@ -14,16 +14,199 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      boq_coverage: {
+        Row: {
+          approved_count: number
+          category: Database["public"]["Enums"]["boq_category"]
+          created_at: string
+          id: string
+          item_count: number
+          project_id: string
+          status: Database["public"]["Enums"]["boq_coverage_status"]
+          updated_at: string
+        }
+        Insert: {
+          approved_count?: number
+          category: Database["public"]["Enums"]["boq_category"]
+          created_at?: string
+          id?: string
+          item_count?: number
+          project_id: string
+          status?: Database["public"]["Enums"]["boq_coverage_status"]
+          updated_at?: string
+        }
+        Update: {
+          approved_count?: number
+          category?: Database["public"]["Enums"]["boq_category"]
+          created_at?: string
+          id?: string
+          item_count?: number
+          project_id?: string
+          status?: Database["public"]["Enums"]["boq_coverage_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boq_coverage_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_items: {
+        Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"]
+          area: string
+          boq_included: boolean
+          category: Database["public"]["Enums"]["boq_category"]
+          created_at: string
+          delivery_date: string | null
+          description: string
+          id: string
+          image_3d_ref: string | null
+          installed: boolean
+          installed_date: string | null
+          notes: string | null
+          production_due_date: string | null
+          project_id: string
+          purchase_order_ref: string | null
+          purchased: boolean
+          quantity: number | null
+          received: boolean
+          received_date: string | null
+          supplier: string | null
+          unit_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          area: string
+          boq_included?: boolean
+          category: Database["public"]["Enums"]["boq_category"]
+          created_at?: string
+          delivery_date?: string | null
+          description: string
+          id?: string
+          image_3d_ref?: string | null
+          installed?: boolean
+          installed_date?: string | null
+          notes?: string | null
+          production_due_date?: string | null
+          project_id: string
+          purchase_order_ref?: string | null
+          purchased?: boolean
+          quantity?: number | null
+          received?: boolean
+          received_date?: string | null
+          supplier?: string | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          area?: string
+          boq_included?: boolean
+          category?: Database["public"]["Enums"]["boq_category"]
+          created_at?: string
+          delivery_date?: string | null
+          description?: string
+          id?: string
+          image_3d_ref?: string | null
+          installed?: boolean
+          installed_date?: string | null
+          notes?: string | null
+          production_due_date?: string | null
+          project_id?: string
+          purchase_order_ref?: string | null
+          purchased?: boolean
+          quantity?: number | null
+          received?: boolean
+          received_date?: string | null
+          supplier?: string | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          boq_master_ref: string | null
+          boq_version: string | null
+          client: string
+          code: string
+          created_at: string
+          id: string
+          last_update_date: string | null
+          location: string | null
+          name: string
+          owner_id: string
+          project_manager: string | null
+          start_date: string
+          target_completion_date: string
+          updated_at: string
+        }
+        Insert: {
+          boq_master_ref?: string | null
+          boq_version?: string | null
+          client: string
+          code: string
+          created_at?: string
+          id?: string
+          last_update_date?: string | null
+          location?: string | null
+          name: string
+          owner_id: string
+          project_manager?: string | null
+          start_date: string
+          target_completion_date: string
+          updated_at?: string
+        }
+        Update: {
+          boq_master_ref?: string | null
+          boq_version?: string | null
+          client?: string
+          code?: string
+          created_at?: string
+          id?: string
+          last_update_date?: string | null
+          location?: string | null
+          name?: string
+          owner_id?: string
+          project_manager?: string | null
+          start_date?: string
+          target_completion_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      approval_status: "pending" | "approved" | "rejected" | "revision"
+      boq_category:
+        | "joinery"
+        | "loose-furniture"
+        | "lighting"
+        | "finishes"
+        | "ffe"
+        | "accessories"
+        | "appliances"
+      boq_coverage_status: "present" | "missing" | "to-confirm"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +333,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      approval_status: ["pending", "approved", "rejected", "revision"],
+      boq_category: [
+        "joinery",
+        "loose-furniture",
+        "lighting",
+        "finishes",
+        "ffe",
+        "accessories",
+        "appliances",
+      ],
+      boq_coverage_status: ["present", "missing", "to-confirm"],
+    },
   },
 } as const
