@@ -96,24 +96,26 @@ export function ProjectFormDialog({ open, onOpenChange, project }: ProjectFormDi
 
   const onSubmit = async (data: ProjectFormData) => {
     try {
+      const projectPayload = {
+        code: data.code,
+        name: data.name,
+        client: data.client,
+        start_date: data.start_date,
+        target_completion_date: data.target_completion_date,
+        location: data.location || null,
+        boq_master_ref: data.boq_master_ref || null,
+        boq_version: data.boq_version || null,
+        project_manager: data.project_manager || null,
+      };
+
       if (isEditing && project) {
         await updateProject.mutateAsync({
           id: project.id,
-          ...data,
-          location: data.location || null,
-          boq_master_ref: data.boq_master_ref || null,
-          boq_version: data.boq_version || null,
-          project_manager: data.project_manager || null,
+          ...projectPayload,
         });
         toast.success('Project updated successfully');
       } else {
-        await createProject.mutateAsync({
-          ...data,
-          location: data.location || null,
-          boq_master_ref: data.boq_master_ref || null,
-          boq_version: data.boq_version || null,
-          project_manager: data.project_manager || null,
-        });
+        await createProject.mutateAsync(projectPayload);
         toast.success('Project created successfully');
       }
       onOpenChange(false);
