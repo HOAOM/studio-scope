@@ -22,22 +22,25 @@ export interface Presentation {
   owner_id: string;
 }
 
+// Use raw RPC/SQL since 'presentations' table is not yet in generated types
+const presentationsTable = 'presentations';
+
 export function usePresentations(projectId: string | undefined) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['presentations', projectId],
     queryFn: async () => {
-      if (!projectId) return [];
-      const { data, error } = await supabase
-        .from('presentations')
+      if (!projectId) return [] as Presentation[];
+      const { data, error } = await (supabase as any)
+        .from(presentationsTable)
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []).map(row => ({
+      return (data || []).map((row: any) => ({
         ...row,
-        pages_data: (row.pages_data || []) as unknown as PresentationPage[],
+        pages_data: (row.pages_data || []) as PresentationPage[],
       })) as Presentation[];
     },
     enabled: !!user && !!projectId,
@@ -55,18 +58,18 @@ export function useCreatePresentation() {
         id: crypto.randomUUID(),
         cells: Array(6).fill({ type: 'empty', content: '' }),
       };
-      const { data, error } = await supabase
-        .from('presentations')
+      const { data, error } = await (supabase as any)
+        .from(presentationsTable)
         .insert({
           project_id: projectId,
           name,
           owner_id: user.id,
-          pages_data: [defaultPage] as unknown as Record<string, unknown>[],
+          pages_data: [defaultPage],
         })
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as Presentation;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['presentations', data.project_id] });
@@ -81,19 +84,19 @@ export function useUpdatePresentation() {
     mutationFn: async ({ id, projectId, name, pages_data }: { id: string; projectId: string; name?: string; pages_data?: PresentationPage[] }) => {
       const updates: Record<string, unknown> = {};
       if (name !== undefined) updates.name = name;
-      if (pages_data !== undefined) updates.pages_data = pages_data as unknown as Record<string, unknown>[];
+      if (pages_data !== undefined) updates.pages_data = pages_data;
       
-      const { data, error } = await supabase
-        .from('presentations')
+      const { data, error } = await (supabase as any)
+        .from(presentationsTable)
         .update(updates)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
-      return { ...data, projectId };
+      return { ...(data as Presentation), project_id: projectId };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['presentations', data.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['presentations', data.project_id] });
     },
   });
 }
@@ -103,8 +106,8 @@ export function useDeletePresentation() {
 
   return useMutation({
     mutationFn: async ({ id, projectId }: { id: string; projectId: string }) => {
-      const { error } = await supabase
-        .from('presentations')
+      const { error } = await (supabase as any)
+        .from(presentationsTable)
         .delete()
         .eq('id', id);
       if (error) throw error;

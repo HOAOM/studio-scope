@@ -71,6 +71,7 @@ const itemSchema = z.object({
   unit_cost: z.string().optional(),
   quantity: z.string().optional(),
   notes: z.string().max(1000).optional(),
+  image_3d_ref: z.string().max(500).optional(),
 });
 
 type ItemFormData = z.infer<typeof itemSchema>;
