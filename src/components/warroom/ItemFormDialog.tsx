@@ -426,6 +426,34 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
               </div>
             </div>
 
+            {/* Notes & 3D Reference */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Additional notes..." {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="image_3d_ref"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>3D Image Reference URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://..." {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
