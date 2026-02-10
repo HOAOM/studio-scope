@@ -71,6 +71,7 @@ const itemSchema = z.object({
   unit_cost: z.string().optional(),
   quantity: z.string().optional(),
   notes: z.string().max(1000).optional(),
+  image_3d_ref: z.string().max(500).optional(),
 });
 
 type ItemFormData = z.infer<typeof itemSchema>;
@@ -107,6 +108,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
       unit_cost: '',
       quantity: '1',
       notes: '',
+      image_3d_ref: '',
     },
   });
 
@@ -130,6 +132,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: item.unit_cost?.toString() || '',
         quantity: item.quantity?.toString() || '1',
         notes: item.notes || '',
+        image_3d_ref: item.image_3d_ref || '',
       });
     } else {
       form.reset({
@@ -150,6 +153,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: '',
         quantity: '1',
         notes: '',
+        image_3d_ref: '',
       });
     }
   }, [item, form]);
@@ -175,6 +179,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: data.unit_cost ? parseFloat(data.unit_cost) : null,
         quantity: data.quantity ? parseInt(data.quantity) : 1,
         notes: data.notes || null,
+        image_3d_ref: data.image_3d_ref || null,
       };
 
       if (isEditing && item) {
@@ -419,6 +424,34 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Notes & 3D Reference */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Additional notes..." {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="image_3d_ref"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>3D Image Reference URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://..." {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">

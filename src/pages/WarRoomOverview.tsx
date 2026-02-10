@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useProjects, useDeleteProject } from '@/hooks/useProjects';
+import { useProjects, useDeleteProject, useProjectItems } from '@/hooks/useProjects';
 import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { KPIBlock } from '@/components/warroom/KPIBlock';
+import { computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ProjectFormDialog } from '@/components/warroom/ProjectFormDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -34,23 +35,49 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 type Project = Database['public']['Tables']['projects']['Row'];
+type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type StatusLevel = 'safe' | 'at-risk' | 'unsafe';
 
-// Simple KPI calculation based on project dates
-function calculateProjectStatus(project: Project): StatusLevel {
-  const now = new Date();
-  const target = new Date(project.target_completion_date);
-  const start = new Date(project.start_date);
-  
-  const totalDuration = target.getTime() - start.getTime();
-  const elapsed = now.getTime() - start.getTime();
-  const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
-  
-  if (progress > 90) return 'unsafe';
-  if (progress > 70) return 'at-risk';
-  return 'safe';
+function calculateProjectStatusFromItems(items: ProjectItem[]): StatusLevel {
+  if (items.length === 0) return 'at-risk';
+  const kpis = computeKPIs(items);
+  const avgScore = (
+    kpis.boqCompleteness +
+    kpis.itemApprovalCoverage +
+    kpis.procurementReadiness +
+    (100 - kpis.deliveryRiskIndicator) +
+    kpis.installationReadiness
+  ) / 5;
+  if (avgScore >= 80) return 'safe';
+  if (avgScore >= 50) return 'at-risk';
+  return 'unsafe';
+}
+
+// Hook to fetch all items for all projects at once
+function useAllProjectItems(projectIds: string[]) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['all-project-items', projectIds],
+    queryFn: async () => {
+      if (projectIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from('project_items')
+        .select('*')
+        .in('project_id', projectIds);
+      if (error) throw error;
+      const grouped: Record<string, ProjectItem[]> = {};
+      (data || []).forEach(item => {
+        if (!grouped[item.project_id]) grouped[item.project_id] = [];
+        grouped[item.project_id].push(item);
+      });
+      return grouped;
+    },
+    enabled: !!user && projectIds.length > 0,
+  });
 }
 
 export default function WarRoomOverview() {
@@ -65,27 +92,28 @@ export default function WarRoomOverview() {
   const { data: projects = [], isLoading } = useProjects();
   const deleteProject = useDeleteProject();
 
-  // Calculate summary stats
+  const projectIds = useMemo(() => projects.map(p => p.id), [projects]);
+  const { data: itemsByProject = {} } = useAllProjectItems(projectIds);
+
+  const getProjectStatus = (projectId: string): StatusLevel => {
+    return calculateProjectStatusFromItems(itemsByProject[projectId] || []);
+  };
+
   const stats = useMemo(() => {
     const byStatus = { safe: 0, 'at-risk': 0, unsafe: 0 };
     projects.forEach(p => {
-      const status = calculateProjectStatus(p);
-      byStatus[status]++;
+      byStatus[getProjectStatus(p.id)]++;
     });
     return byStatus;
-  }, [projects]);
+  }, [projects, itemsByProject]);
   
-  // Filter projects
   const filteredProjects = useMemo(() => {
     if (filterStatus === 'all') return projects;
-    return projects.filter(p => calculateProjectStatus(p) === filterStatus);
-  }, [filterStatus, projects]);
+    return projects.filter(p => getProjectStatus(p.id) === filterStatus);
+  }, [filterStatus, projects, itemsByProject]);
   
   const currentDate = new Date().toLocaleDateString('en-GB', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
   const handleSignOut = async () => {
@@ -142,56 +170,29 @@ export default function WarRoomOverview() {
               </p>
             </div>
             
-            {/* Summary Stats */}
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  filterStatus === 'all' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
+              <button onClick={() => setFilterStatus('all')} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${filterStatus === 'all' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 <LayoutGrid className="w-4 h-4" />
                 <span className="font-semibold">{projects.length}</span>
                 <span className="text-sm">Total</span>
               </button>
-              
-              <button
-                onClick={() => setFilterStatus('safe')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  filterStatus === 'safe' ? 'bg-status-safe-bg' : 'hover:bg-status-safe-bg'
-                }`}
-              >
+              <button onClick={() => setFilterStatus('safe')} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${filterStatus === 'safe' ? 'bg-status-safe-bg' : 'hover:bg-status-safe-bg'}`}>
                 <CheckCircle2 className="w-4 h-4 text-status-safe" />
                 <span className="font-semibold text-status-safe">{stats.safe}</span>
               </button>
-              
-              <button
-                onClick={() => setFilterStatus('at-risk')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  filterStatus === 'at-risk' ? 'bg-status-at-risk-bg' : 'hover:bg-status-at-risk-bg'
-                }`}
-              >
+              <button onClick={() => setFilterStatus('at-risk')} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${filterStatus === 'at-risk' ? 'bg-status-at-risk-bg' : 'hover:bg-status-at-risk-bg'}`}>
                 <AlertTriangle className="w-4 h-4 text-status-at-risk" />
                 <span className="font-semibold text-status-at-risk">{stats['at-risk']}</span>
               </button>
-              
-              <button
-                onClick={() => setFilterStatus('unsafe')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  filterStatus === 'unsafe' ? 'bg-status-unsafe-bg' : 'hover:bg-status-unsafe-bg'
-                }`}
-              >
+              <button onClick={() => setFilterStatus('unsafe')} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${filterStatus === 'unsafe' ? 'bg-status-unsafe-bg' : 'hover:bg-status-unsafe-bg'}`}>
                 <XCircle className="w-4 h-4 text-status-unsafe" />
                 <span className="font-semibold text-status-unsafe">{stats.unsafe}</span>
               </button>
-
               <div className="h-6 w-px bg-border mx-2" />
-
               <Button onClick={() => { setEditingProject(null); setProjectDialogOpen(true); }}>
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
               </Button>
-
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -200,18 +201,12 @@ export default function WarRoomOverview() {
         </div>
       </header>
 
-      {/* Projects Grid */}
       <main className="container py-8">
         {filterStatus !== 'all' && (
           <div className="mb-6 flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Filtering by:</span>
             <StatusBadge status={filterStatus} label={filterStatus === 'at-risk' ? 'At Risk' : filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)} size="sm" />
-            <button 
-              onClick={() => setFilterStatus('all')}
-              className="text-xs text-primary hover:underline ml-2"
-            >
-              Clear filter
-            </button>
+            <button onClick={() => setFilterStatus('all')} className="text-xs text-primary hover:underline ml-2">Clear filter</button>
           </div>
         )}
         
@@ -221,14 +216,15 @@ export default function WarRoomOverview() {
             <h2 className="text-xl font-semibold text-foreground mb-2">No Projects Yet</h2>
             <p className="text-muted-foreground mb-6">Create your first project to start tracking</p>
             <Button onClick={() => { setEditingProject(null); setProjectDialogOpen(true); }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Project
+              <Plus className="w-4 h-4 mr-2" /> Create Project
             </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredProjects.map((project, index) => {
-              const status = calculateProjectStatus(project);
+              const status = getProjectStatus(project.id);
+              const projectItems = itemsByProject[project.id] || [];
+              const kpis = computeKPIs(projectItems);
               return (
                 <Card 
                   key={project.id} 
@@ -256,7 +252,7 @@ export default function WarRoomOverview() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-2">
                         <User className="w-3 h-3" />
                         <span>{project.client}</span>
@@ -272,6 +268,21 @@ export default function WarRoomOverview() {
                         <span className="font-mono">{project.start_date} → {project.target_completion_date}</span>
                       </div>
                     </div>
+                    
+                    {/* Live KPIs */}
+                    {projectItems.length > 0 && (
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                        <KPIBlock label="BOQ" value={kpis.boqCompleteness} />
+                        <KPIBlock label="Approved" value={kpis.itemApprovalCoverage} />
+                        <KPIBlock label="Procurement" value={kpis.procurementReadiness} />
+                        <KPIBlock label="Delivery Risk" value={kpis.deliveryRiskIndicator} inverse />
+                        <KPIBlock label="Installation" value={kpis.installationReadiness} />
+                      </div>
+                    )}
+                    
+                    {projectItems.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">No items tracked yet</p>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -286,14 +297,12 @@ export default function WarRoomOverview() {
         )}
       </main>
 
-      {/* Project Form Dialog */}
       <ProjectFormDialog 
         open={projectDialogOpen}
         onOpenChange={setProjectDialogOpen}
         project={editingProject}
       />
 
-      {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
