@@ -132,6 +132,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: item.unit_cost?.toString() || '',
         quantity: item.quantity?.toString() || '1',
         notes: item.notes || '',
+        image_3d_ref: item.image_3d_ref || '',
       });
     } else {
       form.reset({
