@@ -153,6 +153,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: '',
         quantity: '1',
         notes: '',
+        image_3d_ref: '',
       });
     }
   }, [item, form]);
