@@ -179,6 +179,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: data.unit_cost ? parseFloat(data.unit_cost) : null,
         quantity: data.quantity ? parseInt(data.quantity) : 1,
         notes: data.notes || null,
+        image_3d_ref: data.image_3d_ref || null,
       };
 
       if (isEditing && item) {
