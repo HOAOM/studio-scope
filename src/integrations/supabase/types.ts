@@ -55,6 +55,44 @@ export type Database = {
           },
         ]
       }
+      presentations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          pages_data: Json
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id: string
+          pages_data?: Json
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          pages_data?: Json
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presentations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_items: {
         Row: {
           approval_status: Database["public"]["Enums"]["approval_status"]
