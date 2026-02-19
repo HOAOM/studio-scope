@@ -207,8 +207,22 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
+         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Item Code (read-only, auto-generated) */}
+            {isEditing && item && (item as any).item_code && (
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+                <span className="text-sm text-muted-foreground">Item Code:</span>
+                <span className="font-mono font-bold text-primary text-lg">{(item as any).item_code}</span>
+                <span className="text-xs text-muted-foreground ml-auto">Auto-generated</span>
+              </div>
+            )}
+            {!isEditing && (
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/30">
+                <span className="text-sm text-muted-foreground">Item Code:</span>
+                <span className="text-sm text-muted-foreground italic">Will be auto-generated (e.g. JON-001)</span>
+              </div>
+            )}
             {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <FormField

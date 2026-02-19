@@ -106,6 +106,7 @@ export type Database = {
           image_3d_ref: string | null
           installed: boolean
           installed_date: string | null
+          item_code: string | null
           notes: string | null
           production_due_date: string | null
           project_id: string
@@ -130,6 +131,7 @@ export type Database = {
           image_3d_ref?: string | null
           installed?: boolean
           installed_date?: string | null
+          item_code?: string | null
           notes?: string | null
           production_due_date?: string | null
           project_id: string
@@ -154,6 +156,7 @@ export type Database = {
           image_3d_ref?: string | null
           installed?: boolean
           installed_date?: string | null
+          item_code?: string | null
           notes?: string | null
           production_due_date?: string | null
           project_id?: string
