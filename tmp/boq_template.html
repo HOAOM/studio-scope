@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOQ Analyst Template v2.51</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--primary:#2c3e50;--secondary:#3498db;--success:#27ae60;--danger:#e74c3c;--warning:#f39c12;--bg:#ecf0f1;--card:#fff;--border:#bdc3c7;--custom-red:#dc3545;}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--primary);padding:20px;line-height:1.6;}
+body.admin-active{background:#fff9e6;}
+#adminBanner{display:none;background:linear-gradient(135deg,#ffc107,#ff9800);color:#000;padding:15px;text-align:center;font-weight:bold;font-size:18px;border-radius:8px;margin-bottom:20px;border:3px solid #ffc107;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.85;}}
+.container{max-width:1600px;margin:0 auto;background:var(--card);padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}
+.header-brand{text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid var(--primary);}
+.header-brand img{height:60px;margin-bottom:15px;filter:invert(1);}
+.header-brand h1{color:var(--primary);font-size:28px;margin-bottom:5px;}
+.version{background:var(--secondary);color:white;padding:5px 15px;border-radius:20px;font-size:14px;display:inline-block;}
+.project-info{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px;border-radius:8px;margin-bottom:30px;}
+.project-info input{width:100%;padding:12px;font-size:18px;border:none;border-radius:5px;margin-top:10px;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:30px;}
+.stat-card{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px;border-radius:8px;text-align:center;}
+.stat-card h3{font-size:32px;margin-bottom:5px;}
+.stat-card p{font-size:14px;opacity:0.9;}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+button{padding:12px 24px;border:none;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s;}
+button:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.2);}
+.btn-primary{background:var(--success);color:white;}
+.btn-secondary{background:var(--secondary);color:white;}
+.btn-warning{background:var(--warning);color:white;}
+.btn-danger{background:var(--danger);color:white;}
+.btn-admin{background:#ffc107;color:black;font-weight:bold;}
+.form-section{background:#f8f9fa;padding:25px;border-radius:8px;margin-bottom:30px;border:2px solid var(--border);}
+.form-section h2{color:var(--primary);margin-bottom:20px;font-size:22px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-bottom:15px;}
+.form-row-first{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:15px;}
+.form-row-full{display:grid;grid-template-columns:1fr;gap:15px;margin-bottom:15px;}
+.form-group{display:flex;flex-direction:column;position:relative;}
+.form-group label{font-weight:600;margin-bottom:5px;font-size:14px;}
+.form-group input,.form-group select,.form-group textarea{padding:10px;border:2px solid var(--border);border-radius:5px;font-size:14px;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--secondary);}
+.form-group textarea{resize:vertical;min-height:100px;}
+.autocomplete-list{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-top:none;max-height:200px;overflow-y:auto;z-index:1000;box-shadow:0 4px 6px rgba(0,0,0,0.1);}
+.autocomplete-item{padding:10px;cursor:pointer;border-bottom:1px solid #f0f0f0;}
+.autocomplete-item:hover,.autocomplete-item.active{background:var(--secondary);color:white;}
+.code-preview{background:var(--primary);color:white;padding:15px;border-radius:5px;margin:15px 0;font-family:'Courier New',monospace;font-size:18px;text-align:center;font-weight:bold;letter-spacing:2px;}
+.code-preview.custom-furniture{color:var(--custom-red);}
+.column-toggle{background:#f8f9fa;padding:15px;border-radius:5px;margin-bottom:15px;border:2px solid var(--border);}
+.column-toggle h3{font-size:16px;margin-bottom:10px;color:var(--primary);}
+.column-toggle label{display:inline-block;margin-right:15px;margin-bottom:5px;cursor:pointer;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:4px;transition:all 0.3s;}
+.column-toggle label:hover{background:var(--secondary);color:white;}
+.column-toggle input[type="checkbox"]{margin-right:5px;}
+.search-section{display:flex;gap:15px;margin-bottom:20px;}
+.search-section input{flex:1;padding:12px;border:2px solid var(--border);border-radius:5px;font-size:14px;}
+.table-container{overflow-x:auto;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+table{width:100%;border-collapse:collapse;background:white;}
+thead{background:var(--primary);color:white;position:sticky;top:0;z-index:10;}
+th{padding:15px 10px;text-align:left;font-weight:600;font-size:13px;white-space:nowrap;}
+td{padding:12px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;}
+tbody tr:hover{background-color:#f8f9fa;}
+.missing-price{background-color:#ffcccc!important;font-weight:bold;}
+.custom-code{color:var(--custom-red);font-weight:bold;}
+.link-text{color:var(--secondary);cursor:pointer;text-decoration:underline;margin:0 3px;}
+.link-text:hover{color:var(--primary);}
+.img-thumbnail{width:40px;height:40px;object-fit:cover;border-radius:4px;cursor:pointer;}
+.action-btn{padding:6px 12px;margin:2px;font-size:12px;border-radius:4px;}
+.action-btn.edit{background:var(--secondary);color:white;}
+.action-btn.delete{background:var(--danger);color:white;}
+.modal{display:none;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.6);}
+.modal-content{background-color:white;margin:5% auto;padding:30px;border-radius:10px;width:90%;max-width:600px;box-shadow:0 5px 15px rgba(0,0,0,0.3);}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:2px solid var(--border);}
+.modal-header h2{color:var(--primary);}
+.close{font-size:32px;font-weight:bold;color:#aaa;cursor:pointer;}
+.close:hover{color:var(--danger);}
+.message{position:fixed;top:20px;right:20px;padding:15px 25px;border-radius:5px;color:white;font-weight:600;z-index:3000;box-shadow:0 4px 8px rgba(0,0,0,0.2);}
+.message.success{background:var(--success);}
+.message.error{background:var(--danger);}
+.message.info{background:var(--secondary);}
+.message.warning{background:var(--warning);}
+.cover-page{display:none;page-break-after:always;padding:60px;text-align:center;}
+.cover-logo{height:100px;margin-bottom:30px;}
+.cover-title{font-size:36px;margin-bottom:20px;color:var(--primary);}
+.cover-stats{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.cover-stat{background:#f8f9fa;padding:20px;border-radius:8px;}
+.print-options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0;}
+.print-options-grid label{display:block;padding:10px;background:#f8f9fa;border-radius:5px;cursor:pointer;}
+.print-options-grid input{margin-right:8px;}
+@media print{
+body{background:white;padding:0;margin:0;}
+.container{box-shadow:none;padding:5px;max-width:100%;}
+.btn-group,.search-section,.form-section,button,.action-btn,#adminBanner,.column-toggle{display:none!important;}
+.header-brand{display:none!important;}
+.project-info{display:none!important;}
+.stats{display:none!important;}
+.cover-page{display:none!important;}
+table{page-break-before:auto;font-size:5px;width:100%;table-layout:fixed;}
+thead{display:table-header-group;}
+tr{page-break-inside:avoid;}
+th,td{padding:1px;border:0.5px solid #333;display:table-cell!important;overflow:hidden;word-wrap:break-word;}
+th{background:#333!important;color:white!important;font-size:5px;font-weight:bold;}
+.img-thumbnail{width:25px!important;height:25px!important;display:block!important;}
+.colImage,.colZone,.colArea,.colBrand,.colFinishing,.colSize,.colTech,.colRefImg,.colCoLink,.colUnitRate,.colAmount,.colProdTime,.colNotes{display:table-cell!important;}
+.colImage{width:30px;}
+th:nth-child(2),td:nth-child(2){width:60px;}
+th:nth-child(3),td:nth-child(3){width:35px;}
+th:nth-child(4),td:nth-child(4){width:35px;}
+th:nth-child(5),td:nth-child(5){width:40px;}
+th:nth-child(6),td:nth-child(6){width:40px;}
+th:nth-child(7),td:nth-child(7){width:50px;}
+th:nth-child(8),td:nth-child(8){width:80px;}
+th:nth-child(9),td:nth-child(9){width:45px;}
+th:nth-child(10),td:nth-child(10){width:40px;}
+th:nth-child(11),td:nth-child(11){width:30px;}
+th:nth-child(12),td:nth-child(12){width:30px;}
+th:nth-child(13),td:nth-child(13){width:30px;}
+th:nth-child(14),td:nth-child(14){width:30px;}
+th:nth-child(15),td:nth-child(15){width:25px;}
+th:nth-child(16),td:nth-child(16){width:40px;}
+th:nth-child(17),td:nth-child(17){width:40px;}
+th:nth-child(18),td:nth-child(18){width:50px;}
+th:nth-child(19),td:nth-child(19){width:60px;}
+th:last-child,td:last-child{display:none!important;}
+@page{size:A4 landscape;margin:5mm;}
+}
+@media(max-width:768px){
+.form-row,.form-row-first{grid-template-columns:1fr;}
+.stats{grid-template-columns:1fr;}
+.btn-group{flex-direction:column;}
+button{width:100%;}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+<div id="adminBanner">⚠️ ADMIN MODE ACTIVATED ⚠️</div>
+<div class="container">
+<div class="header-brand">
+<img src="https://houseofaida.com/wp-content/uploads/2025/01/logo-white.svg" alt="HOA Logo">
+<h1>BOQ Analyst Template</h1>
+<span class="version">v2.51</span>
+</div>
+<div class="project-info">
+<label style="font-size:16px;font-weight:600;">Project Name</label>
+<input type="text" id="projectName" placeholder="Enter Project Name">
+</div>
+<div class="stats">
+<div class="stat-card"><h3 id="totalItems">0</h3><p>Total Items</p></div>
+<div class="stat-card"><h3 id="totalAmount">€0</h3><p>Total Amount</p></div>
+<div class="stat-card"><h3 id="missingPrices">0</h3><p>Missing Prices</p></div>
+<div class="stat-card"><h3 id="totalFloors">0</h3><p>Floors</p></div>
+</div>
+<div class="btn-group">
+<button class="btn-primary" onclick="saveDraft()">💾 Save Draft</button>
+<button class="btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+<button class="btn-secondary" onclick="exportExcel()">📊 Export Excel</button>
+<button class="btn-secondary" onclick="exportForSuppliers()">📤 Export Supplier</button>
+<button class="btn-secondary" onclick="importCSV()">📤 Import CSV</button>
+<button class="btn-warning" onclick="window.print()">🖨️ Print</button>
+<button class="btn-secondary" onclick="showPDFModal()">📄 Export PDF</button>
+<button class="btn-admin" onclick="openAdminModal()">🔐 Admin Mode</button>
+</div>
+<div class="form-section">
+<h2>➕ Add New Item</h2>
+<div class="form-row-first">
+<div class="form-group"><label>Floor</label><input type="text" id="floor" placeholder="Type..." autocomplete="off"></div>
+<div class="form-group"><label>Room</label><input type="text" id="room" placeholder="Type..." autocomplete="off"></div>
+<div class="form-group"><label>Room#</label><input type="text" id="roomNumber" placeholder="01" value="01"></div>
+<div class="form-group"><label>Item Type</label><input type="text" id="itemType" placeholder="Type..." autocomplete="off"></div>
+<div class="form-group"><label>Subcategory</label><input type="text" id="subcategory" placeholder="Select Item first" autocomplete="off" disabled></div>
+<div class="form-group"><label>Seq</label><input type="text" id="sequence" placeholder="001"></div>
+</div>
+<div class="code-preview" id="codePreview">[Generated Code Will Appear Here]</div>
+<div class="form-row">
+<div class="form-group"><label>Zone</label><input type="text" id="zone" placeholder="Zone"></div>
+<div class="form-group"><label>Area</label><input type="text" id="area" placeholder="Area"></div>
+<div class="form-group"><label>Brand</label><input type="text" id="brand" placeholder="Brand"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Finishing</label><input type="text" id="finishing" placeholder="Finish"></div>
+<div class="form-group"><label>Size</label><input type="text" id="size" placeholder="Size"></div>
+<div class="form-group"><label>Production Time</label><input type="text" id="productionTime" placeholder="e.g. 4-6 weeks"></div>
+</div>
+<div class="form-row-full">
+<div class="form-group"><label>Description</label><textarea id="description" placeholder="Detailed description"></textarea></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Reference Image Link</label><input type="url" id="refImage" placeholder="Image URL"></div>
+<div class="form-group"><label>Technical Drawings Links</label><textarea id="techDrawings" placeholder="One link per line" rows="3"></textarea></div>
+<div class="form-group"><label>Company Product Links</label><textarea id="companyLink" placeholder="One link per line" rows="3"></textarea></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Quantity</label><input type="number" id="qty" placeholder="Qty" value="1" min="0" step="0.01"></div>
+<div class="form-group"><label>Unit</label><select id="unit"><option value="mq">mq (m²)</option><option value="ml">ml (m)</option><option value="pcs" selected>pcs</option></select></div>
+<div class="form-group"><label>Unit Rate (€)</label><input type="number" id="unitRate" placeholder="Price" min="0" step="0.01"></div>
+</div>
+<div class="form-row-full">
+<div class="form-group"><label>Notes</label><textarea id="notes" placeholder="Additional notes" style="min-height:80px;"></textarea></div>
+</div>
+<div class="btn-group">
+<button class="btn-primary" onclick="addItem()">➕ Add Item</button>
+<button class="btn-secondary" onclick="duplicateLast()">📋 Duplicate Last</button>
+<button class="btn-warning" onclick="clearForm()">🔄 Clear Form</button>
+</div>
+</div>
+<div class="column-toggle">
+<h3>👁️ Show/Hide Columns (for UI only - exports always include all)</h3>
+<label><input type="checkbox" checked onchange="toggleColumn('colImage')"> Image</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colZone')"> Zone</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colArea')"> Area</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colBrand')"> Brand</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colFinishing')"> Finishing</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colSize')"> Size</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colTech')"> Tech Drawings</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colRefImg')"> Ref Image</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colCoLink')"> Co.Link</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colUnitRate')"> Unit Rate</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colAmount')"> Amount</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colProdTime')"> Prod.Time</label>
+<label><input type="checkbox" checked onchange="toggleColumn('colNotes')"> Notes</label>
+</div>
+<div class="search-section">
+<input type="text" id="searchInput" placeholder="🔍 Search..." onkeyup="searchTable()">
+<button class="btn-secondary" onclick="clearSearch()">Clear</button>
+</div>
+<div class="table-container">
+<table id="boqTable">
+<thead>
+<tr>
+<th class="colImage">Image</th>
+<th class="colCode" onclick="sortTable('code')" style="cursor:pointer;user-select:none;" title="Click to sort">Code ⇅</th>
+<th class="colFloor" onclick="sortTable('floorCode')" style="cursor:pointer;user-select:none;" title="Click to sort">Floor ⇅</th>
+<th class="colRoom" onclick="sortTable('roomCode')" style="cursor:pointer;user-select:none;" title="Click to sort">Room ⇅</th>
+<th class="colZone" onclick="sortTable('zone')" style="cursor:pointer;user-select:none;" title="Click to sort">Zone ⇅</th>
+<th class="colArea" onclick="sortTable('area')" style="cursor:pointer;user-select:none;" title="Click to sort">Area ⇅</th>
+<th class="colBrand" onclick="sortTable('brand')" style="cursor:pointer;user-select:none;" title="Click to sort">Brand ⇅</th>
+<th class="colDescription">Description</th>
+<th class="colFinishing">Finishing</th>
+<th class="colSize">Size</th>
+<th class="colTech">Tech</th>
+<th class="colRefImg">Ref Img</th>
+<th class="colCoLink">Co.Link</th>
+<th class="colQty" onclick="sortTable('qty')" style="cursor:pointer;user-select:none;" title="Click to sort">QTY ⇅</th>
+<th class="colUnit">Unit</th>
+<th class="colUnitRate" onclick="sortTable('unitRate')" style="cursor:pointer;user-select:none;" title="Click to sort">Unit Rate ⇅</th>
+<th class="colAmount" onclick="sortTable('amount')" style="cursor:pointer;user-select:none;" title="Click to sort">Amount ⇅</th>
+<th class="colProdTime">Prod.Time</th>
+<th class="colNotes">Notes</th>
+<th class="colActions">Actions</th>
+</tr>
+</thead>
+<tbody id="boqTableBody"></tbody>
+</table>
+</div>
+</div>
+<div class="cover-page" id="coverPage">
+<img src="https://houseofaida.com/wp-content/uploads/2025/01/logo-white.svg" class="cover-logo" style="filter:invert(1);">
+<h1 class="cover-title">HOUSE OF AIDA</h1>
+<h2>Bill of Quantities</h2>
+<p style="font-size:20px;margin:20px 0;"><strong>Project:</strong> <span id="coverProjectName"></span></p>
+<p style="font-size:16px;color:#666;"><strong>Date:</strong> <span id="coverDate"></span></p>
+<div class="cover-stats">
+<div class="cover-stat"><h3 id="coverTotalItems">0</h3><p>Total Items</p></div>
+<div class="cover-stat"><h3 id="coverTotalAmount">€0</h3><p>Total Amount</p></div>
+<div class="cover-stat"><h3 id="coverMissingPrices">0</h3><p>Missing Prices</p></div>
+<div class="cover-stat"><h3 id="coverTotalFloors">0</h3><p>Floors</p></div>
+</div>
+</div>
+<div id="printModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<h2>🖨️ Print Options</h2>
+<span class="close" onclick="closePrintModal()">&times;</span>
+</div>
+<div style="margin-bottom:20px;">
+<h3 style="margin-bottom:10px;color:var(--primary);">📄 Page Format</h3>
+<div style="display:flex;gap:20px;">
+<label style="cursor:pointer;"><input type="radio" id="printFormatA4" name="printFormat" value="a4" checked> A4</label>
+<label style="cursor:pointer;"><input type="radio" id="printFormatA3" name="printFormat" value="a3"> A3</label>
+</div>
+</div>
+<div style="margin-bottom:20px;">
+<h3 style="margin-bottom:10px;color:var(--primary);">📐 Orientation</h3>
+<div style="display:flex;gap:20px;">
+<label style="cursor:pointer;"><input type="radio" id="printOrientLandscape" name="printOrientation" value="landscape" checked> Landscape</label>
+<label style="cursor:pointer;"><input type="radio" id="printOrientPortrait" name="printOrientation" value="portrait"> Portrait</label>
+</div>
+</div>
+<div style="margin-bottom:20px;">
+<h3 style="margin-bottom:10px;color:var(--primary);">📊 Columns to Include</h3>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:250px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:5px;">
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colImage" checked> Image</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colCode" checked> Code</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colFloor" checked> Floor</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colRoom" checked> Room</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colZone"> Zone</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colArea"> Area</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colBrand" checked> Brand</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colDescription" checked> Description</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colFinishing" checked> Finishing</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colSize" checked> Size</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colTech" checked> Tech</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colRefImg" checked> Ref Image</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colCoLink" checked> Co.Link</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colQty" checked> QTY</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colUnit" checked> Unit</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colUnitRate" checked> Unit Rate</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colAmount" checked> Amount</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colProdTime" checked> Prod.Time</label>
+<label style="cursor:pointer;"><input type="checkbox" class="printCol" data-col="colNotes" checked> Notes</label>
+</div>
+<div style="margin-top:10px;display:flex;gap:10px;">
+<button class="btn-secondary" onclick="selectAllPrintColumns()">Select All</button>
+<button class="btn-secondary" onclick="deselectAllPrintColumns()">Deselect All</button>
+</div>
+</div>
+<div class="modal-footer">
+<button type="button" class="btn-secondary" onclick="closePrintModal()">Cancel</button>
+<button type="button" class="btn-primary" onclick="generatePrint()">🖨️ Generate Print</button>
+</div>
+</div>
+</div>
+
+<div id="adminModal" class="modal">
+<div class="modal-content">
+<div class="modal-header"><h2>🔐 Admin Mode</h2><span class="close" onclick="closeAdminModal()">&times;</span></div>
+<div id="adminLoginSection">
+<div class="form-group"><label>Password</label><input type="password" id="adminPassword" placeholder="Password"></div>
+<button class="btn-primary" onclick="verifyAdmin()">Login</button>
+</div>
+<div id="adminPanelSection" style="display:none;">
+<p style="margin-bottom:20px;">Admin mode active.</p>
+<div class="form-group" style="margin-bottom:20px;">
+<label style="display:flex;align-items:center;cursor:pointer;padding:10px;background:#f8f9fa;border-radius:5px;">
+<input type="checkbox" id="adminShowColumnToggle" onchange="toggleColumnToggleVisibility()" style="margin-right:10px;width:18px;height:18px;cursor:pointer;">
+<span style="font-weight:600;">👁️ Show Column Toggle Panel</span>
+</label>
+</div>
+<div class="btn-group">
+<button class="btn-danger" onclick="deleteAllItems()">🗑️ Delete All</button>
+<button class="btn-warning" onclick="resetAll()">🔄 Reset</button>
+</div>
+</div>
+</div>
+</div>
+<input type="file" id="csvFileInput" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handleFileImport(event)">
+<script>
+let boqData=[];
+let isAdminMode=false;const ADMIN_PASSWORD='Default01';
+const FLOORS=[{code:'B05',name:'Basement Level 5'},{code:'B04',name:'Basement Level 4'},{code:'B03',name:'Basement Level 3'},{code:'B02',name:'Basement Level 2'},{code:'B01',name:'Basement Level 1'},{code:'F00',name:'Ground Floor'},{code:'M01',name:'Mezzanine'},{code:'P01',name:'Podium Level 1'},{code:'P02',name:'Podium Level 2'},{code:'P03',name:'Podium Level 3'},{code:'P04',name:'Podium Level 4'},{code:'P05',name:'Podium Level 5'},...Array.from({length:99},(_,i)=>({code:'F'+String(i+1).padStart(2,'0'),name:(i===0?'First Floor':i===1?'Second Floor':i===2?'Third Floor':'Floor '+String(i+1))}))];
+const ROOMS=[{code:'BY',name:'Balcony'},{code:'BD',name:'Bedroom'},{code:'BT',name:'Bathroom'},{code:'CN',name:'Cinema/Media Room'},{code:'DN',name:'Dining Room'},{code:'EL',name:'Entrance Lobby'},{code:'GA',name:'Garage'},{code:'GR',name:'Garden'},{code:'GY',name:'Gym'},{code:'HR',name:'Hallway'},{code:'KT',name:'Kitchen'},{code:'LB',name:'Library'},{code:'LD',name:'Laundry'},{code:'LV',name:'Living Room'},{code:'MD',name:'Maids Room'},{code:'OD',name:'Outdoor'},{code:'OF',name:'Office'},{code:'PA',name:'Pantry'},{code:'PL',name:'Pool Area'},{code:'PW',name:'Powder Room'},{code:'ST',name:'Staircase'},{code:'SR',name:'Service Room'},{code:'SG',name:'Storage'},{code:'TC',name:'Terrace'},{code:'UT',name:'Utility Room'},{code:'DR',name:'Dressing room'}];
+const ITEM_TYPES=[{code:'LF',name:'Loose Furniture'},{code:'CF',name:'Custom Furniture'},{code:'LG',name:'Lighting'},{code:'FL',name:'Flooring'},{code:'DR',name:'Door'},{code:'CL',name:'Cladding'},{code:'CT',name:'Curtains'},{code:'FX',name:'Fixtures'}];
+const SUBCATEGORIES={'LF':[{code:'AC',name:'Accessories'},{code:'AM',name:'Armchairs'},{code:'BV',name:'Bar/Beverage Units'},{code:'BF',name:'Bathroom Furniture'},{code:'BE',name:'Beds'},{code:'BS',name:'Bedside tables'},{code:'BN',name:'Benches'},{code:'BK',name:'Bookcases'},{code:'CB',name:'Cabinets'},{code:'CP',name:'Carpet'},{code:'CH',name:'Chairs/Seating'},{code:'CL',name:'Chaise longue'},{code:'CR',name:'Coat racks'},{code:'CT',name:'Coffee table'},{code:'CS',name:'Consoles'},{code:'DB',name:'Day bed'},{code:'DS',name:'Desks'},{code:'DD',name:'Draw Dresser'},{code:'HS',name:'Headboards'},{code:'KC',name:'Kitchen Cabinets'},{code:'LG',name:'Loungers'},{code:'MT',name:'Mattress'},{code:'MR',name:'Mirrors'},{code:'NS',name:'Nightstands'},{code:'OC',name:'Office Chairs'},{code:'PF',name:'Pouf'},{code:'RD',name:'Room dividers'},{code:'RG',name:'Rugs'},{code:'SV',name:'Shelving'},{code:'SF',name:'Sofas'},{code:'SM',name:'Sommier'},{code:'SO',name:'Stools'},{code:'SB',name:'Sunbeds'},{code:'TB',name:'Tables'},{code:'TV',name:'TV Units'},{code:'VN',name:'Vanity'},{code:'WI',name:'Walk-in Closet'},{code:'WR',name:'Wardrobes'}],'CF':[{code:'AC',name:'Accessories'},{code:'AM',name:'Armchairs'},{code:'BV',name:'Bar/Beverage Units'},{code:'BF',name:'Bathroom Furniture'},{code:'BE',name:'Beds'},{code:'BS',name:'Bedside tables'},{code:'BN',name:'Benches'},{code:'BK',name:'Bookcases'},{code:'CB',name:'Cabinets'},{code:'CP',name:'Carpet'},{code:'CH',name:'Chairs/Seating'},{code:'CL',name:'Chaise longue'},{code:'CR',name:'Coat racks'},{code:'CT',name:'Coffee table'},{code:'CS',name:'Consoles'},{code:'DB',name:'Day bed'},{code:'DS',name:'Desks'},{code:'DD',name:'Draw Dresser'},{code:'HS',name:'Headboards'},{code:'KC',name:'Kitchen Cabinets'},{code:'LG',name:'Loungers'},{code:'MT',name:'Mattress'},{code:'MR',name:'Mirrors'},{code:'NS',name:'Nightstands'},{code:'OC',name:'Office Chairs'},{code:'PF',name:'Pouf'},{code:'RD',name:'Room dividers'},{code:'RG',name:'Rugs'},{code:'SV',name:'Shelving'},{code:'SF',name:'Sofas'},{code:'SM',name:'Sommier'},{code:'SO',name:'Stools'},{code:'SB',name:'Sunbeds'},{code:'TB',name:'Tables'},{code:'TV',name:'TV Units'},{code:'VN',name:'Vanity'},{code:'WI',name:'Walk-in Closet'},{code:'WR',name:'Wardrobes'}],'LG':[{code:'CE',name:'Ceiling Lights'},{code:'CH',name:'Chandeliers'},{code:'FL',name:'Floor Lamps'},{code:'PE',name:'Pendant Lights'},{code:'RE',name:'Recessed Lighting'},{code:'SC',name:'Sconces'},{code:'ST',name:'Spotlights'},{code:'TB',name:'Table Lamps'},{code:'TR',name:'Track Lighting'},{code:'WL',name:'Wall Lights'}],'FL':[{code:'CA',name:'Carpet'},{code:'CE',name:'Ceramic Tiles'},{code:'CO',name:'Cork'},{code:'EP',name:'Epoxy'},{code:'HA',name:'Hardwood'},{code:'LA',name:'Laminate'},{code:'LI',name:'Linoleum'},{code:'MA',name:'Marble'},{code:'PO',name:'Porcelain'},{code:'RU',name:'Rubber'},{code:'ST',name:'Stone'},{code:'TE',name:'Terrazzo'},{code:'VI',name:'Vinyl'}],'DR':[{code:'GD',name:'Glass Door'},{code:'HD',name:'Hidden Door'},{code:'PD',name:'Pocket Door'},{code:'PS',name:'Pivot/Swing Door'},{code:'DD',name:'Double Door'}],'CL':[{code:'BR',name:'Brick'},{code:'CO',name:'Concrete'},{code:'GL',name:'Glass'},{code:'GY',name:'Gypsum'},{code:'LE',name:'Leather'},{code:'MA',name:'Marble'},{code:'ME',name:'Metal'},{code:'MI',name:'Mirror'},{code:'PA',name:'Paneling'},{code:'ST',name:'Stone'},{code:'TI',name:'Tile'},{code:'WA',name:'Wallpaper'},{code:'WO',name:'Wood'}],'CT':[{code:'BL',name:'Blackout'},{code:'DR',name:'Drapes'},{code:'SH',name:'Sheer'},{code:'VA',name:'Valance'}],'FX':[{code:'BA',name:'Bathtubs'},{code:'FA',name:'Faucets'},{code:'LI',name:'Light Fixtures'},{code:'MI',name:'Mirrors'},{code:'SH',name:'Showers'},{code:'SI',name:'Sinks'},{code:'TO',name:'Toilets'}]};
+const COLOR_PALETTE=['#FFE5E5','#E5F5FF','#FFF5E5','#E5FFE5','#FFE5FF','#E5FFFF','#FFFFE5','#F5E5FF','#E5F5E5','#FFE5F5','#E5E5FF','#FFF0E5','#E5FFF0','#F0E5FF','#FFE5F0','#E5F0FF','#F5FFE5','#E5FFF5','#FFF5F5','#F5F5FF','#FFFFF5','#F5FFFF','#FFF5FF','#FFEFF5','#F5EFFF','#EFFFF5','#F5F5EF'];
+function hashCode(str){let hash=0;for(let i=0;i<str.length;i++){hash=str.charCodeAt(i)+(hash<<5)-hash;}return Math.abs(hash);}
+function getColorForRoom(floor,room,roomNum){const key=floor+room+roomNum;const hash=hashCode(key);return COLOR_PALETTE[hash%COLOR_PALETTE.length];}
+function renderMultiLinks(linksText){if(!linksText||!linksText.trim())return'N/A';const links=linksText.split('\n').map(l=>l.trim()).filter(l=>l);if(links.length===0)return'N/A';return links.map((link,i)=>'<a class="link-text" href="'+link+'" target="_blank">LINK '+(i+1)+'</a>').join(' | ');}
+function toggleColumn(colClass){const elems=document.querySelectorAll('.'+colClass);elems.forEach(el=>{el.style.display=el.style.display==='none'?'':'none';});}
+function toggleColumnToggleVisibility(){const panel=document.querySelector('.column-toggle');const checkbox=document.getElementById('adminShowColumnToggle');const isVisible=checkbox.checked;panel.style.display=isVisible?'block':'none';localStorage.setItem('showColumnToggle',isVisible?'true':'false');showMessage(isVisible?'Column toggle panel is now visible':'Column toggle panel is now hidden','info');}
+function loadColumnTogglePreference(){const saved=localStorage.getItem('showColumnToggle');const isVisible=saved===null?true:saved==='true';const panel=document.querySelector('.column-toggle');if(panel){panel.style.display=isVisible?'block':'none';}const checkbox=document.getElementById('adminShowColumnToggle');if(checkbox){checkbox.checked=isVisible;}}
+window.onload=function(){loadData();loadColumnTogglePreference();setupAutocomplete();updateStats();renderTable();updateCoverPage();setInterval(autoSave,30000);};
+function setupAutocomplete(){
+setupField('floor',FLOORS,(item)=>item.code+' - '+item.name,(item)=>item.code);
+setupField('room',ROOMS,(item)=>item.code+' - '+item.name,(item)=>item.code);
+setupField('itemType',ITEM_TYPES,(item)=>item.code+' - '+item.name,(item)=>item.code);
+document.getElementById('itemType').addEventListener('change',function(){
+const val=this.getAttribute('data-code');
+const subInput=document.getElementById('subcategory');
+if(val&&SUBCATEGORIES[val]){
+subInput.disabled=false;
+subInput.placeholder='Type...';
+setupField('subcategory',SUBCATEGORIES[val],(item)=>item.code+' - '+item.name,(item)=>item.code);
+}else{
+subInput.disabled=true;
+subInput.value='';
+subInput.placeholder='Select Item first';
+}
+updateCodePreview();
+});
+['floor','room','roomNumber','itemType','subcategory','sequence'].forEach(id=>{
+document.getElementById(id).addEventListener('input',updateCodePreview);
+document.getElementById(id).addEventListener('change',updateCodePreview);
+});
+}
+function setupField(inputId,dataArray,displayFn,codeExtractorFn){
+const input=document.getElementById(inputId);
+let currentFocus=-1;
+input.addEventListener('input',function(){
+closeAllLists();
+const val=this.value.trim().toLowerCase();
+if(!val)return;
+const list=document.createElement('div');
+list.className='autocomplete-list';
+this.parentNode.appendChild(list);
+let matches=0;
+for(let item of dataArray){
+if(matches>=20)break;
+const display=typeof displayFn==='function'?displayFn(item):item;
+if(display.toLowerCase().includes(val)){
+const div=document.createElement('div');
+div.className='autocomplete-item';
+div.textContent=display;
+div.addEventListener('click',function(){
+const extractedCode=codeExtractorFn?codeExtractorFn(item):(typeof item==='string'?item:item.code);
+input.value=extractedCode;
+input.setAttribute('data-code',extractedCode);
+closeAllLists();
+input.dispatchEvent(new Event('change'));
+});
+list.appendChild(div);
+matches++;
+}
+}
+});
+input.addEventListener('keydown',function(e){
+const list=this.parentNode.querySelector('.autocomplete-list');
+if(!list)return;
+const items=list.getElementsByClassName('autocomplete-item');
+if(e.keyCode===40){
+currentFocus++;
+setActive(items);
+e.preventDefault();
+}else if(e.keyCode===38){
+currentFocus--;
+setActive(items);
+e.preventDefault();
+}else if(e.keyCode===13){
+e.preventDefault();
+if(currentFocus>-1&&items[currentFocus]){
+items[currentFocus].click();
+}
+}
+});
+function setActive(items){
+if(!items||items.length===0)return;
+removeActive(items);
+if(currentFocus>=items.length)currentFocus=0;
+if(currentFocus<0)currentFocus=items.length-1;
+items[currentFocus].classList.add('active');
+}
+function removeActive(items){
+for(let item of items){
+item.classList.remove('active');
+}
+}
+function closeAllLists(){
+const lists=document.getElementsByClassName('autocomplete-list');
+for(let list of lists){
+list.parentNode.removeChild(list);
+}
+}
+document.addEventListener('click',function(e){
+if(e.target!==input){
+closeAllLists();
+}
+});
+}
+function updateCodePreview(){
+const floorCode=document.getElementById('floor').getAttribute('data-code')||'';
+const roomCode=document.getElementById('room').getAttribute('data-code')||'';
+const roomNum=document.getElementById('roomNumber').value.trim().padStart(2,'0');
+const itemTypeCode=document.getElementById('itemType').getAttribute('data-code')||'';
+const subCode=document.getElementById('subcategory').getAttribute('data-code')||'';
+const seq=document.getElementById('sequence').value.trim().padStart(3,'0');
+let code='';
+if(floorCode)code+=floorCode;
+if(roomCode)code+=roomCode+roomNum;
+if(itemTypeCode&&subCode)code+='-'+itemTypeCode+subCode;
+if(seq&&itemTypeCode&&subCode)code+=seq;
+const preview=document.getElementById('codePreview');
+preview.textContent=code||'[Generated Code Will Appear Here]';
+if(itemTypeCode==='CF'){
+preview.classList.add('custom-furniture');
+}else{
+preview.classList.remove('custom-furniture');
+}
+return code;
+}
+function addItem(){
+const code=updateCodePreview();
+const floorCode=document.getElementById('floor').getAttribute('data-code')||'';
+const roomCode=document.getElementById('room').getAttribute('data-code')||'';
+const itemTypeCode=document.getElementById('itemType').getAttribute('data-code')||'';
+const subcategoryFull=document.getElementById('subcategory').value.trim();
+const subcategoryCode=document.getElementById('subcategory').getAttribute('data-code')||'';
+if(!floorCode){showMessage('Select a Floor','error');return;}
+if(!roomCode){showMessage('Select a Room','error');return;}
+if(!itemTypeCode){showMessage('Select Item Type','error');return;}
+if(!subcategoryCode){showMessage('Select Subcategory','error');return;}
+if(!document.getElementById('sequence').value.trim()){showMessage('Enter Sequence','error');return;}
+if(boqData.some(item=>item.code===code)){showMessage('DUPLICATE CODE!','error');return;}
+const qty=parseFloat(document.getElementById('qty').value)||0;
+const unitRate=parseFloat(document.getElementById('unitRate').value)||0;
+const item={
+code:code,
+floorCode:floorCode,
+roomCode:roomCode,
+roomNumber:document.getElementById('roomNumber').value.trim(),
+zone:document.getElementById('zone').value.trim(),
+area:document.getElementById('area').value.trim(),
+brand:document.getElementById('brand').value.trim(),
+itemType:itemTypeCode,
+subcategory:subcategoryFull,
+description:document.getElementById('description').value.trim(),
+finishing:document.getElementById('finishing').value.trim(),
+size:document.getElementById('size').value.trim(),
+techDrawings:document.getElementById('techDrawings').value.trim(),
+refImage:document.getElementById('refImage').value.trim(),
+companyLink:document.getElementById('companyLink').value.trim(),
+qty:qty,
+unit:document.getElementById('unit').value,
+unitRate:unitRate,
+amount:(qty*unitRate).toFixed(2),
+productionTime:document.getElementById('productionTime').value.trim(),
+notes:document.getElementById('notes').value.trim()
+};
+boqData.push(item);
+sortBoqData();
+renderTable();
+updateStats();
+updateCoverPage();
+autoSave();
+clearForm(true);
+showMessage('Item added!','success');
+}
+function sortBoqData(){
+const floorOrder={'B05':-5,'B04':-4,'B03':-3,'B02':-2,'B01':-1,'F00':0,'M01':0.5,'P01':1,'P02':2,'P03':3,'P04':4,'P05':5};
+FLOORS.forEach((f,i)=>{if(i>=12){const num=parseInt(f.code.substring(1));floorOrder[f.code]=5+num;}});
+boqData.sort((a,b)=>{
+const aFloorIdx=floorOrder[a.floorCode]||999;
+const bFloorIdx=floorOrder[b.floorCode]||999;
+if(aFloorIdx!==bFloorIdx)return aFloorIdx-bFloorIdx;
+if(a.roomCode!==b.roomCode)return a.roomCode.localeCompare(b.roomCode);
+if(a.roomNumber!==b.roomNumber)return a.roomNumber.localeCompare(b.roomNumber);
+return a.code.localeCompare(b.code);
+});
+}
+function clearForm(keepRoomAndQty=false){
+const roomNum=document.getElementById('roomNumber').value;
+const qty=document.getElementById('qty').value;
+document.getElementById('floor').value='';
+document.getElementById('floor').removeAttribute('data-code');
+document.getElementById('room').value='';
+document.getElementById('room').removeAttribute('data-code');
+document.getElementById('itemType').value='';
+document.getElementById('itemType').removeAttribute('data-code');
+document.getElementById('subcategory').value='';
+document.getElementById('subcategory').removeAttribute('data-code');
+document.getElementById('subcategory').disabled=true;
+document.getElementById('sequence').value='';
+document.getElementById('zone').value='';
+document.getElementById('area').value='';
+document.getElementById('brand').value='';
+document.getElementById('description').value='';
+document.getElementById('finishing').value='';
+document.getElementById('size').value='';
+document.getElementById('techDrawings').value='';
+document.getElementById('refImage').value='';
+document.getElementById('companyLink').value='';
+document.getElementById('unit').value='pcs';
+document.getElementById('unitRate').value='';
+document.getElementById('productionTime').value='';
+document.getElementById('notes').value='';
+if(keepRoomAndQty){
+document.getElementById('roomNumber').value=roomNum;
+document.getElementById('qty').value=qty;
+}else{
+document.getElementById('roomNumber').value='01';
+document.getElementById('qty').value='1';
+}
+updateCodePreview();
+}
+function duplicateLast(){
+if(boqData.length===0){showMessage('No items','error');return;}
+const last=boqData[boqData.length-1];
+document.getElementById('floor').value=last.floorCode;
+document.getElementById('floor').setAttribute('data-code',last.floorCode);
+document.getElementById('room').value=last.roomCode;
+document.getElementById('room').setAttribute('data-code',last.roomCode);
+document.getElementById('roomNumber').value=last.roomNumber;
+document.getElementById('itemType').value=last.itemType;
+document.getElementById('itemType').setAttribute('data-code',last.itemType);
+document.getElementById('subcategory').disabled=false;
+document.getElementById('subcategory').value=last.subcategory;
+const subCode=last.subcategory.split(' ')[0];
+document.getElementById('subcategory').setAttribute('data-code',subCode);
+const parts=last.code.split('-');
+if(parts.length>1){
+const lastPart=parts[parts.length-1];
+const seqMatch=lastPart.match(/(\d{3})$/);
+if(seqMatch)document.getElementById('sequence').value=seqMatch[1];
+}
+document.getElementById('zone').value=last.zone;
+document.getElementById('area').value=last.area;
+document.getElementById('brand').value=last.brand;
+document.getElementById('description').value=last.description;
+document.getElementById('finishing').value=last.finishing;
+document.getElementById('size').value=last.size;
+document.getElementById('techDrawings').value=last.techDrawings;
+document.getElementById('refImage').value=last.refImage;
+document.getElementById('companyLink').value=last.companyLink;
+document.getElementById('qty').value=last.qty;
+document.getElementById('unit').value=last.unit;
+document.getElementById('unitRate').value=last.unitRate;
+document.getElementById('productionTime').value=last.productionTime;
+document.getElementById('notes').value=last.notes;
+updateCodePreview();
+showMessage('Duplicated!','info');
+}
+function renderTable(){
+const tbody=document.getElementById('boqTableBody');
+tbody.innerHTML='';
+if(boqData.length===0){
+tbody.innerHTML='<tr><td colspan="20" style="text-align:center;padding:40px;color:#999;">No items. Start adding!</td></tr>';
+return;
+}
+boqData.forEach((item,index)=>{
+const row=document.createElement('tr');
+const bgColor=getColorForRoom(item.floorCode,item.roomCode,item.roomNumber);
+row.style.backgroundColor=bgColor;
+const priceClass=(!item.unitRate||item.unitRate==0)?'missing-price':'';
+const codeClass=(item.itemType==='CF')?'custom-code':'';
+const imgCell=item.refImage?'<img src="'+item.refImage+'" class="img-thumbnail" onclick="window.open(\''+item.refImage+'\',\'_blank\')" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'📷\';">':'<span style="font-size:20px;">📷</span>';
+const techLinks=renderMultiLinks(item.techDrawings);
+const compLinks=renderMultiLinks(item.companyLink);
+const refLink=item.refImage?'<a class="link-text" href="'+item.refImage+'" target="_blank">LINK</a>':'N/A';
+row.innerHTML='<td class="colImage">'+imgCell+'</td>'+'<td class="'+codeClass+'" style="font-weight:bold;">'+item.code+'</td>'+'<td>'+item.floorCode+'</td>'+'<td>'+item.roomCode+item.roomNumber+'</td>'+'<td class="colZone">'+(item.zone||'N/A')+'</td>'+'<td class="colArea">'+(item.area||'N/A')+'</td>'+'<td class="colBrand">'+(item.brand||'N/A')+'</td>'+'<td>'+(item.description||'N/A')+'</td>'+'<td class="colFinishing">'+(item.finishing||'N/A')+'</td>'+'<td class="colSize">'+(item.size||'N/A')+'</td>'+'<td class="colTech">'+techLinks+'</td>'+'<td class="colRefImg">'+refLink+'</td>'+'<td class="colCoLink">'+compLinks+'</td>'+'<td>'+item.qty+'</td>'+'<td>'+item.unit+'</td>'+'<td class="colUnitRate '+priceClass+'">'+(item.unitRate?'€'+parseFloat(item.unitRate).toFixed(2):'N/A')+'</td>'+'<td class="colAmount" style="font-weight:bold;">€'+parseFloat(item.amount).toFixed(2)+'</td>'+'<td class="colProdTime">'+(item.productionTime||'N/A')+'</td>'+'<td class="colNotes">'+(item.notes||'N/A')+'</td>'+'<td><button class="action-btn edit" onclick="editItem('+index+')">✏️</button><button class="action-btn delete" onclick="deleteItem('+index+')">🗑️</button></td>';
+tbody.appendChild(row);
+});
+}
+function editItem(index){
+const item=boqData[index];
+document.getElementById('floor').value=item.floorCode;
+document.getElementById('floor').setAttribute('data-code',item.floorCode);
+document.getElementById('floor').dispatchEvent(new Event('input'));
+document.getElementById('floor').dispatchEvent(new Event('change'));
+document.getElementById('room').value=item.roomCode;
+document.getElementById('room').setAttribute('data-code',item.roomCode);
+document.getElementById('room').dispatchEvent(new Event('input'));
+document.getElementById('room').dispatchEvent(new Event('change'));
+document.getElementById('roomNumber').value=item.roomNumber;
+document.getElementById('roomNumber').dispatchEvent(new Event('input'));
+document.getElementById('roomNumber').dispatchEvent(new Event('change'));
+document.getElementById('itemType').value=item.itemType;
+document.getElementById('itemType').setAttribute('data-code',item.itemType);
+document.getElementById('subcategory').disabled=false;
+document.getElementById('subcategory').value=item.subcategory;
+const subCode=item.subcategory.split(' ')[0];
+document.getElementById('subcategory').setAttribute('data-code',subCode);
+const parts=item.code.split('-');
+if(parts.length>1){
+const lastPart=parts[parts.length-1];
+const seqMatch=lastPart.match(/(\d{3})$/);
+if(seqMatch)document.getElementById('sequence').value=seqMatch[1];
+}
+document.getElementById('zone').value=item.zone;
+document.getElementById('area').value=item.area;
+document.getElementById('brand').value=item.brand;
+document.getElementById('description').value=item.description;
+document.getElementById('finishing').value=item.finishing;
+document.getElementById('size').value=item.size;
+document.getElementById('techDrawings').value=item.techDrawings;
+document.getElementById('refImage').value=item.refImage;
+document.getElementById('companyLink').value=item.companyLink;
+document.getElementById('qty').value=item.qty;
+document.getElementById('unit').value=item.unit;
+document.getElementById('unitRate').value=item.unitRate;
+document.getElementById('productionTime').value=item.productionTime;
+document.getElementById('notes').value=item.notes;
+updateCodePreview();
+boqData.splice(index,1);
+sortBoqData();
+renderTable();
+updateStats();
+updateCoverPage();
+showMessage('Editing','info');
+}
+function deleteItem(index){
+if(confirm('Delete this item?')){
+boqData.splice(index,1);
+renderTable();
+updateStats();
+updateCoverPage();
+autoSave();
+showMessage('Deleted','success');
+}
+}
+function searchTable(){
+const input=document.getElementById('searchInput').value.toLowerCase();
+const rows=document.querySelectorAll('#boqTableBody tr');
+rows.forEach(row=>{
+const text=row.textContent.toLowerCase();
+row.style.display=text.includes(input)?'':'none';
+});
+}
+function clearSearch(){
+document.getElementById('searchInput').value='';
+searchTable();
+}
+function updateStats(){
+document.getElementById('totalItems').textContent=boqData.length;
+const total=boqData.reduce((sum,item)=>sum+parseFloat(item.amount||0),0);
+document.getElementById('totalAmount').textContent='€'+total.toFixed(2);
+const missing=boqData.filter(item=>!item.unitRate||item.unitRate==0).length;
+document.getElementById('missingPrices').textContent=missing;
+const floors=[...new Set(boqData.map(item=>item.floorCode))].length;
+document.getElementById('totalFloors').textContent=floors;
+}
+function updateCoverPage(){
+const projectName=document.getElementById('projectName').value.trim()||'Untitled Project';
+const dateStr=new Date().toLocaleDateString('en-GB');
+const total=boqData.reduce((sum,item)=>sum+parseFloat(item.amount||0),0);
+const missing=boqData.filter(item=>!item.unitRate||item.unitRate==0).length;
+const floors=[...new Set(boqData.map(item=>item.floorCode))].length;
+document.getElementById('coverProjectName').textContent=projectName;
+document.getElementById('coverDate').textContent=dateStr;
+document.getElementById('coverTotalItems').textContent=boqData.length;
+document.getElementById('coverTotalAmount').textContent='€'+total.toFixed(2);
+document.getElementById('coverMissingPrices').textContent=missing;
+document.getElementById('coverTotalFloors').textContent=floors;
+}
+function autoSave(){
+const data={projectName:document.getElementById('projectName').value.trim()||'Untitled_Project',data:boqData,lastSaved:new Date().toISOString()};
+localStorage.setItem('boqData',JSON.stringify(data));
+}
+function loadData(){
+const saved=localStorage.getItem('boqData');
+if(saved){
+try{
+const obj=JSON.parse(saved);
+boqData=obj.data||[];
+document.getElementById('projectName').value=obj.projectName||'';
+sortBoqData();
+}catch(e){
+console.error('Load error:',e);
+}
+}
+}
+function saveDraft(){
+const projectName=document.getElementById('projectName').value.trim()||'Untitled_Project';
+const timestamp=new Date().toISOString().slice(0,16).replace('T','_').replace(/:/g,'-');
+autoSave();
+let html=document.documentElement.outerHTML;
+const dataEmbedScript='boqData='+JSON.stringify(boqData)+';';
+html=html.replace('let boqData=[];','let boqData=[];\n'+dataEmbedScript);
+const blob=new Blob([html],{type:'text/html'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='BOQ_'+projectName+'_'+timestamp+'.html';
+a.click();
+URL.revokeObjectURL(url);
+showMessage('Saved with data!','success');
+}
+function exportCSV(){
+if(boqData.length===0){showMessage('No data','error');return;}
+const projectName=document.getElementById('projectName').value.trim()||'Untitled Project';
+let csv='Code\tFloor\tRoom\tZone\tArea\tBrand\tDescription\tFinishing\tSize\tRef Image\tTech Drawings\tCompany Links\tQTY\tUnit\tUnit Rate\tAmount\tProduction Time\tNotes\tItem Type\tSubcategory\n';
+boqData.forEach(item=>{
+const techLinks=item.techDrawings?item.techDrawings.split('\n').join('; '):'N/A';
+const compLinks=item.companyLink?item.companyLink.split('\n').join('; '):'N/A';
+const row=[
+item.code,
+item.floorCode,
+item.roomCode+item.roomNumber,
+item.zone||'N/A',
+item.area||'N/A',
+item.brand||'N/A',
+item.description||'N/A',
+item.finishing||'N/A',
+item.size||'N/A',
+item.refImage||'N/A',
+techLinks,
+compLinks,
+item.qty,
+item.unit,
+item.unitRate||'N/A',
+item.amount||'N/A',
+item.productionTime||'N/A',
+item.notes||'N/A',
+item.itemType,
+item.subcategory
+];
+csv+=row.join('\t')+'\n';
+});
+const BOM='\uFEFF';
+const blob=new Blob([BOM+csv],{type:'text/csv;charset=utf-8;'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='BOQ_'+projectName+'_'+new Date().toISOString().slice(0,10)+'.csv';
+a.click();
+URL.revokeObjectURL(url);
+showMessage('CSV exported (20 standard columns)!','success');
+}
+function exportExcel(){
+if(boqData.length===0){showMessage('No data','error');return;}
+if(typeof XLSX==='undefined'){showMessage('Excel library not loaded','error');return;}
+const pName=document.getElementById('projectName').value.trim()||'Untitled Project';
+const dateStr=new Date().toLocaleDateString('en-GB');
+const total=boqData.reduce((sum,item)=>sum+parseFloat(item.amount||0),0);
+const header=['Code','Floor','Room','Zone','Area','Brand','Description','Finishing','Size','Ref Image','Tech Drawings','Company Links','QTY','Unit','Unit Rate','Amount','Production Time','Notes','Item Type','Subcategory'];
+const wsData=[
+['HOUSE OF AIDA - Bill of Quantities'],
+['Project: '+pName,'Date: '+dateStr,'Total: €'+total.toFixed(2)],
+[],
+header
+];
+boqData.forEach(item=>{
+const techLinks=item.techDrawings?item.techDrawings.split('\n').join('; '):'N/A';
+const compLinks=item.companyLink?item.companyLink.split('\n').join('; '):'N/A';
+const row=[
+item.code,
+item.floorCode,
+item.roomCode+item.roomNumber,
+item.zone||'N/A',
+item.area||'N/A',
+item.brand||'N/A',
+item.description||'N/A',
+item.finishing||'N/A',
+item.size||'N/A',
+item.refImage||'N/A',
+techLinks,
+compLinks,
+item.qty,
+item.unit,
+item.unitRate||'N/A',
+item.amount||'N/A',
+item.productionTime||'N/A',
+item.notes||'N/A',
+item.itemType,
+item.subcategory
+];
+wsData.push(row);
+});
+const wb=XLSX.utils.book_new();
+const ws=XLSX.utils.aoa_to_sheet(wsData);
+ws['!autofilter']={ref:"A4:T4"};
+XLSX.utils.book_append_sheet(wb,ws,'BOQ');
+XLSX.writeFile(wb,'BOQ_'+pName+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+showMessage('Excel exported (20 standard columns)!','success');
+}
+function importCSV(){
+if(boqData.length>0){
+if(!confirm('⚠️ Warning: Importing will add to existing data.\nCurrent project has '+boqData.length+' items.\n\nProceed with import?')){
+return;
+}
+}
+document.getElementById('csvFileInput').click();
+}
+function handleFileImport(event){
+const file=event.target.files[0];
+if(!file)return;
+const fileName=file.name.toLowerCase();
+if(fileName.endsWith('.xlsx')||fileName.endsWith('.xls')){
+const reader=new FileReader();
+reader.onload=function(e){
+try{
+const data=new Uint8Array(e.target.result);
+const workbook=XLSX.read(data,{type:'array'});
+const sheetName=workbook.SheetNames[0];
+const sheet=workbook.Sheets[sheetName];
+const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+let headerIdx=-1;
+for(let i=0;i<Math.min(10,rows.length);i++){
+if(rows[i][0]==='Code'){headerIdx=i;break;}
+}
+if(headerIdx===-1){showMessage('Header row not found','error');return;}
+let imported=0;
+for(let i=headerIdx+1;i<rows.length;i++){
+const row=rows[i];
+if(!row[0]||row[0]==='')continue;
+const code=String(row[0]).trim();
+if(!code||code==='N/A'||code.length<5||boqData.some(item=>item.code===code))continue;
+const roomFull=String(row[2]||'').trim();
+const roomMatch=roomFull.match(/^([A-Z]{2})(\d{2})$/);
+const roomCode=roomMatch?roomMatch[1]:'';
+const roomNumber=roomMatch?roomMatch[2]:'01';
+const item={
+code:code,
+floorCode:String(row[1]||'').trim(),
+roomCode:roomCode,
+roomNumber:roomNumber,
+zone:String(row[3]||'').trim(),
+area:String(row[4]||'').trim(),
+brand:String(row[5]||'').trim(),
+itemType:String(row[18]||'LF').trim(),
+subcategory:String(row[19]||'').trim(),
+description:String(row[6]||'').trim(),
+finishing:String(row[7]||'').trim(),
+size:String(row[8]||'').trim(),
+techDrawings:String(row[10]||'').trim(),
+refImage:String(row[9]||'').trim(),
+companyLink:String(row[11]||'').trim(),
+qty:parseFloat(row[12])||0,
+unit:String(row[13]||'pcs').trim(),
+unitRate:parseFloat(row[14])||0,
+amount:parseFloat(row[15])||(parseFloat(row[12])||0)*(parseFloat(row[14])||0),
+productionTime:String(row[16]||'').trim(),
+notes:String(row[17]||'').trim()
+};
+boqData.push(item);
+imported++;
+}
+sortBoqData();
+renderTable();
+updateStats();
+updateCoverPage();
+autoSave();
+showMessage('Imported '+imported+' items from Excel','success');
+}catch(err){
+showMessage('Excel error: '+err.message,'error');
+console.error(err);
+}
+};
+reader.readAsArrayBuffer(file);
+}else{
+const reader=new FileReader();
+reader.onload=function(e){
+const content=e.target.result;
+parseCSV(content);
+};
+reader.readAsText(file);
+}
+event.target.value='';
+}
+function parseCSV(content){
+const lines=content.split('\n').filter(l=>l.trim());
+if(lines.length<2){showMessage('Empty CSV','error');return;}
+const header=lines[0].split('\t');
+let imported=0;
+let skipped=0;
+for(let i=1;i<lines.length;i++){
+const values=lines[i].split('\t');
+if(values.length<20){skipped++;continue;}
+const code=values[0]?.trim();
+if(!code||code==='N/A'||code.length<5||boqData.some(item=>item.code===code)){skipped++;continue;}
+const cleanVal=(val)=>(val==='N/A'||!val)?'':val.trim();
+const roomFull=values[2]?.trim()||'';
+const roomMatch=roomFull.match(/^([A-Z]{2})(\d{2})$/);
+const roomCode=roomMatch?roomMatch[1]:'';
+const roomNumber=roomMatch?roomMatch[2]:'01';
+const subcatRaw=values[19]?.trim()||'';
+const itemType=values[18]?.trim()||'LF';
+const item={
+code:code,
+floorCode:values[1]?.trim()||'',
+roomCode:roomCode,
+roomNumber:roomNumber,
+zone:cleanVal(values[3]),
+area:cleanVal(values[4]),
+brand:cleanVal(values[5]),
+description:cleanVal(values[6]),
+finishing:cleanVal(values[7]),
+size:cleanVal(values[8]),
+refImage:cleanVal(values[9]),
+techDrawings:cleanVal(values[10]).replace(/; /g,'\n'),
+companyLink:cleanVal(values[11]).replace(/; /g,'\n'),
+qty:parseFloat(values[12])||1,
+unit:values[13]?.trim()||'pcs',
+unitRate:parseFloat(values[14])||0,
+amount:parseFloat(values[15])||0,
+productionTime:cleanVal(values[16]),
+notes:cleanVal(values[17]),
+itemType:itemType,
+subcategory:subcatRaw
+};
+boqData.push(item);
+imported++;
+}
+sortBoqData();
+renderTable();
+updateStats();
+updateCoverPage();
+autoSave();
+showMessage('Imported '+imported+' items (skipped '+skipped+')','success');
+}
+function exportForSuppliers(){
+if(boqData.length===0){showMessage('No data','error');return;}
+const pName=document.getElementById('projectName').value.trim()||'Untitled Project';
+const pDate=new Date().toLocaleDateString('en-GB');
+const total=boqData.reduce((sum,item)=>sum+parseFloat(item.amount||0),0);
+let tableRows='';
+boqData.forEach((item,idx)=>{
+const codeClass=(item.itemType==='CF')?'custom-code':'';
+const bgColor=getColorForRoom(item.floorCode,item.roomCode,item.roomNumber);
+const imgCell=item.refImage?'<img src="'+item.refImage+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;" onerror="this.outerHTML=\'📷\';">':'📷';
+const techLinksHTML=renderMultiLinks(item.techDrawings);
+const compLinksHTML=renderMultiLinks(item.companyLink);
+const refLink=item.refImage?'<a href="'+item.refImage+'" target="_blank">LINK</a>':'N/A';
+tableRows+='<tr data-floor="'+item.floorCode+'" data-room="'+item.roomCode+'" data-itemtype="'+item.itemType+'" data-brand="'+(item.brand||'')+'" style="background-color:'+bgColor+';"><td>'+imgCell+'</td><td class="'+codeClass+'">'+item.code+'</td><td>'+item.floorCode+'</td><td>'+item.roomCode+item.roomNumber+'</td><td>'+(item.description||'N/A')+'</td><td>'+(item.finishing||'N/A')+'</td><td>'+(item.size||'N/A')+'</td><td>'+refLink+'</td><td>'+techLinksHTML+'</td><td>'+compLinksHTML+'</td><td>'+item.qty+'</td><td>'+item.unit+'</td><td class="supplier-editable"><input type="number" value="" step="0.01" data-qty="'+item.qty+'"></td><td class="amount">N/A</td><td class="supplier-editable"><input type="text" value=""></td><td class="supplier-editable"><textarea rows="2"></textarea></td></tr>';
+});
+const floors=[...new Set(boqData.map(item=>item.floorCode))];
+const rooms=[...new Set(boqData.map(item=>item.roomCode))];
+const itemTypes=[...new Set(boqData.map(item=>item.itemType))];
+const brands=[...new Set(boqData.map(item=>item.brand).filter(b=>b))];
+const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BOQ Supplier - '+pName+'</title><style>body{font-family:Arial;padding:20px;background:#f5f5f5;}.container{max-width:1800px;margin:0 auto;background:white;padding:30px;}.header{background:linear-gradient(135deg,#4a5568,#2d3748);color:white;padding:30px;border-radius:8px;margin-bottom:30px;text-align:center;}.header img{height:60px;margin-bottom:15px;filter:invert(1) brightness(2);}.filter-bar{background:#f8f9fa;padding:15px;border-radius:5px;margin-bottom:20px;display:flex;gap:15px;flex-wrap:wrap;}.filter-bar select{padding:8px;border:1px solid #ccc;border-radius:4px;}table{width:100%;border-collapse:collapse;}th{background:#333;color:white;padding:10px;text-align:left;font-size:11px;}td{padding:8px;border:1px solid #ddd;font-size:11px;}.supplier-editable input,.supplier-editable textarea{width:100%;padding:6px;border:1px solid #ccc;}.custom-code{color:#dc3545;font-weight:bold;}.link-text{color:#007bff;text-decoration:underline;margin:0 3px;}button{padding:12px 24px;background:#28a745;color:white;border:none;border-radius:5px;cursor:pointer;margin:10px 5px;}button:hover{background:#218838;}</style></head><body><div class="container"><div class="header"><img src="https://houseofaida.com/wp-content/uploads/2025/01/logo-white.svg"><h1>HOUSE OF AIDA</h1><h2>Bill of Quantities - Supplier</h2><p><strong>Project:</strong> '+pName+' | <strong>Date:</strong> '+pDate+'</p></div><div class="filter-bar"><select id="filterFloor" onchange="applyFilters()"><option value="">All Floors</option>'+floors.map(f=>'<option value="'+f+'">'+f+'</option>').join('')+'</select><select id="filterRoom" onchange="applyFilters()"><option value="">All Rooms</option>'+rooms.map(r=>'<option value="'+r+'">'+r+'</option>').join('')+'</select><select id="filterItemType" onchange="applyFilters()"><option value="">All Types</option>'+itemTypes.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+'</select><select id="filterBrand" onchange="applyFilters()"><option value="">All Brands</option>'+brands.map(b=>'<option value="'+b+'">'+b+'</option>').join('')+'</select></div><table id="supplierTable"><thead><tr><th>Img</th><th>Code</th><th>Floor</th><th>Room</th><th class="colDescription">Description</th><th>Finishing</th><th>Size</th><th>Ref Img</th><th>Tech</th><th>Co.Link</th><th>QTY</th><th>Unit</th><th>Unit Rate</th><th>Amount</th><th>Prod.Time</th><th>Remarks</th></tr></thead><tbody>'+tableRows+'</tbody></table><div style="margin-top:30px;"><button onclick="exportFiltered()">💾 Export Filtered CSV</button><button onclick="saveAllCSV()">💾 Save All CSV</button></div></div><script>function applyFilters(){const floor=document.getElementById("filterFloor").value;const room=document.getElementById("filterRoom").value;const itemType=document.getElementById("filterItemType").value;const brand=document.getElementById("filterBrand").value;const rows=document.querySelectorAll("#supplierTable tbody tr");rows.forEach(row=>{const showFloor=!floor||row.dataset.floor===floor;const showRoom=!room||row.dataset.room===room;const showItemType=!itemType||row.dataset.itemtype===itemType;const showBrand=!brand||row.dataset.brand===brand;row.style.display=(showFloor&&showRoom&&showItemType&&showBrand)?"":"none";});}function exportFiltered(){const rows=Array.from(document.querySelectorAll("#supplierTable tbody tr")).filter(r=>r.style.display!=="none");if(rows.length===0){alert("No rows visible");return;}let csv="Code\\tFloor\\tRoom\\tDescription\\tFinishing\\tSize\\tQTY\\tUnit\\tUnit Rate\\tAmount\\tProd.Time\\tRemarks\\n";rows.forEach(row=>{const cells=row.querySelectorAll("td");const code=cells[1].textContent;const floor=cells[2].textContent;const room=cells[3].textContent;const desc=cells[4].textContent;const finish=cells[5].textContent;const size=cells[6].textContent;const qty=cells[10].textContent;const unit=cells[11].textContent;const rate=cells[12].querySelector("input").value||"N/A";const amt=cells[13].textContent;const prod=cells[14].querySelector("input").value||"N/A";const remarks=cells[15].querySelector("textarea").value||"N/A";csv+=code+"\\t"+floor+"\\t"+room+"\\t"+desc+"\\t"+finish+"\\t"+size+"\\t"+qty+"\\t"+unit+"\\t"+rate+"\\t"+amt+"\\t"+prod+"\\t"+remarks+"\\n";});const blob=new Blob(["\\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="BOQ_Supplier_Filtered.csv";a.click();URL.revokeObjectURL(url);}function saveAllCSV(){const rows=document.querySelectorAll("#supplierTable tbody tr");let csv="Code\\tFloor\\tRoom\\tDescription\\tFinishing\\tSize\\tQTY\\tUnit\\tUnit Rate\\tAmount\\tProd.Time\\tRemarks\\n";rows.forEach(row=>{const cells=row.querySelectorAll("td");const code=cells[1].textContent;const floor=cells[2].textContent;const room=cells[3].textContent;const desc=cells[4].textContent;const finish=cells[5].textContent;const size=cells[6].textContent;const qty=cells[10].textContent;const unit=cells[11].textContent;const rate=cells[12].querySelector("input").value||"N/A";const amt=cells[13].textContent;const prod=cells[14].querySelector("input").value||"N/A";const remarks=cells[15].querySelector("textarea").value||"N/A";csv+=code+"\\t"+floor+"\\t"+room+"\\t"+desc+"\\t"+finish+"\\t"+size+"\\t"+qty+"\\t"+unit+"\\t"+rate+"\\t"+amt+"\\t"+prod+"\\t"+remarks+"\\n";});const blob=new Blob(["\\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="BOQ_Supplier_All.csv";a.click();URL.revokeObjectURL(url);}<\/script></body></html>';
+const blob=new Blob([html],{type:'text/html'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='BOQ_'+pName+'_Supplier_'+new Date().toISOString().slice(0,10)+'.html';
+a.click();
+URL.revokeObjectURL(url);
+showMessage('Supplier HTML exported!','success');
+}
+function closePrintOptions(){
+document.getElementById('printOptionsModal').style.display='none';
+}
+function executePrint(){
+const printCols={
+image:document.getElementById('printImage').checked,
+zone:document.getElementById('printZone').checked,
+area:document.getElementById('printArea').checked,
+brand:document.getElementById('printBrand').checked,
+finishing:document.getElementById('printFinishing').checked,
+size:document.getElementById('printSize').checked,
+tech:document.getElementById('printTech').checked,
+refImg:document.getElementById('printRefImg').checked,
+coLink:document.getElementById('printCoLink').checked,
+unitRate:document.getElementById('printUnitRate').checked,
+amount:document.getElementById('printAmount').checked,
+prodTime:document.getElementById('printProdTime').checked,
+notes:document.getElementById('printNotes').checked
+};
+const colElems=document.querySelectorAll('.colImage,.colZone,.colArea,.colBrand,.colFinishing,.colSize,.colTech,.colRefImg,.colCoLink,.colUnitRate,.colAmount,.colProdTime,.colNotes');
+colElems.forEach(el=>{
+const cls=el.classList[0];
+if(cls==='colImage'&&!printCols.image)el.style.display='none';
+else if(cls==='colZone'&&!printCols.zone)el.style.display='none';
+else if(cls==='colArea'&&!printCols.area)el.style.display='none';
+else if(cls==='colBrand'&&!printCols.brand)el.style.display='none';
+else if(cls==='colFinishing'&&!printCols.finishing)el.style.display='none';
+else if(cls==='colSize'&&!printCols.size)el.style.display='none';
+else if(cls==='colTech'&&!printCols.tech)el.style.display='none';
+else if(cls==='colRefImg'&&!printCols.refImg)el.style.display='none';
+else if(cls==='colCoLink'&&!printCols.coLink)el.style.display='none';
+else if(cls==='colUnitRate'&&!printCols.unitRate)el.style.display='none';
+else if(cls==='colAmount'&&!printCols.amount)el.style.display='none';
+else if(cls==='colProdTime'&&!printCols.prodTime)el.style.display='none';
+else if(cls==='colNotes'&&!printCols.notes)el.style.display='none';
+});
+closePrintOptions();
+setTimeout(()=>{window.print();},100);
+}
+function openAdminModal(){
+document.getElementById('adminModal').style.display='block';
+const checkbox=document.getElementById('adminShowColumnToggle');
+if(checkbox){
+const saved=localStorage.getItem('showColumnToggle');
+checkbox.checked=saved===null?true:saved==='true';
+}
+}
+function closeAdminModal(){
+document.getElementById('adminModal').style.display='none';
+loadColumnTogglePreference();
+}
+function verifyAdmin(){
+const pwd=document.getElementById('adminPassword').value;
+if(pwd===ADMIN_PASSWORD){
+isAdminMode=true;
+document.getElementById('adminLoginSection').style.display='none';
+document.getElementById('adminPanelSection').style.display='block';
+document.getElementById('adminBanner').style.display='block';
+document.body.classList.add('admin-active');
+showMessage('Admin active!','success');
+}else{
+showMessage('Wrong password!','error');
+}
+}
+function deleteAllItems(){
+if(confirm('Delete ALL items?')){
+boqData=[];
+renderTable();
+updateStats();
+updateCoverPage();
+localStorage.removeItem('boqData');
+showMessage('All deleted!','success');
+closeAdminModal();
+}
+}
+function resetAll(){
+if(confirm('Reset application?')){
+localStorage.clear();
+location.reload();
+}
+}
+function showMessage(text,type='info'){
+const existing=document.querySelector('.message');
+if(existing)existing.remove();
+const msg=document.createElement('div');
+msg.className='message '+type;
+msg.textContent=text;
+document.body.appendChild(msg);
+setTimeout(()=>msg.remove(),3000);
+}
+window.onclick=function(event){
+const modal1=document.getElementById('adminModal');
+if(event.target===modal1)closeAdminModal();
+if(event.target===modal2)closePrintOptions();
+};
+
+// PDF Export v1.10
+let sortDirection = {};
+function sortTable(key) {
+    sortDirection[key] = sortDirection[key] === 'asc' ? 'desc' : 'asc';
+    const dir = sortDirection[key];
+    boqData.sort((a, b) => {
+        let valA = a[key] || '';
+        let valB = b[key] || '';
+        const numA = parseFloat(valA);
+        const numB = parseFloat(valB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return dir === 'asc' ? numA - numB : numB - numA;
+        }
+        valA = String(valA).toLowerCase();
+        valB = String(valB).toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    });
+    renderTable();
+}
+function showPDFModal(){
+document.getElementById('pdfExportModal').style.display='block';
+}
+function closePDFModal(){
+document.getElementById('pdfExportModal').style.display='none';
+}
+// PDF Export Functions for v2.51 with jsPDF-AutoTable
+
+function selectAllPDFColumns() {
+    document.querySelectorAll('.pdfCol').forEach(cb => cb.checked = true);
+}
+
+function deselectAllPDFColumns() {
+    document.querySelectorAll('.pdfCol').forEach(cb => cb.checked = false);
+}
+
+
+// ============================================================
+// SIMPLE IMAGE LOADER WITH CORS FALLBACK (v2.51)
+// ============================================================
+async function loadImageSimple(url) {
+    if (!url || url === 'Link' || url === 'N/A') return null;
+    
+    try {
+        // Try 1: Direct URL
+        const response = await fetch(url, { mode: 'cors', timeout: 10000 });
+        if (response.ok) {
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        }
+    } catch (err) {
+        console.warn('Direct load failed, trying proxy...', err.message);
+    }
+    
+    try {
+        // Try 2: CORS Proxy
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl, { timeout: 10000 });
+        if (response.ok) {
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        }
+    } catch (err) {
+        console.error('Proxy load failed:', err.message);
+    }
+    
+    return null; // Fallback
+}
+
+async function executePDFExport() {
+    const { jsPDF } = window.jspdf;
+    
+    // Get options
+    const format = document.querySelector('input[name="pdfFormat"]:checked').value;
+    const orientation = document.querySelector('input[name="pdfOrientation"]:checked').value;
+    
+    // Get selected columns
+    const selectedCols = [];
+    const colHeaders = [];
+    document.querySelectorAll('.pdfCol:checked').forEach(cb => {
+        const colName = cb.getAttribute('data-col');
+        selectedCols.push(colName);
+        colHeaders.push(colName);
+    });
+    
+    if (selectedCols.length === 0) {
+        alert('⚠️ Please select at least one column!');
+        return;
+    }
+    
+    // Create PDF
+    const doc = new jsPDF({
+        orientation: orientation === 'landscape' ? 'l' : 'p',
+        unit: 'mm',
+        format: format === 'a3' ? 'a3' : 'a4'
+    });
+    
+    // Prepare table data
+    const tableData = [];
+    
+    // Column mapping
+    const colMap = {
+        'Image': 'refImage',
+        'Code': 'code',
+        'Floor': 'floorCode',
+        'Room': 'roomCode',
+        'Zone': 'zone',
+        'Area': 'area',
+        'Brand': 'brand',
+        'Description': 'description',
+        'Finishing': 'finishing',
+        'Size': 'size',
+        'Tech': 'techDrawings',
+        'Ref Image': 'refImage',
+        'Co.Link': 'companyLink',
+        'QTY': 'qty',
+        'Unit': 'unit',
+        'Unit Rate': 'unitRate',
+        'Amount': 'amount',
+        'Prod.Time': 'productionTime',
+        'Notes': 'notes'
+    };
+    
+    // Build table rows
+    boqData.forEach(item => {
+        const row = [];
+        selectedCols.forEach(colName => {
+            const fieldName = colMap[colName];
+            let value = item[fieldName] || '';
+            
+            // Format values
+            if (colName === 'Unit Rate' || colName === 'Amount') {
+                value = value ? parseFloat(value).toFixed(2) : '0.00';
+            } else if (colName === 'QTY') {
+                value = value || '0';
+            } else if (colName === 'Image') {
+                // Empty for didDrawCell to handle
+                value = '';
+            } else if (colName === 'Tech' || colName === 'Ref Image' || colName === 'Co.Link') {
+                value = value ? 'Link' : 'N/A';
+            }
+            
+            row.push(value.toString());
+        });
+        tableData.push(row);
+    });
+    
+    // Add total row if Amount is included
+//     if (selectedCols.includes('Amount')) {
+//         const total = boqData.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+//         const totalRow = [];
+//         selectedCols.forEach((colName, idx) => {
+//             if (colName === 'Amount') {
+//                 totalRow.push('€ ' + total.toFixed(2));
+//             } else if (idx === 0) {
+//                 totalRow.push('TOTAL');
+//             } else {
+//                 totalRow.push('');
+//             }
+//         });
+//         tableData.push(totalRow);
+//     }
+    
+    // Calculate optimal font size based on columns
+    const colCount = selectedCols.length;
+    let fontSize = 8;
+    if (colCount > 15) fontSize = 6;
+    else if (colCount > 10) fontSize = 7;
+    
+    
+    // ============================================================
+    // PRELOAD ALL IMAGES BEFORE RENDERING (Grok fix)
+    // ============================================================
+    const imageCache = new Map();
+    
+    if (selectedCols.includes('Image')) {
+        // Collect unique image URLs
+        const uniqueImages = [...new Set(
+            boqData.map(item => item.refImage)
+                   .filter(url => url && url.trim() !== '' && url !== 'Link' && url !== 'N/A')
+        )];
+        
+        if (uniqueImages.length > 0) {
+            console.log(`🔄 Preloading ${uniqueImages.length} unique images...`);
+            
+            // Show loading indicator
+            const modal = document.getElementById('pdfExportModal');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'imageLoadingIndicator';
+            loadingDiv.style.cssText = 'margin: 10px 0; padding: 10px; background: #e3f2fd; border-radius: 4px; text-align: center;';
+            loadingDiv.innerHTML = '<strong>⏳ Loading images...</strong><br><span id="loadProgress">0/' + uniqueImages.length + '</span>';
+            modal.querySelector('.modal-content').appendChild(loadingDiv);
+            
+            // Preload all images in parallel
+            let loadedCount = 0;
+            const loadPromises = uniqueImages.map(async url => {
+                try {
+                    const imgData = await loadImageSimple(url);
+                    if (imgData) {
+                        imageCache.set(url, imgData);
+                        loadedCount++;
+                        document.getElementById('loadProgress').textContent = `${loadedCount}/${uniqueImages.length}`;
+                        console.log(`✅ Loaded: ${url.substring(0, 60)}...`);
+                    } else {
+                        console.warn(`⚠️ Failed to load: ${url.substring(0, 60)}...`);
+                    }
+                } catch (err) {
+                    console.error(`❌ Error loading ${url}:`, err.message);
+                }
+            });
+            
+            // Wait for all loads (success or fail)
+            await Promise.allSettled(loadPromises);
+            
+            // Remove loading indicator
+            const indicator = document.getElementById('imageLoadingIndicator');
+            if (indicator) indicator.remove();
+            
+            console.log(`✅ Preloaded ${imageCache.size}/${uniqueImages.length} images`);
+            
+            // Show warning if many failed
+            if (imageCache.size === 0 && uniqueImages.length > 0) {
+                alert('⚠️ No images could be loaded (CORS/network issues). PDF will show links only.');
+            } else if (imageCache.size < uniqueImages.length / 2) {
+                const failed = uniqueImages.length - imageCache.size;
+                alert(`⚠️ Only ${imageCache.size}/${uniqueImages.length} images loaded. ${failed} will show as links.`);
+            }
+        }
+    }
+    
+// Generate AutoTable
+    doc.autoTable({
+        head: [colHeaders],
+        body: tableData,
+        startY: 20,
+        theme: 'grid',
+        styles: {
+            fontSize: fontSize,
+            cellPadding: 2,
+            overflow: 'linebreak',
+            halign: 'left'
+        },
+        headStyles: {
+            fillColor: [44, 62, 80],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'center'
+        },
+        columnStyles: selectedCols.reduce((styles, col, idx) => {
+            if (col === 'Unit Rate' || col === 'Amount' || col === 'QTY') {
+                styles[idx] = { halign: 'right' };
+            }
+            if (col === 'Image') {
+                styles[idx] = { cellWidth: 20, minCellHeight: 15 };
+            }
+            return styles;
+        }, {}),
+        didDrawCell: function(data) {  // NOW SYNCHRONOUS (Grok fix)
+            if (data.section === 'body' && data.column.index !== undefined) {
+                const colName = selectedCols[data.column.index];
+                const rowData = boqData[data.row.index];
+                
+                if (!rowData) return;
+                
+                // Handle Image column using PRELOADED cache (NO await!)
+                if (colName === 'Image' && rowData.refImage) {
+                    const imgData = imageCache.get(rowData.refImage);  // From cache
+                    if (imgData) {
+                        try {
+                            const imgFormat = imgData.includes('image/png') ? 'PNG' : 'JPEG';
+                            doc.addImage(imgData, imgFormat, data.cell.x + 2, data.cell.y + 1, 12, 12);
+                        } catch (err) {
+                            console.error('Error drawing image:', err);
+                            // Fallback to link
+                            doc.setTextColor(0, 0, 255);
+                            doc.textWithLink('🔗', data.cell.x + 2, data.cell.y + 7, { url: rowData.refImage });
+                            doc.setTextColor(0, 0, 0);
+                        }
+                    } else if (rowData.refImage && rowData.refImage.trim() !== '') {
+                        // Image not in cache - show clickable link
+                        doc.setTextColor(0, 0, 255);
+                        doc.textWithLink('Link', data.cell.x + 2, data.cell.y + 7, { url: rowData.refImage });
+                        doc.setTextColor(0, 0, 0);
+                    }
+                }
+                
+                // Make Tech/Ref/Co.Link clickable (unchanged)
+                if ((colName === 'Tech' && rowData.techDrawings) ||
+                    (colName === 'Ref Image' && rowData.refImage) ||
+                    (colName === 'Co.Link' && rowData.companyLink)) {
+                    const url = colName === 'Tech' ? rowData.techDrawings :
+                               colName === 'Ref Image' ? rowData.refImage : rowData.companyLink;
+                    if (url && url.trim() !== '') {
+                        doc.setTextColor(0, 0, 255);
+                        doc.textWithLink('Link', data.cell.x + 2, data.cell.y + 7, { url: url });
+                        doc.setTextColor(0, 0, 0);
+                    }
+                }
+            }
+        },
+        didDrawPage: function(data) {
+            // Header on each page
+            doc.setFontSize(10);
+            doc.setTextColor(44, 62, 80);
+            const projectName = document.getElementById('projectName').value || 'BOQ Project';
+            doc.text(projectName, data.settings.margin.left, 10);
+            doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.width - 30, 10);
+        }
+    });
+    
+    // Save PDF
+    const projectName = document.getElementById('projectName').value || 'BOQ';
+    const fileName = `${projectName}_BOQ_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    
+    // Close modal
+    closePDFModal();
+    showMessage('✅ PDF exported successfully!', 'success');
+}
+
+// Print Modal Functions for v2.34
+
+function showPrintModal() {
+    document.getElementById('printModal').style.display = 'block';
+}
+
+function closePrintModal() {
+    document.getElementById('printModal').style.display = 'none';
+}
+
+function selectAllPrintColumns() {
+    document.querySelectorAll('.printCol').forEach(cb => cb.checked = true);
+}
+
+function deselectAllPrintColumns() {
+    document.querySelectorAll('.printCol').forEach(cb => cb.checked = false);
+}
+
+function generatePrint() {
+    // Get options
+    const format = document.querySelector('input[name="printFormat"]:checked').value;
+    const orientation = document.querySelector('input[name="printOrientation"]:checked').value;
+    
+    // Get selected columns
+    const selectedCols = [];
+    document.querySelectorAll('.printCol:checked').forEach(cb => {
+        selectedCols.push(cb.getAttribute('data-col'));
+    });
+    
+    if (selectedCols.length === 0) {
+        alert('⚠️ Please select at least one column!');
+        return;
+    }
+    
+    // Calculate optimal layout
+    const colCount = selectedCols.length;
+    let fontSize, padding, imgSize, pageWidth;
+    
+    if (format === 'a4') {
+        pageWidth = orientation === 'landscape' ? 277 : 190; // mm minus margins
+    } else {
+        pageWidth = orientation === 'landscape' ? 400 : 277; // mm minus margins
+    }
+    
+    // Dynamic sizing based on column count
+    if (colCount <= 10) {
+        fontSize = '7px';
+        padding = '3px 2px';
+        imgSize = '35px';
+    } else if (colCount <= 15) {
+        fontSize = '6px';
+        padding = '2px 1px';
+        imgSize = '30px';
+    } else {
+        fontSize = '5px';
+        padding = '1px';
+        imgSize = '25px';
+    }
+    
+    // Calculate column width
+    const colWidth = Math.floor(pageWidth / colCount);
+    
+    // Create dynamic print CSS
+    let printCSS = `
+        <style id="dynamicPrintCSS">
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .container { box-shadow: none; padding: 5px; max-width: 100%; }
+            .btn-group, .search-section, .form-section, button, .action-btn, 
+            #adminBanner, .column-toggle { display: none !important; }
+            .header-brand, .project-info, .stats { display: none !important; }
+            .cover-page { display: none !important; }
+            
+            table { 
+                page-break-before: auto; 
+                font-size: ${fontSize}; 
+                width: 100%; 
+                table-layout: fixed; 
+            }
+            
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+            
+            th, td { 
+                padding: ${padding}; 
+                border: 0.5px solid #333; 
+                display: none !important;
+                overflow: hidden; 
+                word-wrap: break-word; 
+            }
+            
+            th { 
+                background: #333 !important; 
+                color: white !important; 
+                font-size: ${fontSize}; 
+                font-weight: bold; 
+            }
+            
+            .img-thumbnail { 
+                width: ${imgSize} !important; 
+                height: ${imgSize} !important; 
+                display: block !important; 
+            }
+            
+            /* Show only selected columns */
+    `;
+    
+    selectedCols.forEach(col => {
+        printCSS += `.${col} { display: table-cell !important; width: ${colWidth}mm; }\n`;
+    });
+    
+    printCSS += `
+            @page { 
+                size: ${format.toUpperCase()} ${orientation}; 
+                margin: 5mm; 
+            }
+        }
+        </style>
+    `;
+    
+    // Remove old dynamic CSS if exists
+    const oldCSS = document.getElementById('dynamicPrintCSS');
+    if (oldCSS) oldCSS.remove();
+    
+    // Add new CSS to head
+    document.head.insertAdjacentHTML('beforeend', printCSS);
+    
+    // Close modal
+    closePrintModal();
+    
+    // Show message and print
+    showMessage('Preparing print...', 'info');
+    
+    setTimeout(() => {
+        window.print();
+    }, 500);
+}
+
+</script>
+<!-- PDF Export Modal v1.10 -->
+
+// PDF Export Modal HTML for v2.51
+<div id="pdfExportModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<h2>📄 Export PDF Options</h2>
+<span class="close" onclick="closePDFModal()">&times;</span>
+</div>
+<div style="margin-bottom:20px;">
+<h3 style="margin-bottom:10px;color:var(--primary);">📄 Page Format</h3>
+<div style="display:flex;gap:20px;">
+<label style="cursor:pointer;"><input type="radio" id="pdfFormatA4" name="pdfFormat" value="a4" checked> A4</label>
+<label style="cursor:pointer;"><input type="radio" id="pdfFormatA3" name="pdfFormat" value="a3"> A3</label>
+</div>
+</div>
+<div style="margin-bottom:20px;">
+<h3 style="margin-bottom:10px;color:var(--primary);">📐 Orientation</h3>
+<div style="display:flex;gap:20px;">
+<label style="cursor:pointer;"><input type="radio" id="pdfOrientLandscape" name="pdfOrientation" value="landscape" checked> Landscape</label>
+<label style="cursor:pointer;"><input type="radio" id="pdfOrientPortrait" name="pdfOrientation" value="portrait"> Portrait</label>
+</div>
+</div>
+<div style="margin-bottom:20px;">
+<h3 style="margin-bottom:10px;color:var(--primary);">📊 Columns to Include</h3>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:250px;overflow-y:auto;padding:10px;background:#f8f9fa;border-radius:5px;">
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Image" checked> Image</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Code" checked> Code</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Floor" checked> Floor</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Room" checked> Room</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Zone"> Zone</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Area"> Area</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Brand" checked> Brand</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Description" checked> Description</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Finishing" checked> Finishing</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Size" checked> Size</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Tech" checked> Tech</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Ref Image" checked> Ref Image</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Co.Link" checked> Co.Link</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="QTY" checked> QTY</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Unit" checked> Unit</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Unit Rate" checked> Unit Rate</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Amount" checked> Amount</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Prod.Time" checked> Prod.Time</label>
+<label style="cursor:pointer;"><input type="checkbox" class="pdfCol" data-col="Notes" checked> Notes</label>
+</div>
+<div style="margin-top:10px;display:flex;gap:10px;">
+<button class="btn-secondary" onclick="selectAllPDFColumns()">Select All</button>
+<button class="btn-secondary" onclick="deselectAllPDFColumns()">Deselect All</button>
+</div>
+</div>
+<div class="modal-footer">
+<button type="button" class="btn-secondary" onclick="closePDFModal()">Cancel</button>
+<button type="button" class="btn-primary" onclick="executePDFExport()">📄 Generate PDF</button>
+</div>
+</div>
+</div>
+
+</body>
+</html>
