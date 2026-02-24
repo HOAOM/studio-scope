@@ -21,7 +21,8 @@ import {
   Trash2,
   Edit,
   User,
-  MapPin
+  MapPin,
+  Shield
 } from 'lucide-react';
 import {
   AlertDialog,
