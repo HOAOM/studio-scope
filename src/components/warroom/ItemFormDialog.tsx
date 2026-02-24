@@ -258,7 +258,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         area: item.area || '',
         description: item.description,
         approval_status: item.approval_status,
-        sequence_number: item.sequence_number?.toString() || '',
+        sequence_number: (item as any).sequence_number?.toString() || '',
         floor_id: item.floor_id || '__none__',
         room_id: item.room_id || '__none__',
         room_number: item.room_number || '',
