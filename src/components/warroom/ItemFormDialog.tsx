@@ -467,6 +467,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
   };
 
   // Preview item code based on current selections
+  const watchSeqNum = form.watch('sequence_number');
   const previewItemCode = useMemo(() => {
     const floorId = form.getValues('floor_id');
     const roomId = form.getValues('room_id');
@@ -479,10 +480,11 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     const rn = (roomNum || '01').padStart(2, '0');
     const typeCode = (itemTypes as any[]).find(t => t.id === typeId)?.code || '??';
     const subcatCode = (allSubcategories as any[]).find(s => s.id === subcatId)?.code || '??';
+    const seqDisplay = watchSeqNum ? watchSeqNum.padStart(3, '0') : '###';
 
     if (floorId === '__none__' && roomId === '__none__' && typeId === '__none__') return null;
-    return `${floorCode}${roomCode}${rn}-${typeCode}${subcatCode}###`;
-  }, [form.watch('floor_id'), form.watch('room_id'), form.watch('room_number'), form.watch('item_type_id'), form.watch('subcategory_id'), floors, rooms, itemTypes, allSubcategories]);
+    return `${floorCode}${roomCode}${rn}-${typeCode}${subcatCode}${seqDisplay}`;
+  }, [form.watch('floor_id'), form.watch('room_id'), form.watch('room_number'), form.watch('item_type_id'), form.watch('subcategory_id'), watchSeqNum, floors, rooms, itemTypes, allSubcategories]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
