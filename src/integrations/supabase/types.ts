@@ -492,6 +492,62 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          is_paid: boolean | null
+          notes: string | null
+          paid_date: string | null
+          payment_date: string | null
+          payment_number: number | null
+          payment_scheme: Database["public"]["Enums"]["payment_scheme"] | null
+          project_item_id: string
+          supplier: string
+          total_payments: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          paid_date?: string | null
+          payment_date?: string | null
+          payment_number?: number | null
+          payment_scheme?: Database["public"]["Enums"]["payment_scheme"] | null
+          project_item_id: string
+          supplier: string
+          total_payments?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          paid_date?: string | null
+          payment_date?: string | null
+          payment_number?: number | null
+          payment_scheme?: Database["public"]["Enums"]["payment_scheme"] | null
+          project_item_id?: string
+          supplier?: string
+          total_payments?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payments_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -555,6 +611,7 @@ export type Database = {
         | "delivered"
         | "installed"
         | "on_hold"
+      payment_scheme: "single" | "split_50_50" | "installments_3"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -711,6 +768,7 @@ export const Constants = {
         "installed",
         "on_hold",
       ],
+      payment_scheme: ["single", "split_50_50", "installments_3"],
     },
   },
 } as const
