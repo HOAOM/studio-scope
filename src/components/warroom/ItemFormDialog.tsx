@@ -683,9 +683,9 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             <div className="space-y-4 p-4 rounded-lg border border-border bg-secondary/30">
               <h4 className="text-sm font-semibold text-foreground">Images & Links</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FileUploadField name="reference_image_url" label="Reference Image" />
-                <FileUploadField name="technical_drawing_url" label="Technical Drawing" />
-                <FileUploadField name="company_product_url" label="Company Product Link" />
+                {renderFileUpload('reference_image_url', 'Reference Image')}
+                {renderFileUpload('technical_drawing_url', 'Technical Drawing')}
+                {renderFileUpload('company_product_url', 'Company Product Link')}
               </div>
             </div>
 
@@ -765,12 +765,12 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
               <h4 className="text-sm font-semibold text-foreground">Costing & Selling Price</h4>
               <p className="text-xs text-muted-foreground">Toggle each field between % (of base cost) or fixed amount. Selling price is auto-calculated.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <CostFieldWithToggle name="delivery_cost" label="Delivery" />
-                <CostFieldWithToggle name="installation_cost" label="Installation" />
-                <CostFieldWithToggle name="insurance_cost" label="Insurance" />
-                <CostFieldWithToggle name="duty_cost" label="Duty" />
-                <CostFieldWithToggle name="custom_cost" label="Custom" />
-                <CostFieldWithToggle name="margin_percentage" label="Margin" />
+                {renderCostField('delivery_cost', 'Delivery')}
+                {renderCostField('installation_cost', 'Installation')}
+                {renderCostField('insurance_cost', 'Insurance')}
+                {renderCostField('duty_cost', 'Duty')}
+                {renderCostField('custom_cost', 'Custom')}
+                {renderCostField('margin_percentage', 'Margin')}
               </div>
               <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
                 <FormField control={form.control} name="selling_price" render={({ field }) => (
