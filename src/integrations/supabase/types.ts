@@ -202,6 +202,7 @@ export type Database = {
       }
       project_items: {
         Row: {
+          apartment_number: string | null
           approval_status: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included: boolean
@@ -209,12 +210,24 @@ export type Database = {
           created_at: string
           delivery_date: string | null
           description: string
+          dimensions: string | null
+          finish_color: string | null
+          finish_material: string | null
+          finish_notes: string | null
+          floor_id: string | null
           id: string
           image_3d_ref: string | null
           installed: boolean
           installed_date: string | null
+          is_selected_option: boolean | null
           item_code: string | null
+          item_type_id: string | null
+          lifecycle_status:
+            | Database["public"]["Enums"]["item_lifecycle_status"]
+            | null
+          margin_percentage: number | null
           notes: string | null
+          parent_item_id: string | null
           production_due_date: string | null
           project_id: string
           purchase_order_ref: string | null
@@ -222,11 +235,15 @@ export type Database = {
           quantity: number | null
           received: boolean
           received_date: string | null
+          room_id: string | null
+          selling_price: number | null
+          subcategory_id: string | null
           supplier: string | null
           unit_cost: number | null
           updated_at: string
         }
         Insert: {
+          apartment_number?: string | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included?: boolean
@@ -234,12 +251,24 @@ export type Database = {
           created_at?: string
           delivery_date?: string | null
           description: string
+          dimensions?: string | null
+          finish_color?: string | null
+          finish_material?: string | null
+          finish_notes?: string | null
+          floor_id?: string | null
           id?: string
           image_3d_ref?: string | null
           installed?: boolean
           installed_date?: string | null
+          is_selected_option?: boolean | null
           item_code?: string | null
+          item_type_id?: string | null
+          lifecycle_status?:
+            | Database["public"]["Enums"]["item_lifecycle_status"]
+            | null
+          margin_percentage?: number | null
           notes?: string | null
+          parent_item_id?: string | null
           production_due_date?: string | null
           project_id: string
           purchase_order_ref?: string | null
@@ -247,11 +276,15 @@ export type Database = {
           quantity?: number | null
           received?: boolean
           received_date?: string | null
+          room_id?: string | null
+          selling_price?: number | null
+          subcategory_id?: string | null
           supplier?: string | null
           unit_cost?: number | null
           updated_at?: string
         }
         Update: {
+          apartment_number?: string | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area?: string
           boq_included?: boolean
@@ -259,12 +292,24 @@ export type Database = {
           created_at?: string
           delivery_date?: string | null
           description?: string
+          dimensions?: string | null
+          finish_color?: string | null
+          finish_material?: string | null
+          finish_notes?: string | null
+          floor_id?: string | null
           id?: string
           image_3d_ref?: string | null
           installed?: boolean
           installed_date?: string | null
+          is_selected_option?: boolean | null
           item_code?: string | null
+          item_type_id?: string | null
+          lifecycle_status?:
+            | Database["public"]["Enums"]["item_lifecycle_status"]
+            | null
+          margin_percentage?: number | null
           notes?: string | null
+          parent_item_id?: string | null
           production_due_date?: string | null
           project_id?: string
           purchase_order_ref?: string | null
@@ -272,16 +317,54 @@ export type Database = {
           quantity?: number | null
           received?: boolean
           received_date?: string | null
+          room_id?: string | null
+          selling_price?: number | null
+          subcategory_id?: string | null
           supplier?: string | null
           unit_cost?: number | null
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "project_items_floor_id_fkey"
+            columns: ["floor_id"]
+            isOneToOne: false
+            referencedRelation: "master_floors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_item_type_id_fkey"
+            columns: ["item_type_id"]
+            isOneToOne: false
+            referencedRelation: "master_item_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "master_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "master_subcategories"
             referencedColumns: ["id"]
           },
         ]
@@ -391,6 +474,14 @@ export type Database = {
         | "accessories"
         | "appliances"
       boq_coverage_status: "present" | "missing" | "to-confirm"
+      item_lifecycle_status:
+        | "draft"
+        | "estimated"
+        | "approved"
+        | "ordered"
+        | "delivered"
+        | "installed"
+        | "on_hold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -538,6 +629,15 @@ export const Constants = {
         "appliances",
       ],
       boq_coverage_status: ["present", "missing", "to-confirm"],
+      item_lifecycle_status: [
+        "draft",
+        "estimated",
+        "approved",
+        "ordered",
+        "delivered",
+        "installed",
+        "on_hold",
+      ],
     },
   },
 } as const
