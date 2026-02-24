@@ -51,7 +51,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
@@ -95,7 +94,7 @@ const CATEGORY_LABELS: Record<BOQCategory, string> = {
 const ALL_CATEGORIES: BOQCategory[] = ['joinery', 'loose-furniture', 'lighting', 'finishes', 'ffe', 'accessories', 'appliances'];
 
 function calculateItemStatus(item: ProjectItem): StatusLevel {
-  if (!item.boq_included || item.approval_status === 'rejected') return 'unsafe';
+  if (item.approval_status === 'rejected') return 'unsafe';
   if (item.approval_status === 'pending' || item.approval_status === 'revision') return 'at-risk';
   if (item.approval_status === 'approved' && !item.purchased) return 'at-risk';
   if (item.purchased && !item.received) return 'at-risk';
@@ -501,21 +500,16 @@ export default function ProjectDetail() {
                         <TableHead className="w-[80px]">Status</TableHead>
                         <TableHead className="w-[80px]">Lifecycle</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead>Area</TableHead>
-                        <TableHead className="min-w-[180px]">Description</TableHead>
+                        <TableHead>Description</TableHead>
                         <TableHead>Supplier</TableHead>
-                        <TableHead className="text-center">BOQ</TableHead>
                         <TableHead>Approval</TableHead>
                         <TableHead className="text-right">Unit Cost</TableHead>
                         <TableHead className="text-center">Qty</TableHead>
                         <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-center">PO</TableHead>
                         <TableHead className="text-center">Purchased</TableHead>
-                        <TableHead className="text-center">Prod Due</TableHead>
                         <TableHead className="text-center">Delivery</TableHead>
                         <TableHead className="text-center">Received</TableHead>
                         <TableHead className="text-center">Installed</TableHead>
-                        <TableHead className="text-center">3D</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -533,12 +527,8 @@ export default function ProjectDetail() {
                               <LifecycleBadge status={item.lifecycle_status} />
                             </TableCell>
                             <TableCell className="text-xs">{CATEGORY_LABELS[item.category]}</TableCell>
-                            <TableCell className="text-xs">{item.area}</TableCell>
                             <TableCell className="text-sm font-medium max-w-[200px] truncate" title={item.description}>{item.description}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">{item.supplier || '-'}</TableCell>
-                            <TableCell className="text-center">
-                              {item.boq_included ? <CheckCircle2 className="w-4 h-4 text-status-safe mx-auto" /> : <XCircle className="w-4 h-4 text-status-unsafe mx-auto" />}
-                            </TableCell>
                             <TableCell>
                               <span className={cn('text-xs px-2 py-1 rounded-full',
                                 item.approval_status === 'approved' ? 'bg-status-safe-bg text-status-safe' :
@@ -551,24 +541,15 @@ export default function ProjectDetail() {
                             <TableCell className="text-right font-mono text-xs">{item.unit_cost != null ? item.unit_cost.toFixed(2) : '-'}</TableCell>
                             <TableCell className="text-center font-mono text-xs">{item.quantity ?? 1}</TableCell>
                             <TableCell className="text-right font-mono text-xs">{total > 0 ? total.toFixed(2) : '-'}</TableCell>
-                            <TableCell className="text-center text-xs text-muted-foreground">{item.purchase_order_ref || '-'}</TableCell>
                             <TableCell className="text-center">
                               {item.purchased ? <CheckCircle2 className="w-4 h-4 text-status-safe mx-auto" /> : <span className="text-muted-foreground">-</span>}
                             </TableCell>
-                            <TableCell className="text-center text-xs font-mono">{item.production_due_date || '-'}</TableCell>
                             <TableCell className="text-center text-xs font-mono">{item.delivery_date || '-'}</TableCell>
                             <TableCell className="text-center">
                               {item.received ? <CheckCircle2 className="w-4 h-4 text-status-safe mx-auto" /> : <span className="text-muted-foreground">-</span>}
                             </TableCell>
                             <TableCell className="text-center">
                               {item.installed ? <CheckCircle2 className="w-4 h-4 text-status-safe mx-auto" /> : <span className="text-muted-foreground">-</span>}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {item.image_3d_ref ? (
-                                <a href={item.image_3d_ref} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                  <ImageIcon className="w-4 h-4 mx-auto" />
-                                </a>
-                              ) : <span className="text-muted-foreground">-</span>}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">

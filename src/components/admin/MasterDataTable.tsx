@@ -45,7 +45,10 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
   const openEdit = (item: any) => {
     setEditItem(item);
     const d: Record<string, string> = {};
-    columns.forEach(c => { d[c.key] = String(item[c.key] ?? ''); });
+    columns.forEach(c => {
+      const val = item[c.key];
+      d[c.key] = Array.isArray(val) ? val.join(', ') : String(val ?? '');
+    });
     d['sort_order'] = String(item.sort_order ?? 0);
     setFormData(d);
     setDialogOpen(true);
@@ -101,13 +104,20 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
             ) : (
               data.map(item => (
                 <TableRow key={item.id} className="tracker-row">
-                  {columns.map(c => (
-                    <TableCell key={c.key} className="font-mono text-sm">
-                      {c.key === 'item_type_id' && item.master_item_types
-                        ? `${item.master_item_types.code} - ${item.master_item_types.name}`
-                        : String(item[c.key] ?? '')}
-                    </TableCell>
-                  ))}
+                  {columns.map(c => {
+                    const val = item[c.key];
+                    let display: string;
+                    if (c.key === 'item_type_id' && item.master_item_types) {
+                      display = `${item.master_item_types.code} - ${item.master_item_types.name}`;
+                    } else if (Array.isArray(val)) {
+                      display = val.join(', ');
+                    } else {
+                      display = String(val ?? '');
+                    }
+                    return (
+                      <TableCell key={c.key} className="font-mono text-sm">{display}</TableCell>
+                    );
+                  })}
                   <TableCell className="font-mono text-sm text-muted-foreground">{item.sort_order ?? 0}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">

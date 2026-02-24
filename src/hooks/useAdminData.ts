@@ -103,12 +103,14 @@ export function useItemTypes() {
 export function useUpsertItemType() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (item: { id?: string; name: string; code: string; sort_order?: number }) => {
+    mutationFn: async (item: { id?: string; name: string; code: string; sort_order?: number; allowed_categories?: string[] }) => {
+      const payload: any = { name: item.name, code: item.code, sort_order: item.sort_order ?? 0 };
+      if (item.allowed_categories !== undefined) payload.allowed_categories = item.allowed_categories;
       if (item.id) {
-        const { error } = await supabase.from('master_item_types').update({ name: item.name, code: item.code, sort_order: item.sort_order ?? 0 }).eq('id', item.id);
+        const { error } = await supabase.from('master_item_types').update(payload).eq('id', item.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('master_item_types').insert({ name: item.name, code: item.code, sort_order: item.sort_order ?? 0 });
+        const { error } = await supabase.from('master_item_types').insert(payload);
         if (error) throw error;
       }
     },
