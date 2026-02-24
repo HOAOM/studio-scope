@@ -51,7 +51,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
