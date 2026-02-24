@@ -57,6 +57,27 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 
+type ItemLifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
+
+const LIFECYCLE_COLORS: Record<ItemLifecycleStatus, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  estimated: 'bg-status-at-risk-bg text-status-at-risk',
+  approved: 'bg-status-safe-bg text-status-safe',
+  ordered: 'bg-primary/10 text-primary',
+  delivered: 'bg-status-safe-bg text-status-safe',
+  installed: 'bg-status-safe-bg text-status-safe',
+  on_hold: 'bg-status-unsafe-bg text-status-unsafe',
+};
+
+function LifecycleBadge({ status }: { status: ItemLifecycleStatus | null }) {
+  if (!status) return <span className="text-xs text-muted-foreground">-</span>;
+  return (
+    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', LIFECYCLE_COLORS[status])}>
+      {status.replace('_', ' ')}
+    </span>
+  );
+}
+
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type StatusLevel = 'safe' | 'at-risk' | 'unsafe';
 type BOQCategory = Database['public']['Enums']['boq_category'];
@@ -478,6 +499,7 @@ export default function ProjectDetail() {
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[90px]">Code</TableHead>
                         <TableHead className="w-[80px]">Status</TableHead>
+                        <TableHead className="w-[80px]">Lifecycle</TableHead>
                         <TableHead>Category</TableHead>
                         <TableHead>Area</TableHead>
                         <TableHead className="min-w-[180px]">Description</TableHead>
@@ -503,9 +525,12 @@ export default function ProjectDetail() {
                         const total = (item.unit_cost || 0) * (item.quantity || 1);
                         return (
                           <TableRow key={item.id} className={cn('tracker-row', status === 'unsafe' && 'bg-status-unsafe-bg')}>
-                            <TableCell className="font-mono text-xs font-semibold text-primary">{(item as any).item_code || '-'}</TableCell>
+                            <TableCell className="font-mono text-xs font-semibold text-primary">{item.item_code || '-'}</TableCell>
                             <TableCell>
                               <StatusBadge status={status} label={status === 'at-risk' ? 'At Risk' : status.charAt(0).toUpperCase() + status.slice(1)} size="sm" />
+                            </TableCell>
+                            <TableCell>
+                              <LifecycleBadge status={item.lifecycle_status} />
                             </TableCell>
                             <TableCell className="text-xs">{CATEGORY_LABELS[item.category]}</TableCell>
                             <TableCell className="text-xs">{item.area}</TableCell>
