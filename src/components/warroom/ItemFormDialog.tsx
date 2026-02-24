@@ -291,7 +291,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                     <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select floor" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                         <SelectItem value="__none__">None</SelectItem>
                         {floors.map(f => <SelectItem key={f.id} value={f.id}>{f.code} – {f.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -303,7 +303,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                     <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                         <SelectItem value="__none__">None</SelectItem>
                         {rooms.map(r => <SelectItem key={r.id} value={r.id}>{r.code} – {r.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -347,7 +347,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                     <Select onValueChange={(v) => { field.onChange(v); form.setValue('subcategory_id', ''); }} value={field.value || ''}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                         <SelectItem value="__none__">None</SelectItem>
                         {itemTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.code} – {t.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -359,7 +359,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                     <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedItemTypeId}>
                       <FormControl><SelectTrigger><SelectValue placeholder={selectedItemTypeId ? 'Select' : 'Choose type first'} /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="__none__">None</SelectItem>
                         {filteredSubcategories.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.code} – {s.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
