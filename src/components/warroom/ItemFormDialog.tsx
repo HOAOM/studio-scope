@@ -288,7 +288,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="floor_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Floor</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                     <Select onValueChange={field.onChange} value={field.value || '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select floor" /></SelectTrigger></FormControl>
                       <SelectContent>
                          <SelectItem value="__none__">None</SelectItem>
@@ -300,7 +300,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="room_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Room</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select onValueChange={field.onChange} value={field.value || '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger></FormControl>
                       <SelectContent>
                          <SelectItem value="__none__">None</SelectItem>
@@ -356,7 +356,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="subcategory_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Subcategory</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedItemTypeId}>
+                    <Select onValueChange={field.onChange} value={field.value || '__none__'} disabled={!selectedItemTypeId || selectedItemTypeId === '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder={selectedItemTypeId ? 'Select' : 'Choose type first'} /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">None</SelectItem>
