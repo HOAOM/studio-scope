@@ -94,7 +94,7 @@ const CATEGORY_LABELS: Record<BOQCategory, string> = {
 const ALL_CATEGORIES: BOQCategory[] = ['joinery', 'loose-furniture', 'lighting', 'finishes', 'ffe', 'accessories', 'appliances'];
 
 function calculateItemStatus(item: ProjectItem): StatusLevel {
-  if (!item.boq_included || item.approval_status === 'rejected') return 'unsafe';
+  if (item.approval_status === 'rejected') return 'unsafe';
   if (item.approval_status === 'pending' || item.approval_status === 'revision') return 'at-risk';
   if (item.approval_status === 'approved' && !item.purchased) return 'at-risk';
   if (item.purchased && !item.received) return 'at-risk';
