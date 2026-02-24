@@ -114,11 +114,11 @@ const DEFAULT_VALUES: ItemFormData = {
   boq_included: false,
   approval_status: 'pending',
   lifecycle_status: 'draft',
-  floor_id: '',
-  room_id: '',
+  floor_id: '__none__',
+  room_id: '__none__',
   apartment_number: '',
-  item_type_id: '',
-  subcategory_id: '',
+  item_type_id: '__none__',
+  subcategory_id: '__none__',
   dimensions: '',
   finish_material: '',
   finish_color: '',
@@ -160,7 +160,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
 
   // Filter subcategories by selected item type
   const filteredSubcategories = useMemo(() => {
-    if (!selectedItemTypeId) return [];
+    if (!selectedItemTypeId || selectedItemTypeId === '__none__') return [];
     return allSubcategories.filter((s: any) => s.item_type_id === selectedItemTypeId);
   }, [allSubcategories, selectedItemTypeId]);
 
@@ -173,11 +173,11 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         boq_included: item.boq_included,
         approval_status: item.approval_status,
         lifecycle_status: item.lifecycle_status || 'draft',
-        floor_id: item.floor_id || '',
-        room_id: item.room_id || '',
+        floor_id: item.floor_id || '__none__',
+        room_id: item.room_id || '__none__',
         apartment_number: item.apartment_number || '',
-        item_type_id: item.item_type_id || '',
-        subcategory_id: item.subcategory_id || '',
+        item_type_id: item.item_type_id || '__none__',
+        subcategory_id: item.subcategory_id || '__none__',
         dimensions: item.dimensions || '',
         finish_material: item.finish_material || '',
         finish_color: item.finish_color || '',
@@ -213,11 +213,11 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         boq_included: data.boq_included,
         approval_status: data.approval_status,
         lifecycle_status: data.lifecycle_status,
-        floor_id: data.floor_id || null,
-        room_id: data.room_id || null,
+        floor_id: data.floor_id && data.floor_id !== '__none__' ? data.floor_id : null,
+        room_id: data.room_id && data.room_id !== '__none__' ? data.room_id : null,
         apartment_number: data.apartment_number || null,
-        item_type_id: data.item_type_id || null,
-        subcategory_id: data.subcategory_id || null,
+        item_type_id: data.item_type_id && data.item_type_id !== '__none__' ? data.item_type_id : null,
+        subcategory_id: data.subcategory_id && data.subcategory_id !== '__none__' ? data.subcategory_id : null,
         dimensions: data.dimensions || null,
         finish_material: data.finish_material || null,
         finish_color: data.finish_color || null,
@@ -288,10 +288,10 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="floor_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Floor</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                     <Select onValueChange={field.onChange} value={field.value || '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select floor" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                         <SelectItem value="__none__">None</SelectItem>
                         {floors.map(f => <SelectItem key={f.id} value={f.id}>{f.code} – {f.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -300,10 +300,10 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="room_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Room</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select onValueChange={field.onChange} value={field.value || '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                         <SelectItem value="__none__">None</SelectItem>
                         {rooms.map(r => <SelectItem key={r.id} value={r.id}>{r.code} – {r.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -344,10 +344,10 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="item_type_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Item Type</FormLabel>
-                    <Select onValueChange={(v) => { field.onChange(v); form.setValue('subcategory_id', ''); }} value={field.value || ''}>
+                    <Select onValueChange={(v) => { field.onChange(v); form.setValue('subcategory_id', '__none__'); }} value={field.value || '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                         <SelectItem value="__none__">None</SelectItem>
                         {itemTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.code} – {t.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -356,10 +356,10 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="subcategory_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Subcategory</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedItemTypeId}>
+                    <Select onValueChange={field.onChange} value={field.value || '__none__'} disabled={!selectedItemTypeId || selectedItemTypeId === '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder={selectedItemTypeId ? 'Select' : 'Choose type first'} /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="__none__">None</SelectItem>
                         {filteredSubcategories.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.code} – {s.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
