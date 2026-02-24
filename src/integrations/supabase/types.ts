@@ -322,6 +322,7 @@ export type Database = {
           room_id: string | null
           room_number: string | null
           selling_price: number | null
+          sequence_number: number | null
           site_movement_date: string | null
           subcategory_id: string | null
           supplier: string | null
@@ -375,6 +376,7 @@ export type Database = {
           room_id?: string | null
           room_number?: string | null
           selling_price?: number | null
+          sequence_number?: number | null
           site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null
@@ -428,6 +430,7 @@ export type Database = {
           room_id?: string | null
           room_number?: string | null
           selling_price?: number | null
+          sequence_number?: number | null
           site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null

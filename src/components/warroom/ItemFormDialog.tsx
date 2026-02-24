@@ -302,7 +302,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     }
   }, [item, form]);
 
-  const handleFileUpload = async (field: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url', file: File) => {
+  const handleFileUpload = useCallback(async (field: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url', file: File) => {
     if (!user) return;
     setUploadingField(field);
     try {
@@ -318,7 +318,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     } finally {
       setUploadingField(null);
     }
-  };
+  }, [user, projectId, form]);
 
   const handleProformaUpload = async (file: File) => {
     if (!user) return;
@@ -420,7 +420,8 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
   const itemTypeOptions = filteredItemTypes.map((t: any) => ({ value: t.id, label: `${t.code} – ${t.name}` }));
   const subcategoryOptions = filteredSubcategories.map((s: any) => ({ value: s.id, label: `${s.code} – ${s.name}` }));
 
-  const FileUploadField = ({ name, label }: { name: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url'; label: string }) => (
+  // Render helpers - stable references to avoid remounting
+  const renderFileUpload = useCallback((name: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url', label: string) => (
     <FormField control={form.control} name={name} render={({ field }) => (
       <FormItem>
         <FormLabel>{label}</FormLabel>
@@ -438,9 +439,9 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         </div>
       </FormItem>
     )} />
-  );
+  ), [form.control, uploadingField, handleFileUpload]);
 
-  const CostFieldWithToggle = ({ name, label }: { name: CostFieldName; label: string }) => {
+  const renderCostField = useCallback((name: CostFieldName, label: string) => {
     const mode = costModes[name];
     return (
       <FormField control={form.control} name={name} render={({ field }) => (
@@ -459,12 +460,22 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             </Button>
           </FormLabel>
           <FormControl>
-            <Input type="text" inputMode="decimal" placeholder={mode === 'percent' ? '0 %' : '0.00'} {...field} className="[appearance:textfield]" />
+            <Input
+              type="text"
+              inputMode="decimal"
+              placeholder={mode === 'percent' ? '0 %' : '0.00'}
+              value={field.value || ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              ref={field.ref}
+              className="[appearance:textfield]"
+            />
           </FormControl>
         </FormItem>
       )} />
     );
-  };
+  }, [form.control, costModes, toggleCostMode]);
 
   // Preview item code based on current selections
   const watchSeqNum = form.watch('sequence_number');
@@ -672,9 +683,9 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             <div className="space-y-4 p-4 rounded-lg border border-border bg-secondary/30">
               <h4 className="text-sm font-semibold text-foreground">Images & Links</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FileUploadField name="reference_image_url" label="Reference Image" />
-                <FileUploadField name="technical_drawing_url" label="Technical Drawing" />
-                <FileUploadField name="company_product_url" label="Company Product Link" />
+                {renderFileUpload('reference_image_url', 'Reference Image')}
+                {renderFileUpload('technical_drawing_url', 'Technical Drawing')}
+                {renderFileUpload('company_product_url', 'Company Product Link')}
               </div>
             </div>
 
@@ -754,12 +765,12 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
               <h4 className="text-sm font-semibold text-foreground">Costing & Selling Price</h4>
               <p className="text-xs text-muted-foreground">Toggle each field between % (of base cost) or fixed amount. Selling price is auto-calculated.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <CostFieldWithToggle name="delivery_cost" label="Delivery" />
-                <CostFieldWithToggle name="installation_cost" label="Installation" />
-                <CostFieldWithToggle name="insurance_cost" label="Insurance" />
-                <CostFieldWithToggle name="duty_cost" label="Duty" />
-                <CostFieldWithToggle name="custom_cost" label="Custom" />
-                <CostFieldWithToggle name="margin_percentage" label="Margin" />
+                {renderCostField('delivery_cost', 'Delivery')}
+                {renderCostField('installation_cost', 'Installation')}
+                {renderCostField('insurance_cost', 'Insurance')}
+                {renderCostField('duty_cost', 'Duty')}
+                {renderCostField('custom_cost', 'Custom')}
+                {renderCostField('margin_percentage', 'Margin')}
               </div>
               <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
                 <FormField control={form.control} name="selling_price" render={({ field }) => (
