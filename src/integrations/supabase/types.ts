@@ -153,6 +153,7 @@ export type Database = {
       }
       master_item_types: {
         Row: {
+          allowed_categories: string[] | null
           code: string
           created_at: string | null
           id: string
@@ -160,6 +161,7 @@ export type Database = {
           sort_order: number | null
         }
         Insert: {
+          allowed_categories?: string[] | null
           code: string
           created_at?: string | null
           id?: string
@@ -167,6 +169,7 @@ export type Database = {
           sort_order?: number | null
         }
         Update: {
+          allowed_categories?: string[] | null
           code?: string
           created_at?: string | null
           id?: string
@@ -279,18 +282,25 @@ export type Database = {
           area: string
           boq_included: boolean
           category: Database["public"]["Enums"]["boq_category"]
+          company_product_url: string | null
           created_at: string
+          custom_cost: number | null
+          delivery_cost: number | null
           delivery_date: string | null
           description: string
           dimensions: string | null
+          duty_cost: number | null
           finish_color: string | null
           finish_material: string | null
           finish_notes: string | null
           floor_id: string | null
           id: string
           image_3d_ref: string | null
+          installation_cost: number | null
+          installation_start_date: string | null
           installed: boolean
           installed_date: string | null
+          insurance_cost: number | null
           is_selected_option: boolean | null
           item_code: string | null
           item_type_id: string | null
@@ -301,16 +311,21 @@ export type Database = {
           notes: string | null
           parent_item_id: string | null
           production_due_date: string | null
+          production_time: string | null
           project_id: string
           purchase_order_ref: string | null
           purchased: boolean
           quantity: number | null
           received: boolean
           received_date: string | null
+          reference_image_url: string | null
           room_id: string | null
+          room_number: string | null
           selling_price: number | null
+          site_movement_date: string | null
           subcategory_id: string | null
           supplier: string | null
+          technical_drawing_url: string | null
           unit_cost: number | null
           updated_at: string
         }
@@ -320,18 +335,25 @@ export type Database = {
           area: string
           boq_included?: boolean
           category: Database["public"]["Enums"]["boq_category"]
+          company_product_url?: string | null
           created_at?: string
+          custom_cost?: number | null
+          delivery_cost?: number | null
           delivery_date?: string | null
           description: string
           dimensions?: string | null
+          duty_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
           finish_notes?: string | null
           floor_id?: string | null
           id?: string
           image_3d_ref?: string | null
+          installation_cost?: number | null
+          installation_start_date?: string | null
           installed?: boolean
           installed_date?: string | null
+          insurance_cost?: number | null
           is_selected_option?: boolean | null
           item_code?: string | null
           item_type_id?: string | null
@@ -342,16 +364,21 @@ export type Database = {
           notes?: string | null
           parent_item_id?: string | null
           production_due_date?: string | null
+          production_time?: string | null
           project_id: string
           purchase_order_ref?: string | null
           purchased?: boolean
           quantity?: number | null
           received?: boolean
           received_date?: string | null
+          reference_image_url?: string | null
           room_id?: string | null
+          room_number?: string | null
           selling_price?: number | null
+          site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null
+          technical_drawing_url?: string | null
           unit_cost?: number | null
           updated_at?: string
         }
@@ -361,18 +388,25 @@ export type Database = {
           area?: string
           boq_included?: boolean
           category?: Database["public"]["Enums"]["boq_category"]
+          company_product_url?: string | null
           created_at?: string
+          custom_cost?: number | null
+          delivery_cost?: number | null
           delivery_date?: string | null
           description?: string
           dimensions?: string | null
+          duty_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
           finish_notes?: string | null
           floor_id?: string | null
           id?: string
           image_3d_ref?: string | null
+          installation_cost?: number | null
+          installation_start_date?: string | null
           installed?: boolean
           installed_date?: string | null
+          insurance_cost?: number | null
           is_selected_option?: boolean | null
           item_code?: string | null
           item_type_id?: string | null
@@ -383,16 +417,21 @@ export type Database = {
           notes?: string | null
           parent_item_id?: string | null
           production_due_date?: string | null
+          production_time?: string | null
           project_id?: string
           purchase_order_ref?: string | null
           purchased?: boolean
           quantity?: number | null
           received?: boolean
           received_date?: string | null
+          reference_image_url?: string | null
           room_id?: string | null
+          room_number?: string | null
           selling_price?: number | null
+          site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null
+          technical_drawing_url?: string | null
           unit_cost?: number | null
           updated_at?: string
         }
