@@ -193,6 +193,10 @@ export default function WarRoomOverview() {
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
               </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/admin')}>
+                <Shield className="w-4 h-4 mr-1" />
+                Admin
+              </Button>
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4" />
               </Button>
