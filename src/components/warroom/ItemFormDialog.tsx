@@ -302,7 +302,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     }
   }, [item, form]);
 
-  const handleFileUpload = async (field: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url', file: File) => {
+  const handleFileUpload = useCallback(async (field: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url', file: File) => {
     if (!user) return;
     setUploadingField(field);
     try {
@@ -318,7 +318,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     } finally {
       setUploadingField(null);
     }
-  };
+  }, [user, projectId, form]);
 
   const handleProformaUpload = async (file: File) => {
     if (!user) return;
@@ -420,7 +420,8 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
   const itemTypeOptions = filteredItemTypes.map((t: any) => ({ value: t.id, label: `${t.code} – ${t.name}` }));
   const subcategoryOptions = filteredSubcategories.map((s: any) => ({ value: s.id, label: `${s.code} – ${s.name}` }));
 
-  const FileUploadField = ({ name, label }: { name: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url'; label: string }) => (
+  // Render helpers - stable references to avoid remounting
+  const renderFileUpload = useCallback((name: 'reference_image_url' | 'technical_drawing_url' | 'company_product_url', label: string) => (
     <FormField control={form.control} name={name} render={({ field }) => (
       <FormItem>
         <FormLabel>{label}</FormLabel>
@@ -438,9 +439,9 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         </div>
       </FormItem>
     )} />
-  );
+  ), [form.control, uploadingField, handleFileUpload]);
 
-  const CostFieldWithToggle = ({ name, label }: { name: CostFieldName; label: string }) => {
+  const renderCostField = useCallback((name: CostFieldName, label: string) => {
     const mode = costModes[name];
     return (
       <FormField control={form.control} name={name} render={({ field }) => (
@@ -459,12 +460,22 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             </Button>
           </FormLabel>
           <FormControl>
-            <Input type="text" inputMode="decimal" placeholder={mode === 'percent' ? '0 %' : '0.00'} {...field} className="[appearance:textfield]" />
+            <Input
+              type="text"
+              inputMode="decimal"
+              placeholder={mode === 'percent' ? '0 %' : '0.00'}
+              value={field.value || ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              ref={field.ref}
+              className="[appearance:textfield]"
+            />
           </FormControl>
         </FormItem>
       )} />
     );
-  };
+  }, [form.control, costModes, toggleCostMode]);
 
   // Preview item code based on current selections
   const watchSeqNum = form.watch('sequence_number');
