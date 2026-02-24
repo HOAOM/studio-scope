@@ -55,6 +55,78 @@ export type Database = {
           },
         ]
       }
+      cost_categories: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      item_costs: {
+        Row: {
+          amount: number | null
+          cost_category_id: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          project_item_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          cost_category_id: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          project_item_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          cost_category_id?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          project_item_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_costs_cost_category_id_fkey"
+            columns: ["cost_category_id"]
+            isOneToOne: false
+            referencedRelation: "cost_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_costs_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       master_floors: {
         Row: {
           code: string
@@ -453,6 +525,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
     }
     Enums: {
