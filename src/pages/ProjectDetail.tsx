@@ -478,6 +478,7 @@ export default function ProjectDetail() {
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[90px]">Code</TableHead>
                         <TableHead className="w-[80px]">Status</TableHead>
+                        <TableHead className="w-[80px]">Lifecycle</TableHead>
                         <TableHead>Category</TableHead>
                         <TableHead>Area</TableHead>
                         <TableHead className="min-w-[180px]">Description</TableHead>
@@ -503,9 +504,12 @@ export default function ProjectDetail() {
                         const total = (item.unit_cost || 0) * (item.quantity || 1);
                         return (
                           <TableRow key={item.id} className={cn('tracker-row', status === 'unsafe' && 'bg-status-unsafe-bg')}>
-                            <TableCell className="font-mono text-xs font-semibold text-primary">{(item as any).item_code || '-'}</TableCell>
+                            <TableCell className="font-mono text-xs font-semibold text-primary">{item.item_code || '-'}</TableCell>
                             <TableCell>
                               <StatusBadge status={status} label={status === 'at-risk' ? 'At Risk' : status.charAt(0).toUpperCase() + status.slice(1)} size="sm" />
+                            </TableCell>
+                            <TableCell>
+                              <LifecycleBadge status={item.lifecycle_status} />
                             </TableCell>
                             <TableCell className="text-xs">{CATEGORY_LABELS[item.category]}</TableCell>
                             <TableCell className="text-xs">{item.area}</TableCell>
