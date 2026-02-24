@@ -7,6 +7,7 @@ import { ExportCSVButton, ExportJSONButton } from '@/components/warroom/ExportBu
 import { ItemFormDialog } from '@/components/warroom/ItemFormDialog';
 import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
 import { PresentationBuilder } from '@/components/warroom/PresentationBuilder';
+import { GanttChart } from '@/components/warroom/GanttChart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -330,6 +331,13 @@ export default function ProjectDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Gantt Timeline */}
+            <GanttChart
+              items={items}
+              projectStartDate={project.start_date}
+              projectEndDate={project.target_completion_date}
+            />
 
             {/* KPIs */}
             <ProjectKPIs items={items} />
