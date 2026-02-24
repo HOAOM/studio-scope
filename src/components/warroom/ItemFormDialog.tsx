@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, Percent, DollarSign } from 'lucide-react';
 import { useCreateProjectItem, useUpdateProjectItem } from '@/hooks/useProjects';
 import { useFloors, useRooms, useItemTypes, useSubcategories } from '@/hooks/useAdminData';
 import { toast } from 'sonner';
@@ -55,6 +55,11 @@ const LIFECYCLE_STATUSES: { value: LifecycleStatus; label: string }[] = [
   { value: 'on_hold', label: 'On Hold' },
 ];
 
+type CostMode = 'fixed' | 'percent';
+
+const COST_FIELDS = ['delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost', 'margin_percentage'] as const;
+type CostFieldName = typeof COST_FIELDS[number];
+
 const itemSchema = z.object({
   category: z.enum(['joinery', 'loose-furniture', 'lighting', 'finishes', 'ffe', 'accessories', 'appliances']),
   area: z.string().max(100).optional(),
@@ -72,14 +77,12 @@ const itemSchema = z.object({
   finish_material: z.string().max(200).optional(),
   finish_color: z.string().max(100).optional(),
   finish_notes: z.string().max(500).optional(),
-  // Procurement
   purchased: z.boolean(),
   purchase_order_ref: z.string().max(100).optional(),
   supplier: z.string().max(200).optional(),
   unit_cost: z.string().optional(),
   quantity: z.string().optional(),
   production_due_date: z.string().optional(),
-  // Costing (role-restricted visibility - future)
   delivery_cost: z.string().optional(),
   installation_cost: z.string().optional(),
   insurance_cost: z.string().optional(),
@@ -87,7 +90,6 @@ const itemSchema = z.object({
   custom_cost: z.string().optional(),
   margin_percentage: z.string().optional(),
   selling_price: z.string().optional(),
-  // Delivery & Installation
   delivery_date: z.string().optional(),
   received: z.boolean(),
   received_date: z.string().optional(),
@@ -95,11 +97,9 @@ const itemSchema = z.object({
   installation_start_date: z.string().optional(),
   installed: z.boolean(),
   installed_date: z.string().optional(),
-  // Images
   reference_image_url: z.string().max(500).optional(),
   technical_drawing_url: z.string().max(500).optional(),
   company_product_url: z.string().max(500).optional(),
-  // Notes
   notes: z.string().max(1000).optional(),
 });
 
@@ -167,6 +167,22 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
   const { data: allSubcategories = [] } = useSubcategories();
 
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [uploadingProforma, setUploadingProforma] = useState(false);
+  const [proformaUrl, setProformaUrl] = useState<string | null>(null);
+
+  // Cost modes: each cost field can be % or fixed
+  const [costModes, setCostModes] = useState<Record<CostFieldName, CostMode>>({
+    delivery_cost: 'fixed',
+    installation_cost: 'fixed',
+    insurance_cost: 'percent',
+    duty_cost: 'percent',
+    custom_cost: 'percent',
+    margin_percentage: 'percent',
+  });
+
+  const toggleCostMode = (field: CostFieldName) => {
+    setCostModes(prev => ({ ...prev, [field]: prev[field] === 'fixed' ? 'percent' : 'fixed' }));
+  };
 
   const form = useForm<ItemFormData>({
     resolver: zodResolver(itemSchema),
@@ -175,8 +191,50 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
 
   const selectedCategory = form.watch('category');
   const selectedItemTypeId = form.watch('item_type_id');
+  const watchPurchased = form.watch('purchased');
 
-  // Filter item types by selected category (coherence)
+  // Watch cost fields for auto-calculation
+  const watchUnitCost = form.watch('unit_cost');
+  const watchQuantity = form.watch('quantity');
+  const watchDelivery = form.watch('delivery_cost');
+  const watchInstallation = form.watch('installation_cost');
+  const watchInsurance = form.watch('insurance_cost');
+  const watchDuty = form.watch('duty_cost');
+  const watchCustom = form.watch('custom_cost');
+  const watchMargin = form.watch('margin_percentage');
+
+  // Auto-calculate selling price
+  const calculatedSellingPrice = useMemo(() => {
+    const unitCost = parseFloat(watchUnitCost || '0') || 0;
+    const qty = parseInt(watchQuantity || '1') || 1;
+    const baseCost = unitCost * qty;
+    if (baseCost === 0) return 0;
+
+    const resolveCost = (val: string | undefined, mode: CostMode): number => {
+      const n = parseFloat(val || '0') || 0;
+      return mode === 'percent' ? baseCost * (n / 100) : n;
+    };
+
+    const delivery = resolveCost(watchDelivery, costModes.delivery_cost);
+    const installation = resolveCost(watchInstallation, costModes.installation_cost);
+    const insurance = resolveCost(watchInsurance, costModes.insurance_cost);
+    const duty = resolveCost(watchDuty, costModes.duty_cost);
+    const custom = resolveCost(watchCustom, costModes.custom_cost);
+
+    const totalBeforeMargin = baseCost + delivery + installation + insurance + duty + custom;
+
+    const margin = resolveCost(watchMargin, costModes.margin_percentage);
+    return totalBeforeMargin + margin;
+  }, [watchUnitCost, watchQuantity, watchDelivery, watchInstallation, watchInsurance, watchDuty, watchCustom, watchMargin, costModes]);
+
+  // Sync calculated price to form
+  useEffect(() => {
+    if (calculatedSellingPrice > 0) {
+      form.setValue('selling_price', calculatedSellingPrice.toFixed(2));
+    }
+  }, [calculatedSellingPrice, form]);
+
+  // Filter item types by selected category
   const filteredItemTypes = useMemo(() => {
     return itemTypes.filter((t: any) => {
       if (!t.allowed_categories || t.allowed_categories.length === 0) return true;
@@ -212,12 +270,12 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         lifecycle_status: item.lifecycle_status || 'draft',
         floor_id: item.floor_id || '__none__',
         room_id: item.room_id || '__none__',
-        room_number: (item as any).room_number || '',
+        room_number: item.room_number || '',
         apartment_number: item.apartment_number || '',
         item_type_id: item.item_type_id || '__none__',
         subcategory_id: item.subcategory_id || '__none__',
         dimensions: item.dimensions || '',
-        production_time: (item as any).production_time || '',
+        production_time: item.production_time || '',
         finish_material: item.finish_material || '',
         finish_color: item.finish_color || '',
         finish_notes: item.finish_notes || '',
@@ -227,27 +285,29 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: item.unit_cost?.toString() || '',
         quantity: item.quantity?.toString() || '1',
         production_due_date: item.production_due_date || '',
-        delivery_cost: ((item as any).delivery_cost || 0).toString(),
-        installation_cost: ((item as any).installation_cost || 0).toString(),
-        insurance_cost: ((item as any).insurance_cost || 0).toString(),
-        duty_cost: ((item as any).duty_cost || 0).toString(),
-        custom_cost: ((item as any).custom_cost || 0).toString(),
+        delivery_cost: (item.delivery_cost || 0).toString(),
+        installation_cost: (item.installation_cost || 0).toString(),
+        insurance_cost: (item.insurance_cost || 0).toString(),
+        duty_cost: (item.duty_cost || 0).toString(),
+        custom_cost: (item.custom_cost || 0).toString(),
         margin_percentage: item.margin_percentage?.toString() || '0',
         selling_price: item.selling_price?.toString() || '',
         delivery_date: item.delivery_date || '',
         received: item.received,
         received_date: item.received_date || '',
-        site_movement_date: (item as any).site_movement_date || '',
-        installation_start_date: (item as any).installation_start_date || '',
+        site_movement_date: item.site_movement_date || '',
+        installation_start_date: item.installation_start_date || '',
         installed: item.installed,
         installed_date: item.installed_date || '',
-        reference_image_url: (item as any).reference_image_url || '',
-        technical_drawing_url: (item as any).technical_drawing_url || '',
-        company_product_url: (item as any).company_product_url || '',
+        reference_image_url: item.reference_image_url || '',
+        technical_drawing_url: item.technical_drawing_url || '',
+        company_product_url: item.company_product_url || '',
         notes: item.notes || '',
       });
+      setProformaUrl(null); // could be loaded from storage in future
     } else {
       form.reset(DEFAULT_VALUES);
+      setProformaUrl(null);
     }
   }, [item, form]);
 
@@ -269,11 +329,40 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     }
   };
 
+  const handleProformaUpload = async (file: File) => {
+    if (!user) return;
+    setUploadingProforma(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/${projectId}/proforma/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('item-files').upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
+      setProformaUrl(urlData.publicUrl);
+      form.setValue('purchase_order_ref', urlData.publicUrl);
+      toast.success('Proforma uploaded');
+    } catch (e: any) {
+      toast.error('Upload failed: ' + (e.message || 'Unknown error'));
+    } finally {
+      setUploadingProforma(false);
+    }
+  };
+
   const onSubmit = async (data: ItemFormData) => {
     try {
       const none = (v: string | undefined) => v && v !== '__none__' ? v : null;
       const num = (v: string | undefined) => v ? parseFloat(v) : null;
       const numDef = (v: string | undefined, def: number) => v ? parseFloat(v) : def;
+
+      // Resolve cost values: if mode is %, convert to fixed amount for storage
+      const baseCost = (parseFloat(data.unit_cost || '0') || 0) * (parseInt(data.quantity || '1') || 1);
+      const resolveForStorage = (val: string | undefined, field: CostFieldName): number => {
+        const n = parseFloat(val || '0') || 0;
+        if (costModes[field] === 'percent' && baseCost > 0) {
+          return baseCost * (n / 100);
+        }
+        return n;
+      };
 
       const payload: any = {
         project_id: projectId,
@@ -299,11 +388,11 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         unit_cost: num(data.unit_cost),
         quantity: data.quantity ? parseInt(data.quantity) : 1,
         production_due_date: data.production_due_date || null,
-        delivery_cost: numDef(data.delivery_cost, 0),
-        installation_cost: numDef(data.installation_cost, 0),
-        insurance_cost: numDef(data.insurance_cost, 0),
-        duty_cost: numDef(data.duty_cost, 0),
-        custom_cost: numDef(data.custom_cost, 0),
+        delivery_cost: resolveForStorage(data.delivery_cost, 'delivery_cost'),
+        installation_cost: resolveForStorage(data.installation_cost, 'installation_cost'),
+        insurance_cost: resolveForStorage(data.insurance_cost, 'insurance_cost'),
+        duty_cost: resolveForStorage(data.duty_cost, 'duty_cost'),
+        custom_cost: resolveForStorage(data.custom_cost, 'custom_cost'),
         margin_percentage: numDef(data.margin_percentage, 0),
         selling_price: num(data.selling_price),
         delivery_date: data.delivery_date || null,
@@ -360,6 +449,50 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     )} />
   );
 
+  const CostFieldWithToggle = ({ name, label }: { name: CostFieldName; label: string }) => {
+    const mode = costModes[name];
+    return (
+      <FormField control={form.control} name={name} render={({ field }) => (
+        <FormItem>
+          <FormLabel className="flex items-center justify-between">
+            <span>{label}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-5 px-1.5 text-xs gap-1"
+              onClick={() => toggleCostMode(name)}
+            >
+              {mode === 'percent' ? <Percent className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
+              {mode === 'percent' ? '%' : 'Fixed'}
+            </Button>
+          </FormLabel>
+          <FormControl>
+            <Input type="number" step="0.01" placeholder={mode === 'percent' ? '0 %' : '0.00'} {...field} />
+          </FormControl>
+        </FormItem>
+      )} />
+    );
+  };
+
+  // Preview item code based on current selections
+  const previewItemCode = useMemo(() => {
+    const floorId = form.getValues('floor_id');
+    const roomId = form.getValues('room_id');
+    const roomNum = form.getValues('room_number');
+    const typeId = form.getValues('item_type_id');
+    const subcatId = form.getValues('subcategory_id');
+
+    const floorCode = floors.find(f => f.id === floorId)?.code || '??';
+    const roomCode = rooms.find(r => r.id === roomId)?.code || '??';
+    const rn = (roomNum || '01').padStart(2, '0');
+    const typeCode = (itemTypes as any[]).find(t => t.id === typeId)?.code || '??';
+    const subcatCode = (allSubcategories as any[]).find(s => s.id === subcatId)?.code || '??';
+
+    if (floorId === '__none__' && roomId === '__none__' && typeId === '__none__') return null;
+    return `${floorCode}${roomCode}${rn}-${typeCode}${subcatCode}###`;
+  }, [form.watch('floor_id'), form.watch('room_id'), form.watch('room_number'), form.watch('item_type_id'), form.watch('subcategory_id'), floors, rooms, itemTypes, allSubcategories]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto bg-card border-border">
@@ -382,8 +515,10 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             )}
             {!isEditing && (
               <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/30">
-                <span className="text-sm text-muted-foreground">Item Code:</span>
-                <span className="text-sm text-muted-foreground italic">Will be auto-generated</span>
+                <span className="text-sm text-muted-foreground">Item Code Preview:</span>
+                <span className="font-mono font-bold text-foreground text-sm">
+                  {previewItemCode || 'Select floor, room & type to preview'}
+                </span>
               </div>
             )}
 
@@ -567,7 +702,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="unit_cost" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unit Cost</FormLabel>
-                    <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
+                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="quantity" render={({ field }) => (
@@ -597,56 +732,55 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                   </FormItem>
                 )} />
               </div>
+
+              {/* Proforma upload - visible only when purchased is checked */}
+              {watchPurchased && (
+                <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+                  <p className="text-sm font-medium text-foreground">Upload Proforma Invoice</p>
+                  <div className="flex items-center gap-3">
+                    <label className="cursor-pointer flex-1">
+                      <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleProformaUpload(file);
+                      }} />
+                      <Button type="button" variant="outline" className="w-full gap-2" disabled={uploadingProforma} asChild>
+                        <span>
+                          {uploadingProforma ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          {proformaUrl ? 'Replace Proforma' : 'Upload Proforma'}
+                        </span>
+                      </Button>
+                    </label>
+                    {proformaUrl && (
+                      <a href={proformaUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                        View file
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── Costing (Selling Price Build-up) ── */}
             <div className="space-y-4 p-4 rounded-lg border border-border bg-secondary/30">
               <h4 className="text-sm font-semibold text-foreground">Costing & Selling Price</h4>
-              <p className="text-xs text-muted-foreground">Values can be entered as fixed amounts. Margin is in %.</p>
+              <p className="text-xs text-muted-foreground">Toggle each field between % (of base cost) or fixed amount. Selling price is auto-calculated.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <FormField control={form.control} name="delivery_cost" render={({ field }) => (
+                <CostFieldWithToggle name="delivery_cost" label="Delivery" />
+                <CostFieldWithToggle name="installation_cost" label="Installation" />
+                <CostFieldWithToggle name="insurance_cost" label="Insurance" />
+                <CostFieldWithToggle name="duty_cost" label="Duty" />
+                <CostFieldWithToggle name="custom_cost" label="Custom" />
+                <CostFieldWithToggle name="margin_percentage" label="Margin" />
+              </div>
+              <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
+                <FormField control={form.control} name="selling_price" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Delivery Cost</FormLabel>
-                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="installation_cost" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Installation Cost</FormLabel>
-                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="insurance_cost" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Insurance</FormLabel>
-                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="duty_cost" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duty</FormLabel>
-                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="custom_cost" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Custom</FormLabel>
-                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="margin_percentage" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Margin %</FormLabel>
-                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                    <FormLabel className="text-primary font-semibold">Selling Price (Final)</FormLabel>
+                    <FormControl><Input type="number" step="0.01" placeholder="Auto-calculated" {...field} className="text-lg font-bold" /></FormControl>
+                    <p className="text-xs text-muted-foreground">Auto-calculated from costs. You can manually adjust.</p>
                   </FormItem>
                 )} />
               </div>
-              <FormField control={form.control} name="selling_price" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Selling Price (Final)</FormLabel>
-                  <FormControl><Input type="number" placeholder="Calculated or manual" {...field} /></FormControl>
-                </FormItem>
-              )} />
             </div>
 
             {/* ── Delivery & Installation ── */}
