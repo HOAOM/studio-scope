@@ -344,7 +344,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="item_type_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Item Type</FormLabel>
-                    <Select onValueChange={(v) => { field.onChange(v); form.setValue('subcategory_id', ''); }} value={field.value || ''}>
+                    <Select onValueChange={(v) => { field.onChange(v); form.setValue('subcategory_id', '__none__'); }} value={field.value || '__none__'}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
                       <SelectContent>
                          <SelectItem value="__none__">None</SelectItem>
