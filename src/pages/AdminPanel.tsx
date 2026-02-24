@@ -163,14 +163,26 @@ export default function AdminPanel() {
                   columns={[
                     { key: 'code', label: 'Code' },
                     { key: 'name', label: 'Name' },
+                    { key: 'allowed_categories', label: 'Allowed Categories', type: 'text' },
                   ]}
                   data={itemTypes}
                   isLoading={loadingTypes}
-                  onSave={async (item) => { await upsertItemType.mutateAsync(item); }}
+                  onSave={async (item) => {
+                    // Parse allowed_categories from comma-separated string to array
+                    const cats = item.allowed_categories
+                      ? (typeof item.allowed_categories === 'string'
+                        ? item.allowed_categories.split(',').map((s: string) => s.trim()).filter(Boolean)
+                        : item.allowed_categories)
+                      : [];
+                    await upsertItemType.mutateAsync({ ...item, allowed_categories: cats });
+                  }}
                   onDelete={async (id) => { await deleteItemType.mutateAsync(id); }}
                   isSaving={upsertItemType.isPending}
                   isDeleting={deleteItemType.isPending}
                 />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Allowed Categories: comma-separated list (e.g. "joinery, lighting"). Valid: joinery, loose-furniture, lighting, finishes, ffe, accessories, appliances
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
