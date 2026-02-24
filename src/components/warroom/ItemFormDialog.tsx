@@ -45,15 +45,6 @@ const APPROVAL_STATUSES: { value: ApprovalStatus; label: string }[] = [
   { value: 'revision', label: 'In Revision' },
 ];
 
-const LIFECYCLE_STATUSES: { value: LifecycleStatus; label: string }[] = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'estimated', label: 'Estimated' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'ordered', label: 'Ordered' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'installed', label: 'Installed' },
-  { value: 'on_hold', label: 'On Hold' },
-];
 
 type CostMode = 'fixed' | 'percent';
 
@@ -65,7 +56,7 @@ const itemSchema = z.object({
   area: z.string().max(100).optional(),
   description: z.string().min(1, 'Description is required').max(500),
   approval_status: z.enum(['pending', 'approved', 'rejected', 'revision']),
-  lifecycle_status: z.enum(['draft', 'estimated', 'approved', 'ordered', 'delivered', 'installed', 'on_hold']),
+  sequence_number: z.string().optional(),
   floor_id: z.string().optional(),
   room_id: z.string().optional(),
   room_number: z.string().max(10).optional(),
@@ -117,7 +108,7 @@ const DEFAULT_VALUES: ItemFormData = {
   area: '',
   description: '',
   approval_status: 'pending',
-  lifecycle_status: 'draft',
+  sequence_number: '',
   floor_id: '__none__',
   room_id: '__none__',
   room_number: '',
@@ -267,7 +258,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         area: item.area || '',
         description: item.description,
         approval_status: item.approval_status,
-        lifecycle_status: item.lifecycle_status || 'draft',
+        sequence_number: (item as any).sequence_number?.toString() || '',
         floor_id: item.floor_id || '__none__',
         room_id: item.room_id || '__none__',
         room_number: item.room_number || '',
@@ -370,7 +361,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         area: data.area || 'N/A',
         description: data.description,
         approval_status: data.approval_status,
-        lifecycle_status: data.lifecycle_status,
+        sequence_number: data.sequence_number ? parseInt(data.sequence_number) : null,
         floor_id: none(data.floor_id),
         room_id: none(data.room_id),
         room_number: data.room_number || null,
@@ -468,7 +459,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             </Button>
           </FormLabel>
           <FormControl>
-            <Input type="number" step="0.01" placeholder={mode === 'percent' ? '0 %' : '0.00'} {...field} />
+            <Input type="text" inputMode="decimal" placeholder={mode === 'percent' ? '0 %' : '0.00'} {...field} className="[appearance:textfield]" />
           </FormControl>
         </FormItem>
       )} />
@@ -476,6 +467,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
   };
 
   // Preview item code based on current selections
+  const watchSeqNum = form.watch('sequence_number');
   const previewItemCode = useMemo(() => {
     const floorId = form.getValues('floor_id');
     const roomId = form.getValues('room_id');
@@ -488,10 +480,11 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     const rn = (roomNum || '01').padStart(2, '0');
     const typeCode = (itemTypes as any[]).find(t => t.id === typeId)?.code || '??';
     const subcatCode = (allSubcategories as any[]).find(s => s.id === subcatId)?.code || '??';
+    const seqDisplay = watchSeqNum ? watchSeqNum.padStart(3, '0') : '###';
 
     if (floorId === '__none__' && roomId === '__none__' && typeId === '__none__') return null;
-    return `${floorCode}${roomCode}${rn}-${typeCode}${subcatCode}###`;
-  }, [form.watch('floor_id'), form.watch('room_id'), form.watch('room_number'), form.watch('item_type_id'), form.watch('subcategory_id'), floors, rooms, itemTypes, allSubcategories]);
+    return `${floorCode}${roomCode}${rn}-${typeCode}${subcatCode}${seqDisplay}`;
+  }, [form.watch('floor_id'), form.watch('room_id'), form.watch('room_number'), form.watch('item_type_id'), form.watch('subcategory_id'), watchSeqNum, floors, rooms, itemTypes, allSubcategories]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -606,15 +599,11 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                     />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="lifecycle_status" render={({ field }) => (
+                <FormField control={form.control} name="sequence_number" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lifecycle</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {LIFECYCLE_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Sequence #</FormLabel>
+                    <FormControl><Input placeholder="Auto" inputMode="numeric" {...field} /></FormControl>
+                    <p className="text-xs text-muted-foreground">Leave empty for auto</p>
                   </FormItem>
                 )} />
               </div>
@@ -702,13 +691,13 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="unit_cost" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unit Cost</FormLabel>
-                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                    <FormControl><Input type="text" inputMode="decimal" placeholder="0.00" {...field} className="[appearance:textfield]" /></FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="quantity" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Quantity</FormLabel>
-                    <FormControl><Input type="number" placeholder="1" {...field} /></FormControl>
+                    <FormControl><Input type="text" inputMode="numeric" placeholder="1" {...field} className="[appearance:textfield]" /></FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="purchase_order_ref" render={({ field }) => (
@@ -776,7 +765,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 <FormField control={form.control} name="selling_price" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-primary font-semibold">Selling Price (Final)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" placeholder="Auto-calculated" {...field} className="text-lg font-bold" /></FormControl>
+                    <FormControl><Input type="text" inputMode="decimal" placeholder="Auto-calculated" {...field} className="text-lg font-bold [appearance:textfield]" /></FormControl>
                     <p className="text-xs text-muted-foreground">Auto-calculated from costs. You can manually adjust.</p>
                   </FormItem>
                 )} />
