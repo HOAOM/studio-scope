@@ -163,7 +163,6 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     if (!selectedItemTypeId || selectedItemTypeId === '__none__') return [];
     return allSubcategories.filter((s: any) => s.item_type_id === selectedItemTypeId);
   }, [allSubcategories, selectedItemTypeId]);
-  }, [allSubcategories, selectedItemTypeId]);
 
   useEffect(() => {
     if (item) {
