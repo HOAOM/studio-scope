@@ -108,10 +108,7 @@ Deno.serve(async (req) => {
       const { email } = params
       if (!email) throw new Error('Email required')
 
-      // Generate a temporary password and update
       const tempPass = crypto.randomUUID().slice(0, 12) + 'A1!'
-      
-      // Find user by email
       const { data: profile } = await adminClient.from('profiles').select('id').eq('email', email).single()
       if (!profile) throw new Error('User not found')
 
@@ -119,6 +116,18 @@ Deno.serve(async (req) => {
       if (error) throw error
 
       return new Response(JSON.stringify({ success: true, temp_password: tempPass }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (action === 'reset_password_direct') {
+      const { user_id, new_password } = params
+      if (!user_id || !new_password) throw new Error('user_id and new_password required')
+
+      const { error } = await adminClient.auth.admin.updateUserById(user_id, { password: new_password })
+      if (error) throw error
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
