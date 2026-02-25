@@ -123,6 +123,45 @@ Deno.serve(async (req) => {
       })
     }
 
+    if (action === 'list_project_members') {
+      const { project_id } = params
+      if (!project_id) throw new Error('project_id required')
+      const { data } = await adminClient.from('project_members').select('*').eq('project_id', project_id)
+      return new Response(JSON.stringify({ members: data || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (action === 'add_project_member') {
+      const { project_id, user_id, role } = params
+      if (!project_id || !user_id || !role) throw new Error('project_id, user_id, role required')
+      const { error } = await adminClient.from('project_members').insert({ project_id, user_id, role })
+      if (error) throw error
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (action === 'update_project_member_role') {
+      const { member_id, new_role } = params
+      if (!member_id || !new_role) throw new Error('member_id and new_role required')
+      const { error } = await adminClient.from('project_members').update({ role: new_role }).eq('id', member_id)
+      if (error) throw error
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (action === 'remove_project_member') {
+      const { member_id } = params
+      if (!member_id) throw new Error('member_id required')
+      const { error } = await adminClient.from('project_members').delete().eq('id', member_id)
+      if (error) throw error
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     throw new Error('Unknown action: ' + action)
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {

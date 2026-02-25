@@ -8,6 +8,7 @@ import { ItemFormDialog } from '@/components/warroom/ItemFormDialog';
 import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
 import { PresentationBuilder } from '@/components/warroom/PresentationBuilder';
 import { GanttChart } from '@/components/warroom/GanttChart';
+import { TeamManagement } from '@/components/warroom/TeamManagement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,7 +53,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Eye,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
@@ -121,7 +124,10 @@ export default function ProjectDetail() {
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: items = [], isLoading: itemsLoading } = useProjectItems(projectId);
   const deleteItem = useDeleteProjectItem();
-  const { canSeeCosts } = useUserRole();
+  const { canSeeCosts, roles } = useUserRole();
+  const isAdmin = roles.includes('admin');
+  const [clientViewMode, setClientViewMode] = useState(false);
+  const effectiveCanSeeCosts = canSeeCosts && !clientViewMode;
   
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
@@ -224,7 +230,14 @@ export default function ProjectDetail() {
                 <h1 className="text-xl font-bold text-foreground">{project.name}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {isAdmin && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border">
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Client View</span>
+                  <Switch checked={clientViewMode} onCheckedChange={setClientViewMode} className="scale-75" />
+                </div>
+              )}
               <Button variant="outline" onClick={() => setCsvDialogOpen(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Import CSV
@@ -325,7 +338,7 @@ export default function ProjectDetail() {
                   <p className="text-sm text-muted-foreground">
                     Total: <span className="font-semibold text-foreground">{items.length}</span>
                   </p>
-                  {canSeeCosts && (
+                  {effectiveCanSeeCosts && (
                     <p className="text-sm text-muted-foreground">
                       Cost: <span className="font-semibold text-foreground font-mono">
                         {totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -416,6 +429,11 @@ export default function ProjectDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Team Management - only for admin/owner */}
+            {isAdmin && projectId && (
+              <TeamManagement projectId={projectId} />
+            )}
           </TabsContent>
 
           {/* ITEMS TAB */}
@@ -430,7 +448,7 @@ export default function ProjectDetail() {
                       <span className="text-status-safe ml-1">{stats.safe} safe</span> •
                       <span className="text-status-at-risk ml-1">{stats['at-risk']} at risk</span> •
                       <span className="text-status-unsafe ml-1">{stats.unsafe} unsafe</span>
-                      {canSeeCosts && totalCost > 0 && (
+                      {effectiveCanSeeCosts && totalCost > 0 && (
                         <span className="ml-2">• Total cost: <span className="font-mono text-foreground">{totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></span>
                       )}
                     </p>
@@ -515,9 +533,9 @@ export default function ProjectDetail() {
                         <TableHead>Description</TableHead>
                         <TableHead>Supplier</TableHead>
                         <TableHead>Approval</TableHead>
-                        {canSeeCosts && <TableHead className="text-right">Unit Cost</TableHead>}
-                        {canSeeCosts && <TableHead className="text-center">Qty</TableHead>}
-                        {canSeeCosts && <TableHead className="text-right">Total</TableHead>}
+                        {effectiveCanSeeCosts && <TableHead className="text-right">Unit Cost</TableHead>}
+                        {effectiveCanSeeCosts && <TableHead className="text-center">Qty</TableHead>}
+                        {effectiveCanSeeCosts && <TableHead className="text-right">Total</TableHead>}
                         <TableHead className="text-center">Purchased</TableHead>
                         <TableHead className="text-center">Delivery</TableHead>
                         <TableHead className="text-center">Received</TableHead>
@@ -550,9 +568,9 @@ export default function ProjectDetail() {
                                 {item.approval_status}
                               </span>
                             </TableCell>
-                            {canSeeCosts && <TableCell className="text-right font-mono text-xs">{item.unit_cost != null ? item.unit_cost.toFixed(2) : '-'}</TableCell>}
-                            {canSeeCosts && <TableCell className="text-center font-mono text-xs">{item.quantity ?? 1}</TableCell>}
-                            {canSeeCosts && <TableCell className="text-right font-mono text-xs">{total > 0 ? total.toFixed(2) : '-'}</TableCell>}
+                            {effectiveCanSeeCosts && <TableCell className="text-right font-mono text-xs">{item.unit_cost != null ? item.unit_cost.toFixed(2) : '-'}</TableCell>}
+                            {effectiveCanSeeCosts && <TableCell className="text-center font-mono text-xs">{item.quantity ?? 1}</TableCell>}
+                            {effectiveCanSeeCosts && <TableCell className="text-right font-mono text-xs">{total > 0 ? total.toFixed(2) : '-'}</TableCell>}
                             <TableCell className="text-center">
                               {item.purchased ? <CheckCircle2 className="w-4 h-4 text-status-safe mx-auto" /> : <span className="text-muted-foreground">-</span>}
                             </TableCell>
