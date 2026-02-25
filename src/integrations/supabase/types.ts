@@ -504,6 +504,38 @@ export type Database = {
           },
         ]
       }
+      project_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           boq_master_ref: string | null
@@ -645,6 +677,7 @@ export type Database = {
         Returns: boolean
       }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
+      is_project_member: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
     }
     Enums: {
@@ -656,6 +689,10 @@ export type Database = {
         | "head_of_payments"
         | "client"
         | "ceo"
+        | "site_engineer"
+        | "project_manager"
+        | "procurement_manager"
+        | "mep_engineer"
       approval_status: "pending" | "approved" | "rejected" | "revision"
       boq_category:
         | "joinery"
@@ -810,6 +847,10 @@ export const Constants = {
         "head_of_payments",
         "client",
         "ceo",
+        "site_engineer",
+        "project_manager",
+        "procurement_manager",
+        "mep_engineer",
       ],
       approval_status: ["pending", "approved", "rejected", "revision"],
       boq_category: [
