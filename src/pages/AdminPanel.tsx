@@ -7,22 +7,18 @@ import {
   useItemTypes, useUpsertItemType, useDeleteItemType,
   useSubcategories, useUpsertSubcategory, useDeleteSubcategory,
   useCostCategories, useUpsertCostCategory, useDeleteCostCategory,
-  useUserRoles, useAddUserRole, useDeleteUserRole,
   useIsAdmin,
 } from '@/hooks/useAdminData';
 import { MasterDataTable } from '@/components/admin/MasterDataTable';
+import { UserManagement } from '@/components/admin/UserManagement';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Shield, Loader2, UserPlus, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowLeft, Shield, Loader2 } from 'lucide-react';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
-const ROLES = Constants.public.Enums.app_role;
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -50,14 +46,6 @@ export default function AdminPanel() {
   const upsertCostCategory = useUpsertCostCategory();
   const deleteCostCategory = useDeleteCostCategory();
 
-  const { data: userRoles = [], isLoading: loadingRoles } = useUserRoles();
-  const addUserRole = useAddUserRole();
-  const deleteUserRole = useDeleteUserRole();
-
-  // New role form
-  const [newUserId, setNewUserId] = useState('');
-  const [newRole, setNewRole] = useState<AppRole>('designer');
-
   if (checkingAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -76,17 +64,6 @@ export default function AdminPanel() {
       </div>
     );
   }
-
-  const handleAddRole = async () => {
-    if (!newUserId.trim()) { toast.error('Enter a user ID'); return; }
-    try {
-      await addUserRole.mutateAsync({ user_id: newUserId.trim(), role: newRole });
-      toast.success('Role assigned');
-      setNewUserId('');
-    } catch (e: any) {
-      toast.error(e.message || 'Error assigning role');
-    }
-  };
 
   const itemTypeOptions = itemTypes.map(t => ({ value: t.id, label: `${t.code} - ${t.name}` }));
 
@@ -112,7 +89,7 @@ export default function AdminPanel() {
             <TabsTrigger value="types">Item Types</TabsTrigger>
             <TabsTrigger value="subcategories">Subcategories</TabsTrigger>
             <TabsTrigger value="costs">Cost Categories</TabsTrigger>
-            <TabsTrigger value="roles">User Roles</TabsTrigger>
+            <TabsTrigger value="users">User Management</TabsTrigger>
           </TabsList>
 
           <TabsContent value="floors">
@@ -120,10 +97,7 @@ export default function AdminPanel() {
               <CardContent className="pt-6">
                 <MasterDataTable
                   title="Floors"
-                  columns={[
-                    { key: 'code', label: 'Code' },
-                    { key: 'name', label: 'Name' },
-                  ]}
+                  columns={[{ key: 'code', label: 'Code' }, { key: 'name', label: 'Name' }]}
                   data={floors}
                   isLoading={loadingFloors}
                   onSave={async (item) => { await upsertFloor.mutateAsync(item); }}
@@ -140,10 +114,7 @@ export default function AdminPanel() {
               <CardContent className="pt-6">
                 <MasterDataTable
                   title="Rooms"
-                  columns={[
-                    { key: 'code', label: 'Code' },
-                    { key: 'name', label: 'Name' },
-                  ]}
+                  columns={[{ key: 'code', label: 'Code' }, { key: 'name', label: 'Name' }]}
                   data={rooms}
                   isLoading={loadingRooms}
                   onSave={async (item) => { await upsertRoom.mutateAsync(item); }}
@@ -168,7 +139,6 @@ export default function AdminPanel() {
                   data={itemTypes}
                   isLoading={loadingTypes}
                   onSave={async (item) => {
-                    // Parse allowed_categories from comma-separated string to array
                     const cats = item.allowed_categories
                       ? (typeof item.allowed_categories === 'string'
                         ? item.allowed_categories.split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -213,10 +183,7 @@ export default function AdminPanel() {
               <CardContent className="pt-6">
                 <MasterDataTable
                   title="Cost Categories"
-                  columns={[
-                    { key: 'code', label: 'Code' },
-                    { key: 'name', label: 'Name' },
-                  ]}
+                  columns={[{ key: 'code', label: 'Code' }, { key: 'name', label: 'Name' }]}
                   data={costCategories}
                   isLoading={loadingCosts}
                   onSave={async (item) => { await upsertCostCategory.mutateAsync(item); }}
@@ -228,74 +195,8 @@ export default function AdminPanel() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="roles">
-            <Card className="bg-card border-border">
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">User Roles</h3>
-                
-                {/* Add role form */}
-                <div className="flex gap-3 mb-6 items-end">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-foreground mb-1 block">User ID</label>
-                    <Input value={newUserId} onChange={e => setNewUserId(e.target.value)} placeholder="Paste user UUID" className="font-mono text-sm" />
-                  </div>
-                  <div className="w-48">
-                    <label className="text-sm font-medium text-foreground mb-1 block">Role</label>
-                    <Select value={newRole} onValueChange={v => setNewRole(v as AppRole)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={handleAddRole} disabled={addUserRole.isPending}>
-                    {addUserRole.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1" />}
-                    Assign
-                  </Button>
-                </div>
-
-                {/* Roles list */}
-                {loadingRoles ? (
-                  <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-                ) : (
-                  <div className="rounded-md border border-border overflow-hidden">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">User ID</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Role</th>
-                          <th className="px-4 py-3 w-16"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {userRoles.length === 0 ? (
-                          <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No roles assigned</td></tr>
-                        ) : (
-                          userRoles.map(ur => (
-                            <tr key={ur.id} className="border-b border-border tracker-row">
-                              <td className="px-4 py-3 font-mono text-sm text-foreground">{ur.user_id}</td>
-                              <td className="px-4 py-3">
-                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary/10 text-primary">{ur.role}</span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => {
-                                  try {
-                                    await deleteUserRole.mutateAsync(ur.id);
-                                    toast.success('Role removed');
-                                  } catch { toast.error('Error removing role'); }
-                                }}>
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="users">
+            <UserManagement />
           </TabsContent>
         </Tabs>
       </main>
