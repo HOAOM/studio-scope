@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type BOQCategory = Database['public']['Enums']['boq_category'];
@@ -148,6 +149,7 @@ const DEFAULT_VALUES: ItemFormData = {
 
 export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemFormDialogProps) {
   const { user } = useAuth();
+  const { canSeeCosts } = useUserRole();
   const createItem = useCreateProjectItem();
   const updateItem = useUpdateProjectItem();
   const isEditing = !!item;
@@ -699,12 +701,14 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                     <FormControl><Input placeholder="Supplier name" {...field} /></FormControl>
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="unit_cost" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Cost</FormLabel>
-                    <FormControl><Input type="text" inputMode="decimal" placeholder="0.00" {...field} className="[appearance:textfield]" /></FormControl>
-                  </FormItem>
-                )} />
+                {canSeeCosts && (
+                  <FormField control={form.control} name="unit_cost" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Cost</FormLabel>
+                      <FormControl><Input type="text" inputMode="decimal" placeholder="0.00" {...field} className="[appearance:textfield]" /></FormControl>
+                    </FormItem>
+                  )} />
+                )}
                 <FormField control={form.control} name="quantity" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Quantity</FormLabel>
@@ -761,6 +765,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             </div>
 
             {/* ── Costing (Selling Price Build-up) ── */}
+            {canSeeCosts && (
             <div className="space-y-4 p-4 rounded-lg border border-border bg-secondary/30">
               <h4 className="text-sm font-semibold text-foreground">Costing & Selling Price</h4>
               <p className="text-xs text-muted-foreground">Toggle each field between % (of base cost) or fixed amount. Selling price is auto-calculated.</p>
@@ -782,6 +787,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 )} />
               </div>
             </div>
+            )}
 
             {/* ── Delivery & Installation ── */}
             <div className="space-y-4 p-4 rounded-lg border border-border bg-secondary/30">

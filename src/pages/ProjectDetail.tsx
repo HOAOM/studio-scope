@@ -56,6 +56,7 @@ import {
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
+import { useUserRole } from '@/hooks/useUserRole';
 
 type ItemLifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
 
@@ -120,6 +121,7 @@ export default function ProjectDetail() {
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: items = [], isLoading: itemsLoading } = useProjectItems(projectId);
   const deleteItem = useDeleteProjectItem();
+  const { canSeeCosts } = useUserRole();
   
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
@@ -323,11 +325,13 @@ export default function ProjectDetail() {
                   <p className="text-sm text-muted-foreground">
                     Total: <span className="font-semibold text-foreground">{items.length}</span>
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Cost: <span className="font-semibold text-foreground font-mono">
-                      {totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                  </p>
+                  {canSeeCosts && (
+                    <p className="text-sm text-muted-foreground">
+                      Cost: <span className="font-semibold text-foreground font-mono">
+                        {totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -426,7 +430,7 @@ export default function ProjectDetail() {
                       <span className="text-status-safe ml-1">{stats.safe} safe</span> •
                       <span className="text-status-at-risk ml-1">{stats['at-risk']} at risk</span> •
                       <span className="text-status-unsafe ml-1">{stats.unsafe} unsafe</span>
-                      {totalCost > 0 && (
+                      {canSeeCosts && totalCost > 0 && (
                         <span className="ml-2">• Total cost: <span className="font-mono text-foreground">{totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></span>
                       )}
                     </p>
@@ -511,9 +515,9 @@ export default function ProjectDetail() {
                         <TableHead>Description</TableHead>
                         <TableHead>Supplier</TableHead>
                         <TableHead>Approval</TableHead>
-                        <TableHead className="text-right">Unit Cost</TableHead>
-                        <TableHead className="text-center">Qty</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
+                        {canSeeCosts && <TableHead className="text-right">Unit Cost</TableHead>}
+                        {canSeeCosts && <TableHead className="text-center">Qty</TableHead>}
+                        {canSeeCosts && <TableHead className="text-right">Total</TableHead>}
                         <TableHead className="text-center">Purchased</TableHead>
                         <TableHead className="text-center">Delivery</TableHead>
                         <TableHead className="text-center">Received</TableHead>
@@ -546,9 +550,9 @@ export default function ProjectDetail() {
                                 {item.approval_status}
                               </span>
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs">{item.unit_cost != null ? item.unit_cost.toFixed(2) : '-'}</TableCell>
-                            <TableCell className="text-center font-mono text-xs">{item.quantity ?? 1}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">{total > 0 ? total.toFixed(2) : '-'}</TableCell>
+                            {canSeeCosts && <TableCell className="text-right font-mono text-xs">{item.unit_cost != null ? item.unit_cost.toFixed(2) : '-'}</TableCell>}
+                            {canSeeCosts && <TableCell className="text-center font-mono text-xs">{item.quantity ?? 1}</TableCell>}
+                            {canSeeCosts && <TableCell className="text-right font-mono text-xs">{total > 0 ? total.toFixed(2) : '-'}</TableCell>}
                             <TableCell className="text-center">
                               {item.purchased ? <CheckCircle2 className="w-4 h-4 text-status-safe mx-auto" /> : <span className="text-muted-foreground">-</span>}
                             </TableCell>
