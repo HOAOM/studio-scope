@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { KPIBlock } from '@/components/warroom/KPIBlock';
 import { computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ProjectFormDialog } from '@/components/warroom/ProjectFormDialog';
+import { ExcelImportDialog } from '@/components/warroom/ExcelImportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { 
@@ -22,7 +23,8 @@ import {
   Edit,
   User,
   MapPin,
-  Shield
+  Shield,
+  FileSpreadsheet
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -87,6 +89,7 @@ export default function WarRoomOverview() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [excelImportOpen, setExcelImportOpen] = useState(false);
   
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -190,6 +193,10 @@ export default function WarRoomOverview() {
                 <span className="font-semibold text-status-unsafe">{stats.unsafe}</span>
               </button>
               <div className="h-6 w-px bg-border mx-2" />
+              <Button variant="outline" onClick={() => setExcelImportOpen(true)}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Import Excel
+              </Button>
               <Button onClick={() => { setEditingProject(null); setProjectDialogOpen(true); }}>
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
@@ -306,6 +313,11 @@ export default function WarRoomOverview() {
         open={projectDialogOpen}
         onOpenChange={setProjectDialogOpen}
         project={editingProject}
+      />
+
+      <ExcelImportDialog
+        open={excelImportOpen}
+        onOpenChange={setExcelImportOpen}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
