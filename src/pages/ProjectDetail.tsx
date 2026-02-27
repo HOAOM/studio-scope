@@ -60,6 +60,8 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
+import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
+import { Image as ImageIcon } from 'lucide-react';
 
 type ItemLifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
 
@@ -138,7 +140,8 @@ export default function ProjectDetail() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
-
+  const [boqModalCategory, setBOQModalCategory] = useState<BOQCategory | null>(null);
+  const [boqModalOpen, setBOQModalOpen] = useState(false);
   const areas = useMemo(() => {
     const unique = new Set(items.map(i => i.area));
     return Array.from(unique).sort();
@@ -261,6 +264,16 @@ export default function ProjectDetail() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Gantt Timeline */}
+            <GanttChart
+              items={items}
+              projectStartDate={project.start_date}
+              projectEndDate={project.target_completion_date}
+            />
+
+            {/* KPIs */}
+            <ProjectKPIs items={items} />
+
             {/* Project Summary + Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-card rounded-lg border border-border p-6">
@@ -349,27 +362,24 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            {/* Gantt Timeline */}
-            <GanttChart
-              items={items}
-              projectStartDate={project.start_date}
-              projectEndDate={project.target_completion_date}
-            />
-
-            {/* KPIs */}
-            <ProjectKPIs items={items} />
-
-            {/* BOQ Coverage Matrix */}
+            {/* BOQ Coverage Matrix - Clickable */}
             <div className="bg-card rounded-lg border border-border overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-surface-elevated">
                 <h3 className="font-semibold text-foreground">BOQ Coverage Matrix</h3>
-                <p className="text-xs text-muted-foreground mt-1">Category status and approval coverage</p>
+                <p className="text-xs text-muted-foreground mt-1">Click a category to view and edit its items</p>
               </div>
               <div className="divide-y divide-border">
                 {boqCoverage.map((cat) => {
                   const approvalRate = cat.itemCount > 0 ? Math.round((cat.approvedCount / cat.itemCount) * 100) : 0;
                   return (
-                    <div key={cat.category} className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors">
+                    <button
+                      key={cat.category}
+                      onClick={() => {
+                        setBOQModalCategory(cat.category);
+                        setBOQModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors text-left cursor-pointer"
+                    >
                       <div className="flex items-center gap-4 flex-1">
                         <span className="font-medium text-foreground min-w-[140px]">{CATEGORY_LABELS[cat.category]}</span>
                         <div className="flex items-center gap-2">
@@ -408,7 +418,7 @@ export default function ProjectDetail() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -526,6 +536,7 @@ export default function ProjectDetail() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-[50px]">Img</TableHead>
                         <TableHead className="w-[90px]">Code</TableHead>
                         <TableHead className="w-[80px]">Status</TableHead>
                         <TableHead className="w-[80px]">Lifecycle</TableHead>
@@ -549,6 +560,15 @@ export default function ProjectDetail() {
                         const total = (item.unit_cost || 0) * (item.quantity || 1);
                         return (
                           <TableRow key={item.id} className={cn('tracker-row', status === 'unsafe' && 'bg-status-unsafe-bg')}>
+                            <TableCell>
+                              {item.reference_image_url ? (
+                                <img src={item.reference_image_url} alt="" className="w-8 h-8 rounded object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                              ) : (
+                                <div className="w-8 h-8 rounded border border-border bg-muted flex items-center justify-center">
+                                  <ImageIcon className="w-3 h-3 text-muted-foreground" />
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell className="font-mono text-xs font-semibold text-primary">{item.item_code || '-'}</TableCell>
                             <TableCell>
                               <StatusBadge status={status} label={status === 'at-risk' ? 'At Risk' : status.charAt(0).toUpperCase() + status.slice(1)} size="sm" />
@@ -650,6 +670,18 @@ export default function ProjectDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* BOQ Category Modal */}
+      {projectId && (
+        <BOQCategoryModal
+          open={boqModalOpen}
+          onOpenChange={setBOQModalOpen}
+          category={boqModalCategory}
+          items={items}
+          projectId={projectId}
+          canSeeCosts={effectiveCanSeeCosts}
+        />
+      )}
     </div>
   );
 }
