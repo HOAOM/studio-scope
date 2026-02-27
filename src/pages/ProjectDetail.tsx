@@ -536,6 +536,7 @@ export default function ProjectDetail() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-[50px]">Img</TableHead>
                         <TableHead className="w-[90px]">Code</TableHead>
                         <TableHead className="w-[80px]">Status</TableHead>
                         <TableHead className="w-[80px]">Lifecycle</TableHead>
