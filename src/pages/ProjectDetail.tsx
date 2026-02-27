@@ -140,7 +140,8 @@ export default function ProjectDetail() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
-
+  const [boqModalCategory, setBOQModalCategory] = useState<BOQCategory | null>(null);
+  const [boqModalOpen, setBOQModalOpen] = useState(false);
   const areas = useMemo(() => {
     const unique = new Set(items.map(i => i.area));
     return Array.from(unique).sort();
