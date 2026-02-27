@@ -670,6 +670,18 @@ export default function ProjectDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* BOQ Category Modal */}
+      {projectId && (
+        <BOQCategoryModal
+          open={boqModalOpen}
+          onOpenChange={setBOQModalOpen}
+          category={boqModalCategory}
+          items={items}
+          projectId={projectId}
+          canSeeCosts={effectiveCanSeeCosts}
+        />
+      )}
     </div>
   );
 }
