@@ -264,6 +264,16 @@ export default function ProjectDetail() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Gantt Timeline */}
+            <GanttChart
+              items={items}
+              projectStartDate={project.start_date}
+              projectEndDate={project.target_completion_date}
+            />
+
+            {/* KPIs */}
+            <ProjectKPIs items={items} />
+
             {/* Project Summary + Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-card rounded-lg border border-border p-6">
@@ -352,27 +362,24 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            {/* Gantt Timeline */}
-            <GanttChart
-              items={items}
-              projectStartDate={project.start_date}
-              projectEndDate={project.target_completion_date}
-            />
-
-            {/* KPIs */}
-            <ProjectKPIs items={items} />
-
-            {/* BOQ Coverage Matrix */}
+            {/* BOQ Coverage Matrix - Clickable */}
             <div className="bg-card rounded-lg border border-border overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-surface-elevated">
                 <h3 className="font-semibold text-foreground">BOQ Coverage Matrix</h3>
-                <p className="text-xs text-muted-foreground mt-1">Category status and approval coverage</p>
+                <p className="text-xs text-muted-foreground mt-1">Click a category to view and edit its items</p>
               </div>
               <div className="divide-y divide-border">
                 {boqCoverage.map((cat) => {
                   const approvalRate = cat.itemCount > 0 ? Math.round((cat.approvedCount / cat.itemCount) * 100) : 0;
                   return (
-                    <div key={cat.category} className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors">
+                    <button
+                      key={cat.category}
+                      onClick={() => {
+                        setBOQModalCategory(cat.category);
+                        setBOQModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors text-left cursor-pointer"
+                    >
                       <div className="flex items-center gap-4 flex-1">
                         <span className="font-medium text-foreground min-w-[140px]">{CATEGORY_LABELS[cat.category]}</span>
                         <div className="flex items-center gap-2">
@@ -411,7 +418,7 @@ export default function ProjectDetail() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
