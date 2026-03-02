@@ -458,6 +458,30 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
               <ZoomOut className="w-3.5 h-3.5" />
             </Button>
           </div>
+          {!hasTemplate && missingTasks.length > 0 && (
+            <Button size="sm" variant="outline" className="h-8" onClick={generateTemplateTasks} disabled={isGenerating}>
+              <Wand2 className="w-3.5 h-3.5 mr-1" /> Generate Template
+            </Button>
+          )}
+          {hasTemplate && missingTasks.length > 0 && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={generateTemplateTasks} disabled={isGenerating}>
+              <Wand2 className="w-3.5 h-3.5 mr-1" /> +{missingTasks.length} tasks
+            </Button>
+          )}
+          {syncSuggestions.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="h-6 cursor-pointer text-[10px] gap-1">
+                    <RefreshCw className="w-3 h-3" /> {syncSuggestions.length} sync
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{syncSuggestions.length} tasks have suggested updates from item data</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <Button size="sm" className="h-8" onClick={() => { setEditingTask(null); setTaskDialogOpen(true); }}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Task
           </Button>
