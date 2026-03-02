@@ -66,6 +66,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setAssigneeId(task.assignee_id || 'none');
       setStartDate(task.start_date ? parseISO(task.start_date) : undefined);
       setEndDate(task.end_date ? parseISO(task.end_date) : undefined);
+      setDependsOn((task as any).depends_on || 'none');
     } else {
       setTitle('');
       setDescription('');
