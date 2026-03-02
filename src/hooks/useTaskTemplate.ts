@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { useProjectTasks, useCreateTask, ProjectTask } from '@/hooks/useTasks';
+import { useProjectTasks, useCreateTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
@@ -127,6 +127,7 @@ function deriveTaskStatus(
 export function useTaskTemplate(projectId: string | undefined, items: ProjectItem[], projectStart: string, projectEnd: string) {
   const { data: existingTasks = [] } = useProjectTasks(projectId);
   const createTask = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
 
   /** Check which template tasks are missing */
   const missingTasks = useMemo(() => {
@@ -182,13 +183,36 @@ export function useTaskTemplate(projectId: string | undefined, items: ProjectIte
     toast.success(`${created} template tasks generated`);
   }, [projectId, missingTasks, items, projectStart, projectEnd, createTask]);
 
+  /** Apply sync suggestions — update dates & status from item data */
+  const syncTasks = useCallback(async () => {
+    if (!projectId || syncSuggestions.length === 0) return;
+    let synced = 0;
+    for (const s of syncSuggestions) {
+      try {
+        const updates: Record<string, any> = {};
+        if (s.suggestedStart && s.suggestedStart !== s.task.start_date) updates.start_date = s.suggestedStart;
+        if (s.suggestedEnd && s.suggestedEnd !== s.task.end_date) updates.end_date = s.suggestedEnd;
+        if (s.suggestedStatus !== s.task.status) updates.status = s.suggestedStatus;
+        if (Object.keys(updates).length > 0) {
+          await updateTaskMutation.mutateAsync({ id: s.task.id, projectId, ...updates } as any);
+          synced++;
+        }
+      } catch (e) {
+        console.error('Failed to sync task:', s.task.title, e);
+      }
+    }
+    toast.success(`${synced} tasks synced with item data`);
+  }, [projectId, syncSuggestions, updateTaskMutation]);
+
   return {
     missingTasks,
     syncSuggestions,
     generateTemplateTasks,
+    syncTasks,
     hasTemplate: existingTasks.some(t => TASK_TEMPLATE.some(tmpl => tmpl.title === t.title)),
     templateTaskCount: TASK_TEMPLATE.length,
     isGenerating: createTask.isPending,
+    isSyncing: updateTaskMutation.isPending,
   };
 }
 
