@@ -540,6 +540,7 @@ export type Database = {
         Row: {
           assignee_id: string | null
           created_at: string
+          depends_on: string | null
           description: string | null
           end_date: string | null
           id: string
@@ -555,6 +556,7 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           created_at?: string
+          depends_on?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -570,6 +572,7 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           created_at?: string
+          depends_on?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -583,6 +586,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_tasks_depends_on_fkey"
+            columns: ["depends_on"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_tasks_linked_item_id_fkey"
             columns: ["linked_item_id"]
