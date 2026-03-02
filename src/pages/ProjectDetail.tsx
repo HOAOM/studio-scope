@@ -521,6 +521,33 @@ export default function ProjectDetail() {
                       <SelectItem value="unsafe">Unsafe</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={lifecycleFilter} onValueChange={setLifecycleFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Lifecycle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Lifecycle</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="estimated">Estimated</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="ordered">Ordered</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="installed">Installed</SelectItem>
+                      <SelectItem value="on_hold">On Hold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Approval" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Approval</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="revision">In Revision</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Select value={areaFilter} onValueChange={setAreaFilter}>
                     <SelectTrigger className="w-[140px]">
                       <SelectValue placeholder="Area" />
