@@ -15,7 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Loader2, Upload, Percent, DollarSign } from 'lucide-react';
+import { Loader2, Upload, Percent, DollarSign, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useCreateProjectItem, useUpdateProjectItem } from '@/hooks/useProjects';
 import { useFloors, useRooms, useItemTypes, useSubcategories } from '@/hooks/useAdminData';
 import { toast } from 'sonner';
@@ -692,9 +693,22 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             </div>
 
             {/* ── Procurement ── */}
-            <div className="space-y-4 p-4 rounded-lg border border-border bg-secondary/30">
-              <h4 className="text-sm font-semibold text-foreground">Procurement</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={cn("space-y-4 p-4 rounded-lg border bg-secondary/30", form.watch('approval_status') !== 'approved' ? 'border-status-at-risk/30' : 'border-border')}>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-foreground">Procurement</h4>
+                {form.watch('approval_status') !== 'approved' ? (
+                  <span className="text-[11px] px-2.5 py-1 rounded-full bg-status-at-risk-bg text-status-at-risk font-medium flex items-center gap-1.5">
+                    <AlertTriangle className="w-3 h-3" />
+                    Gate: Approval required before procurement
+                  </span>
+                ) : (
+                  <span className="text-[11px] px-2.5 py-1 rounded-full bg-status-safe-bg text-status-safe font-medium flex items-center gap-1.5">
+                    <ShieldCheck className="w-3 h-3" />
+                    Approved — procurement enabled
+                  </span>
+                )}
+              </div>
+              <div className={cn("grid grid-cols-2 md:grid-cols-4 gap-4", form.watch('approval_status') !== 'approved' && 'opacity-40 pointer-events-none select-none')}>
                 <FormField control={form.control} name="supplier" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Supplier Name</FormLabel>
@@ -722,7 +736,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                   </FormItem>
                 )} />
               </div>
-              <div className="flex items-center gap-4">
+              <div className={cn("flex items-center gap-4", form.watch('approval_status') !== 'approved' && 'opacity-40 pointer-events-none select-none')}>
                 <FormField control={form.control} name="purchased" render={({ field }) => (
                   <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                     <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>

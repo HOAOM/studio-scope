@@ -110,6 +110,17 @@ function calculateItemStatus(item: ProjectItem): StatusLevel {
   return 'at-risk';
 }
 
+function getItemGate(item: ProjectItem): { label: string; color: string } | null {
+  if (item.approval_status === 'rejected') return { label: 'Rejected', color: 'text-status-unsafe bg-status-unsafe-bg' };
+  if (item.approval_status === 'pending') return { label: 'Awaiting approval', color: 'text-status-at-risk bg-status-at-risk-bg' };
+  if (item.approval_status === 'revision') return { label: 'In revision', color: 'text-status-at-risk bg-status-at-risk-bg' };
+  if (item.approval_status === 'approved' && !item.purchased) return { label: 'Ready to order', color: 'text-primary bg-primary/10' };
+  if (item.purchased && !item.received) return { label: 'Awaiting delivery', color: 'text-primary bg-primary/10' };
+  if (item.received && !item.installed) return { label: 'Ready to install', color: 'text-status-at-risk bg-status-at-risk-bg' };
+  if (item.received && item.installed) return null; // complete
+  return null;
+}
+
 function computeBOQCoverage(items: ProjectItem[]) {
   return ALL_CATEGORIES.map(cat => {
     const catItems = items.filter(i => i.category === cat);
@@ -139,6 +150,8 @@ export default function ProjectDetail() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [lifecycleFilter, setLifecycleFilter] = useState<string>('all');
+  const [approvalFilter, setApprovalFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [boqModalCategory, setBOQModalCategory] = useState<BOQCategory | null>(null);
   const [boqModalOpen, setBOQModalOpen] = useState(false);
@@ -151,13 +164,16 @@ export default function ProjectDetail() {
     return items.filter(item => {
       const matchesSearch = item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            item.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           (item.supplier || '').toLowerCase().includes(searchQuery.toLowerCase());
+                           (item.supplier || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (item.item_code || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       const matchesStatus = statusFilter === 'all' || calculateItemStatus(item) === statusFilter;
+      const matchesLifecycle = lifecycleFilter === 'all' || item.lifecycle_status === lifecycleFilter;
+      const matchesApproval = approvalFilter === 'all' || item.approval_status === approvalFilter;
       const matchesArea = areaFilter === 'all' || item.area === areaFilter;
-      return matchesSearch && matchesCategory && matchesStatus && matchesArea;
+      return matchesSearch && matchesCategory && matchesStatus && matchesLifecycle && matchesApproval && matchesArea;
     });
-  }, [items, searchQuery, categoryFilter, statusFilter, areaFilter]);
+  }, [items, searchQuery, categoryFilter, statusFilter, lifecycleFilter, approvalFilter, areaFilter]);
 
   const stats = useMemo(() => {
     const byStatus = { safe: 0, 'at-risk': 0, unsafe: 0 };
@@ -505,6 +521,33 @@ export default function ProjectDetail() {
                       <SelectItem value="unsafe">Unsafe</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={lifecycleFilter} onValueChange={setLifecycleFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Lifecycle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Lifecycle</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="estimated">Estimated</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="ordered">Ordered</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="installed">Installed</SelectItem>
+                      <SelectItem value="on_hold">On Hold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Approval" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Approval</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="revision">In Revision</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Select value={areaFilter} onValueChange={setAreaFilter}>
                     <SelectTrigger className="w-[140px]">
                       <SelectValue placeholder="Area" />
@@ -547,6 +590,7 @@ export default function ProjectDetail() {
                         <TableHead>Description</TableHead>
                         <TableHead>Supplier</TableHead>
                         <TableHead>Approval</TableHead>
+                        <TableHead>Gate</TableHead>
                         {effectiveCanSeeCosts && <TableHead className="text-right">Unit Cost</TableHead>}
                         {effectiveCanSeeCosts && <TableHead className="text-center">Qty</TableHead>}
                         {effectiveCanSeeCosts && <TableHead className="text-right">Total</TableHead>}
@@ -590,6 +634,18 @@ export default function ProjectDetail() {
                               )}>
                                 {item.approval_status}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              {(() => {
+                                const gate = getItemGate(item);
+                                return gate ? (
+                                  <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap', gate.color)}>
+                                    {gate.label}
+                                  </span>
+                                ) : (
+                                  <CheckCircle2 className="w-4 h-4 text-status-safe" />
+                                );
+                              })()}
                             </TableCell>
                             {effectiveCanSeeCosts && <TableCell className="text-right font-mono text-xs">{item.unit_cost != null ? item.unit_cost.toFixed(2) : '-'}</TableCell>}
                             {effectiveCanSeeCosts && <TableCell className="text-center font-mono text-xs">{item.quantity ?? 1}</TableCell>}
