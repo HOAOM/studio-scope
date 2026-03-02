@@ -188,6 +188,22 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
               </Popover>
             </div>
           </div>
+
+          {/* Dependency */}
+          {tasks.filter(t => t.id !== task?.id).length > 0 && (
+            <div>
+              <Label>Depends On</Label>
+              <Select value={dependsOn} onValueChange={setDependsOn}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No dependency</SelectItem>
+                  {tasks.filter(t => t.id !== task?.id).map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
