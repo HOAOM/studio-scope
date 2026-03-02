@@ -41,9 +41,10 @@ interface TaskFormDialogProps {
   projectId: string;
   task?: ProjectTask | null;
   members?: { id: string; display_name: string | null; email: string | null }[];
+  tasks?: ProjectTask[];
 }
 
-export function TaskFormDialog({ open, onOpenChange, projectId, task, members = [] }: TaskFormDialogProps) {
+export function TaskFormDialog({ open, onOpenChange, projectId, task, members = [], tasks = [] }: TaskFormDialogProps) {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
 
