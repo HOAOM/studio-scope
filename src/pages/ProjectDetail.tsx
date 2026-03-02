@@ -558,6 +558,7 @@ export default function ProjectDetail() {
                         <TableHead>Description</TableHead>
                         <TableHead>Supplier</TableHead>
                         <TableHead>Approval</TableHead>
+                        <TableHead>Gate</TableHead>
                         {effectiveCanSeeCosts && <TableHead className="text-right">Unit Cost</TableHead>}
                         {effectiveCanSeeCosts && <TableHead className="text-center">Qty</TableHead>}
                         {effectiveCanSeeCosts && <TableHead className="text-right">Total</TableHead>}
