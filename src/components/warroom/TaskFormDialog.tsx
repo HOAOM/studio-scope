@@ -55,6 +55,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
   const [assigneeId, setAssigneeId] = useState<string>('none');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [dependsOn, setDependsOn] = useState<string>('none');
 
   useEffect(() => {
     if (task) {
