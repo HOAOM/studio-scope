@@ -215,7 +215,39 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       task: t,
     }));
     const itemRows = itemsToRows(items);
-    return [...taskRows, ...itemRows];
+
+    // Add approval gate milestone rows
+    const gateRows: GanttRow[] = [];
+    const pendingItems = items.filter(i => i.approval_status === 'pending' || i.approval_status === 'revision');
+    if (pendingItems.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      gateRows.push({
+        id: 'gate-approval',
+        type: 'task' as const,
+        label: `⚠️ ${pendingItems.length} items awaiting approval`,
+        group: 'design_validation',
+        status: 'blocked',
+        startDate: today,
+        endDate: today,
+        progress: 0,
+      });
+    }
+    const readyToOrder = items.filter(i => i.approval_status === 'approved' && !i.purchased);
+    if (readyToOrder.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      gateRows.push({
+        id: 'gate-procurement',
+        type: 'task' as const,
+        label: `🟢 ${readyToOrder.length} items ready to order`,
+        group: 'procurement',
+        status: 'todo',
+        startDate: today,
+        endDate: today,
+        progress: 0,
+      });
+    }
+
+    return [...gateRows, ...taskRows, ...itemRows];
   }, [tasks, items]);
 
   /* ── Group rows ── */
