@@ -9,6 +9,7 @@ import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
 import { PresentationBuilder } from '@/components/warroom/PresentationBuilder';
 import { TaskGantt } from '@/components/warroom/TaskGantt';
 import { TeamManagement } from '@/components/warroom/TeamManagement';
+import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -289,6 +290,9 @@ export default function ProjectDetail() {
                 items={items}
               />
             )}
+
+            {/* Approval Gates Panel */}
+            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} />
 
             {/* KPIs */}
             <ProjectKPIs items={items} />
