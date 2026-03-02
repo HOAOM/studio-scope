@@ -14,6 +14,7 @@ export interface ProjectTask {
   end_date: string | null;
   sort_order: number;
   linked_item_id: string | null;
+  depends_on: string | null;
   created_at: string;
   updated_at: string;
 }

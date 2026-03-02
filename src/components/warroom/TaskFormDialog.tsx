@@ -41,9 +41,10 @@ interface TaskFormDialogProps {
   projectId: string;
   task?: ProjectTask | null;
   members?: { id: string; display_name: string | null; email: string | null }[];
+  tasks?: ProjectTask[];
 }
 
-export function TaskFormDialog({ open, onOpenChange, projectId, task, members = [] }: TaskFormDialogProps) {
+export function TaskFormDialog({ open, onOpenChange, projectId, task, members = [], tasks = [] }: TaskFormDialogProps) {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
 
@@ -54,6 +55,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
   const [assigneeId, setAssigneeId] = useState<string>('none');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [dependsOn, setDependsOn] = useState<string>('none');
 
   useEffect(() => {
     if (task) {
@@ -64,6 +66,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setAssigneeId(task.assignee_id || 'none');
       setStartDate(task.start_date ? parseISO(task.start_date) : undefined);
       setEndDate(task.end_date ? parseISO(task.end_date) : undefined);
+      setDependsOn((task as any).depends_on || 'none');
     } else {
       setTitle('');
       setDescription('');
@@ -72,6 +75,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setAssigneeId('none');
       setStartDate(undefined);
       setEndDate(undefined);
+      setDependsOn('none');
     }
   }, [task, open]);
 
@@ -85,6 +89,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       assignee_id: assigneeId === 'none' ? null : assigneeId,
       start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
       end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
+      depends_on: dependsOn === 'none' ? null : dependsOn,
     };
     try {
       if (task) {
@@ -183,6 +188,22 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
               </Popover>
             </div>
           </div>
+
+          {/* Dependency */}
+          {tasks.filter(t => t.id !== task?.id).length > 0 && (
+            <div>
+              <Label>Depends On</Label>
+              <Select value={dependsOn} onValueChange={setDependsOn}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No dependency</SelectItem>
+                  {tasks.filter(t => t.id !== task?.id).map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
