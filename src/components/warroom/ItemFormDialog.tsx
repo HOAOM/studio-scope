@@ -693,9 +693,22 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
             </div>
 
             {/* ── Procurement ── */}
-            <div className="space-y-4 p-4 rounded-lg border border-border bg-secondary/30">
-              <h4 className="text-sm font-semibold text-foreground">Procurement</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={cn("space-y-4 p-4 rounded-lg border bg-secondary/30", form.watch('approval_status') !== 'approved' ? 'border-status-at-risk/30' : 'border-border')}>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-foreground">Procurement</h4>
+                {form.watch('approval_status') !== 'approved' ? (
+                  <span className="text-[11px] px-2.5 py-1 rounded-full bg-status-at-risk-bg text-status-at-risk font-medium flex items-center gap-1.5">
+                    <AlertTriangle className="w-3 h-3" />
+                    Gate: Approval required before procurement
+                  </span>
+                ) : (
+                  <span className="text-[11px] px-2.5 py-1 rounded-full bg-status-safe-bg text-status-safe font-medium flex items-center gap-1.5">
+                    <ShieldCheck className="w-3 h-3" />
+                    Approved — procurement enabled
+                  </span>
+                )}
+              </div>
+              <div className={cn("grid grid-cols-2 md:grid-cols-4 gap-4", form.watch('approval_status') !== 'approved' && 'opacity-40 pointer-events-none select-none')}>
                 <FormField control={form.control} name="supplier" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Supplier Name</FormLabel>
