@@ -150,6 +150,8 @@ export default function ProjectDetail() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [lifecycleFilter, setLifecycleFilter] = useState<string>('all');
+  const [approvalFilter, setApprovalFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [boqModalCategory, setBOQModalCategory] = useState<BOQCategory | null>(null);
   const [boqModalOpen, setBOQModalOpen] = useState(false);
