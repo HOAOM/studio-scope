@@ -603,6 +603,18 @@ export default function ProjectDetail() {
                                 {item.approval_status}
                               </span>
                             </TableCell>
+                            <TableCell>
+                              {(() => {
+                                const gate = getItemGate(item);
+                                return gate ? (
+                                  <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap', gate.color)}>
+                                    {gate.label}
+                                  </span>
+                                ) : (
+                                  <CheckCircle2 className="w-4 h-4 text-status-safe" />
+                                );
+                              })()}
+                            </TableCell>
                             {effectiveCanSeeCosts && <TableCell className="text-right font-mono text-xs">{item.unit_cost != null ? item.unit_cost.toFixed(2) : '-'}</TableCell>}
                             {effectiveCanSeeCosts && <TableCell className="text-center font-mono text-xs">{item.quantity ?? 1}</TableCell>}
                             {effectiveCanSeeCosts && <TableCell className="text-right font-mono text-xs">{total > 0 ? total.toFixed(2) : '-'}</TableCell>}
