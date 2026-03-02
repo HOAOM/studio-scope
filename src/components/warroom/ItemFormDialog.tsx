@@ -736,7 +736,8 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                   </FormItem>
                 )} />
               </div>
-              <div className="flex items-center gap-4">
+              </div>
+              <div className={cn("flex items-center gap-4", form.watch('approval_status') !== 'approved' && 'opacity-40 pointer-events-none select-none')}>
                 <FormField control={form.control} name="purchased" render={({ field }) => (
                   <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                     <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
