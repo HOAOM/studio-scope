@@ -164,13 +164,16 @@ export default function ProjectDetail() {
     return items.filter(item => {
       const matchesSearch = item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            item.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           (item.supplier || '').toLowerCase().includes(searchQuery.toLowerCase());
+                           (item.supplier || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (item.item_code || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       const matchesStatus = statusFilter === 'all' || calculateItemStatus(item) === statusFilter;
+      const matchesLifecycle = lifecycleFilter === 'all' || item.lifecycle_status === lifecycleFilter;
+      const matchesApproval = approvalFilter === 'all' || item.approval_status === approvalFilter;
       const matchesArea = areaFilter === 'all' || item.area === areaFilter;
-      return matchesSearch && matchesCategory && matchesStatus && matchesArea;
+      return matchesSearch && matchesCategory && matchesStatus && matchesLifecycle && matchesApproval && matchesArea;
     });
-  }, [items, searchQuery, categoryFilter, statusFilter, areaFilter]);
+  }, [items, searchQuery, categoryFilter, statusFilter, lifecycleFilter, approvalFilter, areaFilter]);
 
   const stats = useMemo(() => {
     const byStatus = { safe: 0, 'at-risk': 0, unsafe: 0 };
