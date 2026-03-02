@@ -110,6 +110,17 @@ function calculateItemStatus(item: ProjectItem): StatusLevel {
   return 'at-risk';
 }
 
+function getItemGate(item: ProjectItem): { label: string; color: string } | null {
+  if (item.approval_status === 'rejected') return { label: 'Rejected', color: 'text-status-unsafe bg-status-unsafe-bg' };
+  if (item.approval_status === 'pending') return { label: 'Awaiting approval', color: 'text-status-at-risk bg-status-at-risk-bg' };
+  if (item.approval_status === 'revision') return { label: 'In revision', color: 'text-status-at-risk bg-status-at-risk-bg' };
+  if (item.approval_status === 'approved' && !item.purchased) return { label: 'Ready to order', color: 'text-primary bg-primary/10' };
+  if (item.purchased && !item.received) return { label: 'Awaiting delivery', color: 'text-primary bg-primary/10' };
+  if (item.received && !item.installed) return { label: 'Ready to install', color: 'text-status-at-risk bg-status-at-risk-bg' };
+  if (item.received && item.installed) return null; // complete
+  return null;
+}
+
 function computeBOQCoverage(items: ProjectItem[]) {
   return ALL_CATEGORIES.map(cat => {
     const catItems = items.filter(i => i.category === cat);
