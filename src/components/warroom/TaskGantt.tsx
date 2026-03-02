@@ -1,10 +1,12 @@
 import { useMemo, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format, addDays, isBefore, isAfter } from 'date-fns';
-import { Plus, ZoomIn, ZoomOut, Edit, Trash2, ChevronDown, ChevronRight, Package, GripVertical } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Edit, Trash2, ChevronDown, ChevronRight, Package, GripVertical, Wand2, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { useProjectTasks, useDeleteTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
+import { useTaskTemplate } from '@/hooks/useTaskTemplate';
 import { TaskFormDialog } from './TaskFormDialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -173,6 +175,9 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
+  const { missingTasks, syncSuggestions, generateTemplateTasks, hasTemplate, isGenerating } = useTaskTemplate(
+    projectId, items, projectStartDate, projectEndDate
+  );
 
   const [zoom, setZoom] = useState<ZoomLevel>('week');
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -210,7 +215,39 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       task: t,
     }));
     const itemRows = itemsToRows(items);
-    return [...taskRows, ...itemRows];
+
+    // Add approval gate milestone rows
+    const gateRows: GanttRow[] = [];
+    const pendingItems = items.filter(i => i.approval_status === 'pending' || i.approval_status === 'revision');
+    if (pendingItems.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      gateRows.push({
+        id: 'gate-approval',
+        type: 'task' as const,
+        label: `⚠️ ${pendingItems.length} items awaiting approval`,
+        group: 'design_validation',
+        status: 'blocked',
+        startDate: today,
+        endDate: today,
+        progress: 0,
+      });
+    }
+    const readyToOrder = items.filter(i => i.approval_status === 'approved' && !i.purchased);
+    if (readyToOrder.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      gateRows.push({
+        id: 'gate-procurement',
+        type: 'task' as const,
+        label: `🟢 ${readyToOrder.length} items ready to order`,
+        group: 'procurement',
+        status: 'todo',
+        startDate: today,
+        endDate: today,
+        progress: 0,
+      });
+    }
+
+    return [...gateRows, ...taskRows, ...itemRows];
   }, [tasks, items]);
 
   /* ── Group rows ── */
@@ -421,6 +458,30 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
               <ZoomOut className="w-3.5 h-3.5" />
             </Button>
           </div>
+          {!hasTemplate && missingTasks.length > 0 && (
+            <Button size="sm" variant="outline" className="h-8" onClick={generateTemplateTasks} disabled={isGenerating}>
+              <Wand2 className="w-3.5 h-3.5 mr-1" /> Generate Template
+            </Button>
+          )}
+          {hasTemplate && missingTasks.length > 0 && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={generateTemplateTasks} disabled={isGenerating}>
+              <Wand2 className="w-3.5 h-3.5 mr-1" /> +{missingTasks.length} tasks
+            </Button>
+          )}
+          {syncSuggestions.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="h-6 cursor-pointer text-[10px] gap-1">
+                    <RefreshCw className="w-3 h-3" /> {syncSuggestions.length} sync
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{syncSuggestions.length} tasks have suggested updates from item data</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <Button size="sm" className="h-8" onClick={() => { setEditingTask(null); setTaskDialogOpen(true); }}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Task
           </Button>
