@@ -22,8 +22,8 @@ export function useProjectTasks(projectId: string | undefined) {
   return useQuery({
     queryKey: ['project-tasks', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_tasks' as any)
+      const { data, error } = await (supabase as any)
+        .from('project_tasks')
         .select('*')
         .eq('project_id', projectId!)
         .order('sort_order', { ascending: true });
@@ -38,9 +38,9 @@ export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (task: Partial<ProjectTask> & { project_id: string; title: string }) => {
-      const { data, error } = await supabase
-        .from('project_tasks' as any)
-        .insert(task as any)
+      const { data, error } = await (supabase as any)
+        .from('project_tasks')
+        .insert(task)
         .select()
         .single();
       if (error) throw error;
@@ -56,14 +56,14 @@ export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, projectId, ...updates }: { id: string; projectId: string } & Partial<ProjectTask>) => {
-      const { data, error } = await supabase
-        .from('project_tasks' as any)
-        .update(updates as any)
+      const { data, error } = await (supabase as any)
+        .from('project_tasks')
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
-      return data as ProjectTask;
+      return data as unknown as ProjectTask;
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['project-tasks', vars.projectId] });
@@ -75,8 +75,8 @@ export function useDeleteTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, projectId }: { id: string; projectId: string }) => {
-      const { error } = await supabase
-        .from('project_tasks' as any)
+      const { error } = await (supabase as any)
+        .from('project_tasks')
         .delete()
         .eq('id', id);
       if (error) throw error;
