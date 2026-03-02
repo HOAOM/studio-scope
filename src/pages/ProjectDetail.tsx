@@ -270,6 +270,7 @@ export default function ProjectDetail() {
                 projectId={projectId}
                 projectStartDate={project.start_date}
                 projectEndDate={project.target_completion_date}
+                items={items}
               />
             )}
 
