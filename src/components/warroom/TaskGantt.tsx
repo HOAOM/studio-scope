@@ -1,10 +1,12 @@
 import { useMemo, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format, addDays, isBefore, isAfter } from 'date-fns';
-import { Plus, ZoomIn, ZoomOut, Edit, Trash2, ChevronDown, ChevronRight, Package, GripVertical } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Edit, Trash2, ChevronDown, ChevronRight, Package, GripVertical, Wand2, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { useProjectTasks, useDeleteTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
+import { useTaskTemplate } from '@/hooks/useTaskTemplate';
 import { TaskFormDialog } from './TaskFormDialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -173,6 +175,9 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
+  const { missingTasks, syncSuggestions, generateTemplateTasks, hasTemplate, isGenerating } = useTaskTemplate(
+    projectId, items, projectStartDate, projectEndDate
+  );
 
   const [zoom, setZoom] = useState<ZoomLevel>('week');
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
