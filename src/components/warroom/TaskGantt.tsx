@@ -175,7 +175,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
-  const { missingTasks, syncSuggestions, generateTemplateTasks, hasTemplate, isGenerating } = useTaskTemplate(
+  const { missingTasks, syncSuggestions, generateTemplateTasks, syncTasks, hasTemplate, isGenerating, isSyncing } = useTaskTemplate(
     projectId, items, projectStartDate, projectEndDate
   );
 
@@ -472,12 +472,18 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="h-6 cursor-pointer text-[10px] gap-1">
-                    <RefreshCw className="w-3 h-3" /> {syncSuggestions.length} sync
-                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-6 text-[10px] gap-1 px-2"
+                    onClick={syncTasks}
+                    disabled={isSyncing}
+                  >
+                    <RefreshCw className={cn('w-3 h-3', isSyncing && 'animate-spin')} /> {syncSuggestions.length} sync
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">{syncSuggestions.length} tasks have suggested updates from item data</p>
+                  <p className="text-xs">{syncSuggestions.length} tasks will be updated with dates & status from item data</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
