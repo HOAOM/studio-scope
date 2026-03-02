@@ -89,6 +89,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       assignee_id: assigneeId === 'none' ? null : assigneeId,
       start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
       end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
+      depends_on: dependsOn === 'none' ? null : dependsOn,
     };
     try {
       if (task) {
