@@ -536,6 +536,69 @@ export type Database = {
           },
         ]
       }
+      project_tasks: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          linked_item_id: string | null
+          macro_area: Database["public"]["Enums"]["task_macro_area"]
+          project_id: string
+          sort_order: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          linked_item_id?: string | null
+          macro_area?: Database["public"]["Enums"]["task_macro_area"]
+          project_id: string
+          sort_order?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          linked_item_id?: string | null
+          macro_area?: Database["public"]["Enums"]["task_macro_area"]
+          project_id?: string
+          sort_order?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_linked_item_id_fkey"
+            columns: ["linked_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           boq_master_ref: string | null
@@ -712,6 +775,16 @@ export type Database = {
         | "installed"
         | "on_hold"
       payment_scheme: "single" | "split_50_50" | "installments_3"
+      task_macro_area:
+        | "planning"
+        | "design_validation"
+        | "procurement"
+        | "production"
+        | "delivery"
+        | "installation"
+        | "closing"
+        | "custom"
+      task_status: "todo" | "in_progress" | "done" | "blocked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -873,6 +946,17 @@ export const Constants = {
         "on_hold",
       ],
       payment_scheme: ["single", "split_50_50", "installments_3"],
+      task_macro_area: [
+        "planning",
+        "design_validation",
+        "procurement",
+        "production",
+        "delivery",
+        "installation",
+        "closing",
+        "custom",
+      ],
+      task_status: ["todo", "in_progress", "done", "blocked"],
     },
   },
 } as const
