@@ -468,6 +468,23 @@ export default function ProjectDetail() {
             )}
           </TabsContent>
 
+          {/* GANTT & TASKS TAB */}
+          <TabsContent value="gantt" className="space-y-6">
+            {projectId && (
+              <TaskGantt
+                projectId={projectId}
+                projectStartDate={project.start_date}
+                projectEndDate={project.target_completion_date}
+                items={items}
+                members={projectMembers.map(m => ({
+                  id: m.user_id,
+                  display_name: m.display_name,
+                  email: m.email,
+                }))}
+              />
+            )}
+          </TabsContent>
+
           {/* ITEMS TAB */}
           <TabsContent value="items" className="space-y-4">
             <div className="bg-card rounded-lg border border-border">
