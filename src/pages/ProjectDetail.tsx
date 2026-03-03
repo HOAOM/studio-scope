@@ -277,21 +277,18 @@ export default function ProjectDetail() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
           </TabsList>
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Task Gantt Timeline */}
-            {projectId && (
-              <TaskGantt
-                projectId={projectId}
-                projectStartDate={project.start_date}
-                projectEndDate={project.target_completion_date}
-                items={items}
-              />
-            )}
+            {/* Approval Gates Panel */}
+            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} />
+
+            {/* KPIs */}
+            <ProjectKPIs items={items} />
 
             {/* Approval Gates Panel */}
             <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} />
