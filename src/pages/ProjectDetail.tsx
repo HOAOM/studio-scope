@@ -61,6 +61,7 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
 import { Image as ImageIcon } from 'lucide-react';
 
@@ -140,6 +141,7 @@ export default function ProjectDetail() {
   const deleteItem = useDeleteProjectItem();
   const { canSeeCosts, roles } = useUserRole();
   const isAdmin = roles.includes('admin');
+  const { data: projectMembers = [] } = useProjectMembers(projectId);
   const [clientViewMode, setClientViewMode] = useState(false);
   const effectiveCanSeeCosts = canSeeCosts && !clientViewMode;
   
@@ -275,21 +277,18 @@ export default function ProjectDetail() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
           </TabsList>
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Task Gantt Timeline */}
-            {projectId && (
-              <TaskGantt
-                projectId={projectId}
-                projectStartDate={project.start_date}
-                projectEndDate={project.target_completion_date}
-                items={items}
-              />
-            )}
+            {/* Approval Gates Panel */}
+            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} />
+
+            {/* KPIs */}
+            <ProjectKPIs items={items} />
 
             {/* Approval Gates Panel */}
             <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} />
@@ -466,6 +465,23 @@ export default function ProjectDetail() {
             {/* Team Management - only for admin/owner */}
             {isAdmin && projectId && (
               <TeamManagement projectId={projectId} />
+            )}
+          </TabsContent>
+
+          {/* GANTT & TASKS TAB */}
+          <TabsContent value="gantt" className="space-y-6">
+            {projectId && (
+              <TaskGantt
+                projectId={projectId}
+                projectStartDate={project.start_date}
+                projectEndDate={project.target_completion_date}
+                items={items}
+                members={projectMembers.map(m => ({
+                  id: m.user_id,
+                  display_name: m.display_name,
+                  email: m.email,
+                }))}
+              />
             )}
           </TabsContent>
 
