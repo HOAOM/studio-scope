@@ -61,6 +61,7 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
 import { Image as ImageIcon } from 'lucide-react';
 
