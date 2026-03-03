@@ -141,6 +141,7 @@ export default function ProjectDetail() {
   const deleteItem = useDeleteProjectItem();
   const { canSeeCosts, roles } = useUserRole();
   const isAdmin = roles.includes('admin');
+  const { data: projectMembers = [] } = useProjectMembers(projectId);
   const [clientViewMode, setClientViewMode] = useState(false);
   const effectiveCanSeeCosts = canSeeCosts && !clientViewMode;
   
