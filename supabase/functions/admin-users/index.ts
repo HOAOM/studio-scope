@@ -11,15 +11,50 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the caller is admin
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+
+    const body = await req.json()
+    const { action, ...params } = body
+
+    // Admin client with service role (needed for all actions)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    // Seed action uses x-seed-key header instead of auth
+    if (action === 'seed_users') {
+      const seedKey = req.headers.get('x-seed-key')
+      if (seedKey !== serviceRoleKey) throw new Error('Invalid seed key')
+
+      const { users } = params
+      const results = []
+      for (const u of users) {
+        try {
+          const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+            email: u.email,
+            email_confirm: true,
+            password: u.password,
+          })
+          if (createError) { results.push({ email: u.email, error: createError.message }); continue }
+          if (u.role && newUser.user) {
+            await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: u.role })
+          }
+          results.push({ email: u.email, success: true, user_id: newUser.user?.id })
+        } catch (e) {
+          results.push({ email: u.email, error: e.message })
+        }
+      }
+      return new Response(JSON.stringify({ results }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Verify the caller is admin for all other actions
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error('No authorization header')
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    // Client with caller's token to check admin
     const token = authHeader.replace('Bearer ', '')
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -33,13 +68,6 @@ Deno.serve(async (req) => {
       .eq('user_id', caller.id)
       .eq('role', 'admin')
     if (!adminCheck || adminCheck.length === 0) throw new Error('Admin access required')
-
-    // Admin client with service role
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
-    const { action, ...params } = await req.json()
 
     if (action === 'invite') {
       const { email, role, password } = params
