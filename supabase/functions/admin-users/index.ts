@@ -202,35 +202,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    if (action === 'seed_users') {
-      // Allow seeding with service role key in header
-      const seedKey = req.headers.get('x-seed-key')
-      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      if (seedKey !== serviceKey) throw new Error('Invalid seed key')
-
-      const { users } = params // [{email, role, password}]
-      const results = []
-      for (const u of users) {
-        try {
-          const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-            email: u.email,
-            email_confirm: true,
-            password: u.password,
-          })
-          if (createError) { results.push({ email: u.email, error: createError.message }); continue }
-          if (u.role && newUser.user) {
-            await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: u.role })
-          }
-          results.push({ email: u.email, success: true, user_id: newUser.user?.id })
-        } catch (e) {
-          results.push({ email: u.email, error: e.message })
-        }
-      }
-      return new Response(JSON.stringify({ results }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     throw new Error('Unknown action: ' + action)
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
