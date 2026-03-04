@@ -23,10 +23,11 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Seed action uses x-seed-key header instead of auth
+    // Seed action uses Authorization: Bearer <service_role_key>
     if (action === 'seed_users') {
-      const seedKey = req.headers.get('x-seed-key')
-      if (seedKey !== serviceRoleKey) throw new Error('Invalid seed key')
+      const authHeader = req.headers.get('Authorization')
+      const token = authHeader?.replace('Bearer ', '')
+      if (token !== serviceRoleKey) throw new Error('Invalid seed key')
 
       const { users } = params
       const results = []
