@@ -42,14 +42,16 @@ Deno.serve(async (req) => {
     const { action, ...params } = await req.json()
 
     if (action === 'invite') {
-      const { email, role } = params
+      const { email, role, password } = params
       if (!email) throw new Error('Email is required')
+
+      const userPassword = password || (crypto.randomUUID().slice(0, 12) + 'A1!')
 
       // Create user via admin API (auto-confirms)
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
         email_confirm: true,
-        password: crypto.randomUUID().slice(0, 12) + 'A1!', // temp password
+        password: userPassword,
       })
       if (createError) throw createError
 
