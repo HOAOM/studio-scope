@@ -23,8 +23,9 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Seed action - temporary open for initial setup
+    // Seed action - disabled after initial setup
     if (action === 'seed_users') {
+      throw new Error('Seed action is disabled')
 
       const { users } = params
       const results = []
