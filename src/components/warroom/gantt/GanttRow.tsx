@@ -41,7 +41,9 @@ export function GanttRowComponent({
       className={cn(
         'flex items-center border-b border-border/15 transition-colors group/row relative',
         index % 2 === 0 ? 'bg-transparent' : 'bg-muted/[0.03]',
-        isDraggingThis && 'bg-primary/[0.04]'
+        isDraggingThis && 'bg-primary/[0.04]',
+        isCriticalPath && 'bg-destructive/[0.03] border-l-2 border-l-destructive/40',
+        row.gateBlocked && 'opacity-60'
       )}
       style={{ height: ROW_HEIGHT }}
     >
