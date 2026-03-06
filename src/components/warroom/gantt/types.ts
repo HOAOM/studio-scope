@@ -18,6 +18,9 @@ export interface GanttRow {
   dependsOn?: string;
   phases?: { key: string; label: string; color: string; start: string; end: string | null }[];
   task?: ProjectTask;
+  gateBlocked?: boolean;
+  gateReason?: string;
+  gateProgress?: number;
 }
 
 export interface TimelineColumn {

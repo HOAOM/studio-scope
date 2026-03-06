@@ -1,9 +1,11 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format, addDays, isBefore, isAfter } from 'date-fns';
-import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw, Filter, AlertTriangle, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useProjectTasks, useDeleteTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
 import { useTaskTemplate } from '@/hooks/useTaskTemplate';
 import { TaskFormDialog } from './TaskFormDialog';
@@ -20,6 +22,7 @@ import { calcTaskProgress, calcItemProgress, itemsToRows, computeTimelineRange, 
 import { GanttGroupHeader } from './gantt/GanttGroupHeader';
 import { GanttRowComponent } from './gantt/GanttRow';
 import { GanttDependencyArrows } from './gantt/GanttDependencyArrows';
+import { isGateBlocked, computeCriticalPath, GATE_REQUIREMENTS } from '@/lib/workflow';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -30,6 +33,10 @@ interface TaskGanttProps {
   items?: ProjectItem[];
   members?: { id: string; display_name: string | null; email: string | null }[];
 }
+
+type FilterType = 'all' | 'tasks' | 'items';
+type FilterStatus = 'all' | 'todo' | 'in_progress' | 'done' | 'blocked';
+type FilterCategory = string; // 'all' or specific boq_category
 
 export function TaskGantt({ projectId, projectStartDate, projectEndDate, items = [], members = [] }: TaskGanttProps) {
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
@@ -51,6 +58,15 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
+  // Filters
+  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
+  const [showCriticalPath, setShowCriticalPath] = useState(false);
+  const [showGateIndicators, setShowGateIndicators] = useState(true);
+
+  const activeFilterCount = [filterType !== 'all', filterStatus !== 'all', filterCategory !== 'all', showCriticalPath].filter(Boolean).length;
+
   useEffect(() => {
     if (!containerRef.current) return;
     const obs = new ResizeObserver(entries => {
@@ -70,38 +86,73 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
 
   /* ── Build unified rows ── */
   const allRows = useMemo(() => {
-    const taskRows: GanttRowType[] = tasks.map(t => ({
-      id: t.id,
-      type: 'task' as const,
-      label: t.title,
-      group: t.macro_area,
-      status: t.status,
-      assignee: t.assignee_id || undefined,
-      startDate: t.start_date,
-      endDate: t.end_date,
-      progress: calcTaskProgress(t),
-      dependsOn: (t as any).depends_on || undefined,
-      task: t,
-    }));
+    const taskRows: GanttRowType[] = tasks.map(t => {
+      // Check gate blocking
+      const gateInfo = isGateBlocked(t.macro_area as any, items);
+      const effectiveStatus = gateInfo.blocked ? 'blocked' : t.status;
+
+      return {
+        id: t.id,
+        type: 'task' as const,
+        label: t.title,
+        group: t.macro_area,
+        status: effectiveStatus,
+        assignee: t.assignee_id || undefined,
+        startDate: t.start_date,
+        endDate: t.end_date,
+        progress: calcTaskProgress(t),
+        dependsOn: (t as any).depends_on || undefined,
+        task: t,
+        gateBlocked: gateInfo.blocked,
+        gateReason: gateInfo.reason,
+        gateProgress: gateInfo.progress,
+      };
+    });
     const itemRows = itemsToRows(items);
 
-    // Gate rows
+    // Gate milestone rows
     const gateRows: GanttRowType[] = [];
-    const pendingItems = items.filter(i => i.approval_status === 'pending' || i.approval_status === 'revision');
-    if (pendingItems.length > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      gateRows.push({ id: 'gate-approval', type: 'task', label: `${pendingItems.length} items awaiting approval`, group: 'design_validation', status: 'blocked', startDate: today, endDate: today, progress: 0 });
-    }
-    const readyToOrder = items.filter(i => i.approval_status === 'approved' && !i.purchased);
-    if (readyToOrder.length > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      gateRows.push({ id: 'gate-procurement', type: 'task', label: `${readyToOrder.length} items ready to order`, group: 'procurement', status: 'todo', startDate: today, endDate: today, progress: 0 });
+    if (showGateIndicators) {
+      const pendingItems = items.filter(i => i.approval_status === 'pending' || i.approval_status === 'revision');
+      if (pendingItems.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        gateRows.push({ id: 'gate-approval', type: 'task', label: `⚠️ ${pendingItems.length} items awaiting approval`, group: 'design_validation', status: 'blocked', startDate: today, endDate: today, progress: 0 });
+      }
+      const readyToOrder = items.filter(i => i.approval_status === 'approved' && !i.purchased);
+      if (readyToOrder.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        gateRows.push({ id: 'gate-procurement', type: 'task', label: `🟢 ${readyToOrder.length} items ready to order`, group: 'procurement', status: 'todo', startDate: today, endDate: today, progress: 0 });
+      }
     }
 
     return [...gateRows, ...taskRows, ...itemRows];
-  }, [tasks, items]);
+  }, [tasks, items, showGateIndicators]);
 
-  const grouped = useMemo(() => groupRows(allRows), [allRows]);
+  /* ── Critical path ── */
+  const criticalPathIds = useMemo(() => {
+    if (!showCriticalPath) return new Set<string>();
+    const nodes = allRows
+      .filter(r => r.type === 'task' && r.startDate && r.endDate)
+      .map(r => ({ id: r.id, startDate: r.startDate, endDate: r.endDate, dependsOn: r.dependsOn }));
+    return computeCriticalPath(nodes);
+  }, [allRows, showCriticalPath]);
+
+  /* ── Apply filters ── */
+  const filteredRows = useMemo(() => {
+    return allRows.filter(row => {
+      if (filterType === 'tasks' && row.type !== 'task') return false;
+      if (filterType === 'items' && row.type !== 'item') return false;
+      if (filterStatus !== 'all' && row.status !== filterStatus) return false;
+      if (filterCategory !== 'all') {
+        if (row.type === 'item' && !row.group.endsWith(filterCategory)) return false;
+        if (row.type === 'task' && filterCategory !== row.group) return false;
+      }
+      if (showCriticalPath && row.type === 'task' && !criticalPathIds.has(row.id)) return false;
+      return true;
+    });
+  }, [allRows, filterType, filterStatus, filterCategory, showCriticalPath, criticalPathIds]);
+
+  const grouped = useMemo(() => groupRows(filteredRows), [filteredRows]);
 
   const flatVisibleRows = useMemo(() => {
     const flat: GanttRowType[] = [];
@@ -112,8 +163,8 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   }, [grouped, collapsedGroups]);
 
   const { timelineStart, timelineEnd, totalDays } = useMemo(
-    () => computeTimelineRange(allRows, projectStartDate, projectEndDate),
-    [allRows, projectStartDate, projectEndDate]
+    () => computeTimelineRange(filteredRows.length > 0 ? filteredRows : allRows, projectStartDate, projectEndDate),
+    [filteredRows, allRows, projectStartDate, projectEndDate]
   );
 
   const columns = useMemo(
@@ -187,6 +238,12 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     setDragPreview(null);
   }, [dragging, dragPreview, allRows, updateTask, projectId]);
 
+  // Unique categories from items for filter
+  const itemCategories = useMemo(() => {
+    const cats = new Set(items.map(i => i.category));
+    return Array.from(cats).sort();
+  }, [items]);
+
   return (
     <div
       ref={containerRef}
@@ -201,6 +258,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           <h3 className="font-semibold text-foreground text-[15px] tracking-tight">Project Timeline</h3>
           <p className="text-[11px] text-muted-foreground/60 mt-0.5">
             {tasks.length} tasks · {allRows.filter(r => r.type === 'item').length} items
+            {activeFilterCount > 0 && <span className="text-primary ml-1">· {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -213,6 +271,48 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
               </span>
             ))}
           </div>
+
+          {/* Filters dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className={cn('h-7 text-[11px] border-border/40 gap-1', activeFilterCount > 0 && 'border-primary/40 text-primary')}>
+                <Filter className="w-3.5 h-3.5" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-0.5">{activeFilterCount}</Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Type</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem checked={filterType === 'all'} onCheckedChange={() => setFilterType('all')}>All</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={filterType === 'tasks'} onCheckedChange={() => setFilterType('tasks')}>Tasks only</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={filterType === 'items'} onCheckedChange={() => setFilterType('items')}>Items only</DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Status</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem checked={filterStatus === 'all'} onCheckedChange={() => setFilterStatus('all')}>All statuses</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={filterStatus === 'todo'} onCheckedChange={() => setFilterStatus(filterStatus === 'todo' ? 'all' : 'todo')}>To Do</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={filterStatus === 'in_progress'} onCheckedChange={() => setFilterStatus(filterStatus === 'in_progress' ? 'all' : 'in_progress')}>In Progress</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={filterStatus === 'done'} onCheckedChange={() => setFilterStatus(filterStatus === 'done' ? 'all' : 'done')}>Done</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={filterStatus === 'blocked'} onCheckedChange={() => setFilterStatus(filterStatus === 'blocked' ? 'all' : 'blocked')}>Blocked</DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Category</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem checked={filterCategory === 'all'} onCheckedChange={() => setFilterCategory('all')}>All categories</DropdownMenuCheckboxItem>
+              {itemCategories.map(cat => (
+                <DropdownMenuCheckboxItem key={cat} checked={filterCategory === cat} onCheckedChange={() => setFilterCategory(filterCategory === cat ? 'all' : cat)}>
+                  {cat.replace('-', ' ')}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Analysis</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem checked={showCriticalPath} onCheckedChange={(v) => setShowCriticalPath(!!v)}>
+                <AlertTriangle className="w-3 h-3 mr-1.5 text-destructive" /> Critical Path
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={showGateIndicators} onCheckedChange={(v) => setShowGateIndicators(!!v)}>
+                <Shield className="w-3 h-3 mr-1.5 text-primary" /> Gate Indicators
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Zoom controls */}
           <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-muted/[0.04]">
@@ -265,6 +365,13 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
             <Plus className="w-4 h-4 mr-1" /> Add First Task
           </Button>
         </div>
+      ) : filteredRows.length === 0 ? (
+        <div className="p-8 text-center">
+          <p className="text-sm text-muted-foreground/50 mb-2">No results match your filters.</p>
+          <Button variant="ghost" size="sm" className="text-[11px]" onClick={() => { setFilterType('all'); setFilterStatus('all'); setFilterCategory('all'); setShowCriticalPath(false); }}>
+            Clear all filters
+          </Button>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <div style={{ minWidth: LEFT_PANEL_WIDTH + 700 }}>
@@ -310,7 +417,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
 
               {/* Dependency arrows */}
               <GanttDependencyArrows
-                allRows={allRows}
+                allRows={filteredRows}
                 flatVisibleRows={flatVisibleRows}
                 timelineStart={timelineStart}
                 totalDays={totalDays}
@@ -340,6 +447,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
                       onEdit={(t) => { setEditingTask(t); setTaskDialogOpen(true); }}
                       onDelete={(t) => { setTaskToDelete(t); setDeleteDialogOpen(true); }}
                       onDragStart={handleDragStart}
+                      isCriticalPath={criticalPathIds.has(row.id)}
                     />
                   ))}
                 </div>

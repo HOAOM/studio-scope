@@ -69,8 +69,8 @@ type ItemLifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
 
 const LIFECYCLE_COLORS: Record<ItemLifecycleStatus, string> = {
   draft: 'bg-muted text-muted-foreground',
-  estimated: 'bg-status-at-risk-bg text-status-at-risk',
   approved: 'bg-status-safe-bg text-status-safe',
+  estimated: 'bg-status-at-risk-bg text-status-at-risk',
   ordered: 'bg-primary/10 text-primary',
   delivered: 'bg-status-safe-bg text-status-safe',
   installed: 'bg-status-safe-bg text-status-safe',
