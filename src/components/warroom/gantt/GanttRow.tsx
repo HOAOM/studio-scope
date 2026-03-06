@@ -21,12 +21,14 @@ interface Props {
   onEdit: (task: ProjectTask) => void;
   onDelete: (task: ProjectTask) => void;
   onDragStart: (e: React.MouseEvent, rowId: string, edge: 'start' | 'end' | 'move', startDate: string, endDate: string) => void;
+  isCriticalPath?: boolean;
 }
 
 export function GanttRowComponent({
   row, index, columns, timelineStart, totalDays,
   dragging, dragPreview, getMemberName,
   onStatusToggle, onEdit, onDelete, onDragStart,
+  isCriticalPath = false,
 }: Props) {
   const sConfig = STATUS_CONFIG[row.status] || STATUS_CONFIG.todo;
   const gc = GROUP_COLORS[row.group] || GROUP_COLORS.custom;
