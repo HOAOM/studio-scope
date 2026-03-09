@@ -278,10 +278,18 @@ export default function ProjectDetail() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
             <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
           </TabsList>
+
+          {/* BOQ ANALYST TAB */}
+          <TabsContent value="boq" className="space-y-6">
+            {projectId && (
+              <BOQAnalyst projectId={projectId} items={items} canSeeCosts={effectiveCanSeeCosts} />
+            )}
+          </TabsContent>
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
