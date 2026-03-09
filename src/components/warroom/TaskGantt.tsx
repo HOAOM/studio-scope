@@ -172,6 +172,11 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     [timelineStart, timelineEnd, totalDays, zoom]
   );
 
+  const monthColumns = useMemo(
+    () => computeMonthColumns(timelineStart, timelineEnd, totalDays),
+    [timelineStart, timelineEnd, totalDays]
+  );
+
   const todayPercent = dayToPercent(differenceInDays(new Date(), timelineStart), totalDays);
 
   /* ── Handlers ── */
