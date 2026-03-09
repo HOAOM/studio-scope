@@ -101,6 +101,33 @@ export function computeColumns(timelineStart: Date, timelineEnd: Date, totalDays
   return cols;
 }
 
+/** Compute month-level header row for the dual-row calendar */
+export function computeMonthColumns(timelineStart: Date, timelineEnd: Date, totalDays: number): TimelineMonthColumn[] {
+  const cols: TimelineMonthColumn[] = [];
+  // Start from the first day of the month containing timelineStart
+  let cursor = startOfMonth(timelineStart);
+  if (isBefore(cursor, timelineStart)) {
+    // The first month column starts at timelineStart, not before
+    const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    const startDay = 0;
+    const endDay = Math.min(differenceInDays(nextMonth, timelineStart), totalDays);
+    if (endDay > 0) {
+      cols.push({ label: format(timelineStart, 'MMM yyyy'), startDay, widthDays: endDay });
+    }
+    cursor = nextMonth;
+  }
+  while (isBefore(cursor, timelineEnd)) {
+    const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    const startDay = differenceInDays(cursor, timelineStart);
+    const widthDays = Math.min(differenceInDays(nextMonth, cursor), totalDays - startDay);
+    if (widthDays > 0) {
+      cols.push({ label: format(cursor, 'MMM yyyy'), startDay, widthDays });
+    }
+    cursor = nextMonth;
+  }
+  return cols;
+}
+
 export function groupRows(rows: GanttRow[]) {
   const groups: Record<string, GanttRow[]> = {};
   rows.forEach(r => {
