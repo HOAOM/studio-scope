@@ -8,6 +8,7 @@ import { ItemFormDialog } from '@/components/warroom/ItemFormDialog';
 import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
 import { PresentationBuilder } from '@/components/warroom/PresentationBuilder';
 import { TaskGantt } from '@/components/warroom/TaskGantt';
+import { BOQAnalyst } from '@/components/warroom/BOQAnalyst';
 import { TeamManagement } from '@/components/warroom/TeamManagement';
 import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
 import { Button } from '@/components/ui/button';
