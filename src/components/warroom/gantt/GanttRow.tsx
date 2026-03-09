@@ -116,8 +116,8 @@ export function GanttRowComponent({
           <div
             key={i}
             className={cn(
-              'absolute top-0 h-full border-r border-border/[0.06]',
-              col.isWeekend && 'bg-muted/[0.04]'
+              'absolute top-0 h-full border-r border-border/[0.12]',
+              col.isWeekend && 'bg-muted/[0.06]'
             )}
             style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
           />
