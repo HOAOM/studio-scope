@@ -338,10 +338,10 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
     try {
       if (editingItemId) {
-        await updateItem.mutateAsync({ id: editingItemId, projectId, updates: payload });
+        await updateItem.mutateAsync({ id: editingItemId, ...payload });
         toast.success('Item updated');
       } else {
-        await createItem.mutateAsync({ projectId, item: payload });
+        await createItem.mutateAsync(payload);
         toast.success('Item added');
       }
       clearForm(true);
