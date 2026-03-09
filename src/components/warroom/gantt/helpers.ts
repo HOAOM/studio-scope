@@ -1,5 +1,5 @@
-import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay } from 'date-fns';
-import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn } from './types';
+import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay, startOfMonth } from 'date-fns';
+import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn } from './types';
 import { ProjectTask } from '@/hooks/useTasks';
 import { ITEM_PHASE_STYLES, GROUP_ORDER } from './constants';
 
@@ -97,6 +97,33 @@ export function computeColumns(timelineStart: Date, timelineEnd: Date, totalDays
     const isWeekend = zoom === 'day' && (getDay(cursor) === 0 || getDay(cursor) === 6);
     if (widthDays > 0) cols.push({ label, sub, startDay, widthDays, isWeekend });
     cursor = nextCursor;
+  }
+  return cols;
+}
+
+/** Compute month-level header row for the dual-row calendar */
+export function computeMonthColumns(timelineStart: Date, timelineEnd: Date, totalDays: number): TimelineMonthColumn[] {
+  const cols: TimelineMonthColumn[] = [];
+  // Start from the first day of the month containing timelineStart
+  let cursor = startOfMonth(timelineStart);
+  if (isBefore(cursor, timelineStart)) {
+    // The first month column starts at timelineStart, not before
+    const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    const startDay = 0;
+    const endDay = Math.min(differenceInDays(nextMonth, timelineStart), totalDays);
+    if (endDay > 0) {
+      cols.push({ label: format(timelineStart, 'MMM yyyy'), startDay, widthDays: endDay });
+    }
+    cursor = nextMonth;
+  }
+  while (isBefore(cursor, timelineEnd)) {
+    const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    const startDay = differenceInDays(cursor, timelineStart);
+    const widthDays = Math.min(differenceInDays(nextMonth, cursor), totalDays - startDay);
+    if (widthDays > 0) {
+      cols.push({ label: format(cursor, 'MMM yyyy'), startDay, widthDays });
+    }
+    cursor = nextMonth;
   }
   return cols;
 }

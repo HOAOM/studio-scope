@@ -31,6 +31,12 @@ export interface TimelineColumn {
   isWeekend?: boolean;
 }
 
+export interface TimelineMonthColumn {
+  label: string;
+  startDay: number;
+  widthDays: number;
+}
+
 export interface DragState {
   rowId: string;
   edge: 'start' | 'end' | 'move';
