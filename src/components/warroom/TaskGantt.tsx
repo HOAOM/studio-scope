@@ -380,28 +380,46 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       ) : (
         <div className="overflow-x-auto">
           <div style={{ minWidth: LEFT_PANEL_WIDTH + 700 }}>
-            {/* Column headers */}
-            <div className="flex border-b border-border/30 sticky top-0 z-20 bg-card">
-              <div className="flex items-center border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
-                <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] pl-10 w-auto flex-1">Task / Item</span>
-                <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[72px] px-1">Assignee</span>
-                <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[70px] px-1">Status</span>
-                <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[80px] px-1">Dates</span>
+            {/* Column headers — dual row: months on top, weeks/days below */}
+            <div className="sticky top-0 z-20 bg-card border-b border-border/30">
+              {/* Month row */}
+              <div className="flex border-b border-border/20">
+                <div className="border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
+                <div className="flex-1 relative h-6">
+                  {monthColumns.map((col, i) => (
+                    <div
+                      key={i}
+                      className="absolute top-0 h-full flex items-center justify-center border-r border-border/20"
+                      style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
+                    >
+                      <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider truncate px-1">{col.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex-1 relative h-8">
-                {columns.map((col, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'absolute top-0 h-full flex flex-col justify-center border-r border-border/[0.08] px-1.5',
-                      col.isWeekend && 'bg-muted/[0.04]'
-                    )}
-                    style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
-                  >
-                    <span className="text-[9px] font-medium text-muted-foreground/40 truncate">{col.label}</span>
-                    {col.sub && <span className="text-[8px] text-muted-foreground/25">{col.sub}</span>}
-                  </div>
-                ))}
+              {/* Day/Week row + left panel labels */}
+              <div className="flex">
+                <div className="flex items-center border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
+                  <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] pl-10 w-auto flex-1">Task / Item</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[72px] px-1">Assignee</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[70px] px-1">Status</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[80px] px-1">Dates</span>
+                </div>
+                <div className="flex-1 relative h-7">
+                  {columns.map((col, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        'absolute top-0 h-full flex flex-col justify-center border-r border-border/[0.12] px-1',
+                        col.isWeekend && 'bg-muted/[0.06]'
+                      )}
+                      style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
+                    >
+                      <span className="text-[9px] font-medium text-muted-foreground/50 truncate leading-tight">{col.label}</span>
+                      {col.sub && <span className="text-[7px] text-muted-foreground/30 leading-tight">{col.sub}</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
