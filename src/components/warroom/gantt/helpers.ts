@@ -1,5 +1,5 @@
-import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay } from 'date-fns';
-import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn } from './types';
+import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay, startOfMonth } from 'date-fns';
+import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn } from './types';
 import { ProjectTask } from '@/hooks/useTasks';
 import { ITEM_PHASE_STYLES, GROUP_ORDER } from './constants';
 
