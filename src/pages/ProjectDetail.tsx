@@ -8,6 +8,7 @@ import { ItemFormDialog } from '@/components/warroom/ItemFormDialog';
 import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
 import { PresentationBuilder } from '@/components/warroom/PresentationBuilder';
 import { TaskGantt } from '@/components/warroom/TaskGantt';
+import { BOQAnalyst } from '@/components/warroom/BOQAnalyst';
 import { TeamManagement } from '@/components/warroom/TeamManagement';
 import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
 import { Button } from '@/components/ui/button';
@@ -277,19 +278,21 @@ export default function ProjectDetail() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
             <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
           </TabsList>
 
+          {/* BOQ ANALYST TAB */}
+          <TabsContent value="boq" className="space-y-6">
+            {projectId && (
+              <BOQAnalyst projectId={projectId} items={items} canSeeCosts={effectiveCanSeeCosts} />
+            )}
+          </TabsContent>
+
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Approval Gates Panel */}
-            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} />
-
-            {/* KPIs */}
-            <ProjectKPIs items={items} />
-
             {/* Approval Gates Panel */}
             <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} />
 
