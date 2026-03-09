@@ -18,7 +18,7 @@ import { Database } from '@/integrations/supabase/types';
 
 import { GanttRow as GanttRowType, DragState, ZoomLevel } from './gantt/types';
 import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES, GROUP_COLORS } from './gantt/constants';
-import { calcTaskProgress, calcItemProgress, itemsToRows, computeTimelineRange, computeColumns, groupRows, dayToPercent } from './gantt/helpers';
+import { calcTaskProgress, calcItemProgress, itemsToRows, computeTimelineRange, computeColumns, computeMonthColumns, groupRows, dayToPercent } from './gantt/helpers';
 import { GanttGroupHeader } from './gantt/GanttGroupHeader';
 import { GanttRowComponent } from './gantt/GanttRow';
 import { GanttDependencyArrows } from './gantt/GanttDependencyArrows';
