@@ -693,35 +693,35 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                   const isCustom = item.item_code?.includes('-CF');
 
                   return (
-                    <TableRow key={item.id} style={{ backgroundColor: rowColor }}>
+                    <TableRow key={item.id} style={{ backgroundColor: rowColor }} className="[&_td]:text-gray-900">
                       {isCol('image') && (
                         <TableCell>
                           {item.reference_image_url ? (
                             <img
                               src={item.reference_image_url}
                               alt=""
-                              className="w-10 h-10 object-cover rounded cursor-pointer border border-border"
+                              className="w-10 h-10 object-cover rounded cursor-pointer border border-gray-300"
                               onClick={() => window.open(item.reference_image_url!, '_blank')}
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded border border-border bg-muted/50 flex items-center justify-center">
-                              <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                            <div className="w-10 h-10 rounded border border-gray-300 bg-white/50 flex items-center justify-center">
+                              <ImageIcon className="w-4 h-4 text-gray-400" />
                             </div>
                           )}
                         </TableCell>
                       )}
-                      <TableCell className={cn('font-mono text-xs font-bold', isCustom ? 'text-destructive' : 'text-foreground')}>
+                      <TableCell className={cn('font-mono text-xs font-bold', isCustom ? 'text-red-700' : 'text-gray-900')}>
                         {item.item_code || '-'}
                       </TableCell>
-                      <TableCell className="text-xs">{floor?.code || '-'}</TableCell>
-                      <TableCell className="text-xs">{room?.code || ''}{item.room_number || ''}</TableCell>
-                      {isCol('zone') && <TableCell className="text-xs">{item.area || '-'}</TableCell>}
-                      {isCol('area') && <TableCell className="text-xs">{item.area || '-'}</TableCell>}
-                      {isCol('brand') && <TableCell className="text-xs">{item.supplier || '-'}</TableCell>}
-                      <TableCell className="text-sm max-w-[200px] truncate" title={item.description}>{item.description}</TableCell>
-                      {isCol('finishing') && <TableCell className="text-xs">{item.finish_material || '-'}</TableCell>}
-                      {isCol('size') && <TableCell className="text-xs">{item.dimensions || '-'}</TableCell>}
+                      <TableCell className="text-xs text-gray-800">{floor?.code || '-'}</TableCell>
+                      <TableCell className="text-xs text-gray-800">{room?.code || ''}{item.room_number || ''}</TableCell>
+                      {isCol('zone') && <TableCell className="text-xs text-gray-800">{item.area || '-'}</TableCell>}
+                      {isCol('area') && <TableCell className="text-xs text-gray-800">{item.area || '-'}</TableCell>}
+                      {isCol('brand') && <TableCell className="text-xs text-gray-800">{item.supplier || '-'}</TableCell>}
+                      <TableCell className="text-sm max-w-[200px] truncate text-gray-900 font-medium" title={item.description}>{item.description}</TableCell>
+                      {isCol('finishing') && <TableCell className="text-xs text-gray-800">{item.finish_material || '-'}</TableCell>}
+                      {isCol('size') && <TableCell className="text-xs text-gray-800">{item.dimensions || '-'}</TableCell>}
                       {isCol('tech') && <TableCell>{renderLinks(item.technical_drawing_url)}</TableCell>}
                       {isCol('refImg') && (
                         <TableCell>
