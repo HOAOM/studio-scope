@@ -662,18 +662,18 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                 {isCol('area') && <SortHeader field="area" label="Ar" className="px-1 w-[32px]" />}
                 {isCol('brand') && <SortHeader field="brand" label="Brand" className="px-1.5" />}
                 <TableHead className="px-1.5">Description</TableHead>
-                {isCol('finishing') && <TableHead>Finishing</TableHead>}
-                {isCol('size') && <TableHead>Size</TableHead>}
-                {isCol('tech') && <TableHead>Tech</TableHead>}
-                {isCol('refImg') && <TableHead>Ref Img</TableHead>}
-                {isCol('coLink') && <TableHead>Co.Link</TableHead>}
-                <SortHeader field="qty" label="QTY" />
-                <TableHead>Unit</TableHead>
-                {isCol('unitRate') && canSeeCosts && <SortHeader field="unitRate" label="Unit Rate" />}
-                {isCol('amount') && canSeeCosts && <SortHeader field="amount" label="Amount" />}
-                {isCol('prodTime') && <TableHead>Prod.Time</TableHead>}
-                {isCol('notes') && <TableHead>Notes</TableHead>}
-                <TableHead className="text-right">Actions</TableHead>
+                {isCol('finishing') && <TableHead className="px-1.5">Fin.</TableHead>}
+                {isCol('size') && <TableHead className="px-1.5">Size</TableHead>}
+                {isCol('tech') && <TableHead className="px-1">Tch</TableHead>}
+                {isCol('refImg') && <TableHead className="px-1">Ref</TableHead>}
+                {isCol('coLink') && <TableHead className="px-1">Co.</TableHead>}
+                <SortHeader field="qty" label="Q" className="px-1 w-[36px]" />
+                <TableHead className="px-1 w-[28px]">U</TableHead>
+                {isCol('unitRate') && canSeeCosts && <SortHeader field="unitRate" label="Rate" className="px-1.5" />}
+                {isCol('amount') && canSeeCosts && <SortHeader field="amount" label="Amt" className="px-1.5" />}
+                {isCol('prodTime') && <TableHead className="px-1.5">Prod</TableHead>}
+                {isCol('notes') && <TableHead className="px-1.5">Notes</TableHead>}
+                <TableHead className="text-right px-1">Act</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
