@@ -654,14 +654,14 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                {isCol('image') && <TableHead className="w-[50px]">Img</TableHead>}
-                <SortHeader field="code" label="Code" />
-                <SortHeader field="floor" label="Floor" />
-                <SortHeader field="room" label="Room" />
-                {isCol('zone') && <SortHeader field="zone" label="Zone" />}
-                {isCol('area') && <SortHeader field="area" label="Area" />}
-                {isCol('brand') && <SortHeader field="brand" label="Brand" />}
-                <TableHead>Description</TableHead>
+                {isCol('image') && <TableHead className="w-[36px] px-1">Img</TableHead>}
+                <SortHeader field="code" label="Code" className="px-1.5" />
+                <SortHeader field="floor" label="Fl" className="px-1 w-[32px]" />
+                <SortHeader field="room" label="Rm" className="px-1 w-[40px]" />
+                {isCol('zone') && <SortHeader field="zone" label="Zn" className="px-1 w-[32px]" />}
+                {isCol('area') && <SortHeader field="area" label="Ar" className="px-1 w-[32px]" />}
+                {isCol('brand') && <SortHeader field="brand" label="Brand" className="px-1.5" />}
+                <TableHead className="px-1.5">Description</TableHead>
                 {isCol('finishing') && <TableHead>Finishing</TableHead>}
                 {isCol('size') && <TableHead>Size</TableHead>}
                 {isCol('tech') && <TableHead>Tech</TableHead>}
