@@ -418,12 +418,12 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     );
   };
 
-  const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
+  const SortHeader = ({ field, label, className }: { field: SortField; label: string; className?: string }) => (
     <TableHead
-      className="cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap"
+      className={cn("cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap", className)}
       onClick={() => toggleSort(field)}
     >
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-0.5">
         {label}
         <ArrowUpDown className="w-3 h-3 opacity-50" />
       </span>
@@ -431,7 +431,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
   );
 
   return (
-    <div className="space-y-6 -mx-4 px-4">
+    <div className="space-y-6 -mx-6 px-2">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-4 text-center">
@@ -653,27 +653,27 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                {isCol('image') && <TableHead className="w-[50px]">Img</TableHead>}
-                <SortHeader field="code" label="Code" />
-                <SortHeader field="floor" label="Floor" />
-                <SortHeader field="room" label="Room" />
-                {isCol('zone') && <SortHeader field="zone" label="Zone" />}
-                {isCol('area') && <SortHeader field="area" label="Area" />}
-                {isCol('brand') && <SortHeader field="brand" label="Brand" />}
-                <TableHead>Description</TableHead>
-                {isCol('finishing') && <TableHead>Finishing</TableHead>}
-                {isCol('size') && <TableHead>Size</TableHead>}
-                {isCol('tech') && <TableHead>Tech</TableHead>}
-                {isCol('refImg') && <TableHead>Ref Img</TableHead>}
-                {isCol('coLink') && <TableHead>Co.Link</TableHead>}
-                <SortHeader field="qty" label="QTY" />
-                <TableHead>Unit</TableHead>
-                {isCol('unitRate') && canSeeCosts && <SortHeader field="unitRate" label="Unit Rate" />}
-                {isCol('amount') && canSeeCosts && <SortHeader field="amount" label="Amount" />}
-                {isCol('prodTime') && <TableHead>Prod.Time</TableHead>}
-                {isCol('notes') && <TableHead>Notes</TableHead>}
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="hover:bg-transparent [&_th]:px-1.5 [&_th]:py-2 [&_th]:text-[11px]">
+                {isCol('image') && <TableHead className="w-[36px] px-1">Img</TableHead>}
+                <SortHeader field="code" label="Code" className="px-1.5" />
+                <SortHeader field="floor" label="Fl" className="px-1 w-[32px]" />
+                <SortHeader field="room" label="Rm" className="px-1 w-[40px]" />
+                {isCol('zone') && <SortHeader field="zone" label="Zn" className="px-1 w-[32px]" />}
+                {isCol('area') && <SortHeader field="area" label="Ar" className="px-1 w-[32px]" />}
+                {isCol('brand') && <SortHeader field="brand" label="Brand" className="px-1.5" />}
+                <TableHead className="px-1.5">Description</TableHead>
+                {isCol('finishing') && <TableHead className="px-1.5">Fin.</TableHead>}
+                {isCol('size') && <TableHead className="px-1.5">Size</TableHead>}
+                {isCol('tech') && <TableHead className="px-1">Tch</TableHead>}
+                {isCol('refImg') && <TableHead className="px-1">Ref</TableHead>}
+                {isCol('coLink') && <TableHead className="px-1">Co.</TableHead>}
+                <SortHeader field="qty" label="Q" className="px-1 w-[36px]" />
+                <TableHead className="px-1 w-[28px]">U</TableHead>
+                {isCol('unitRate') && canSeeCosts && <SortHeader field="unitRate" label="Rate" className="px-1.5" />}
+                {isCol('amount') && canSeeCosts && <SortHeader field="amount" label="Amt" className="px-1.5" />}
+                {isCol('prodTime') && <TableHead className="px-1.5">Prod</TableHead>}
+                {isCol('notes') && <TableHead className="px-1.5">Notes</TableHead>}
+                <TableHead className="text-right px-1">Act</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -693,7 +693,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                   const isCustom = item.item_code?.includes('-CF');
 
                   return (
-                    <TableRow key={item.id} style={{ backgroundColor: rowColor }} className="[&_td]:text-gray-900">
+                    <TableRow key={item.id} style={{ backgroundColor: rowColor }} className="[&_td]:text-gray-900 [&_td]:px-1.5 [&_td]:py-1">
                       {isCol('image') && (
                         <TableCell>
                           {item.reference_image_url ? (
