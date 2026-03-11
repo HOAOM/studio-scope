@@ -735,20 +735,20 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                         </TableCell>
                       )}
                       {isCol('coLink') && <TableCell>{renderLinks(item.company_product_url)}</TableCell>}
-                      <TableCell className="text-xs font-mono">{item.quantity || 1}</TableCell>
-                      <TableCell className="text-xs">pcs</TableCell>
+                      <TableCell className="text-xs font-mono text-gray-900">{item.quantity || 1}</TableCell>
+                      <TableCell className="text-xs text-gray-800">pcs</TableCell>
                       {isCol('unitRate') && canSeeCosts && (
-                        <TableCell className={cn('text-xs font-mono text-right', isMissingPrice && 'bg-destructive/10 font-bold text-destructive')}>
+                        <TableCell className={cn('text-xs font-mono text-right text-gray-900', isMissingPrice && 'bg-red-100 font-bold text-red-700')}>
                           {item.unit_cost ? `€${Number(item.unit_cost).toFixed(2)}` : '-'}
                         </TableCell>
                       )}
                       {isCol('amount') && canSeeCosts && (
-                        <TableCell className="text-xs font-mono text-right font-bold">
+                        <TableCell className="text-xs font-mono text-right font-bold text-gray-900">
                           €{amount.toFixed(2)}
                         </TableCell>
                       )}
-                      {isCol('prodTime') && <TableCell className="text-xs">{item.production_time || '-'}</TableCell>}
-                      {isCol('notes') && <TableCell className="text-xs max-w-[150px] truncate" title={item.notes || ''}>{item.notes || '-'}</TableCell>}
+                      {isCol('prodTime') && <TableCell className="text-xs text-gray-800">{item.production_time || '-'}</TableCell>}
+                      {isCol('notes') && <TableCell className="text-xs max-w-[150px] truncate text-gray-700" title={item.notes || ''}>{item.notes || '-'}</TableCell>}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
