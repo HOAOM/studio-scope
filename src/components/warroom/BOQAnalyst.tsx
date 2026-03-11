@@ -431,7 +431,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
   );
 
   return (
-    <div className="space-y-6 -mx-4 px-4">
+    <div className="space-y-6 -mx-6 px-2">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-4 text-center">
