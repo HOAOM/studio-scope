@@ -418,12 +418,12 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     );
   };
 
-  const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
+  const SortHeader = ({ field, label, className }: { field: SortField; label: string; className?: string }) => (
     <TableHead
-      className="cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap"
+      className={cn("cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap", className)}
       onClick={() => toggleSort(field)}
     >
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-0.5">
         {label}
         <ArrowUpDown className="w-3 h-3 opacity-50" />
       </span>
