@@ -693,7 +693,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                   const isCustom = item.item_code?.includes('-CF');
 
                   return (
-                    <TableRow key={item.id} style={{ backgroundColor: rowColor }} className="[&_td]:text-gray-900">
+                    <TableRow key={item.id} style={{ backgroundColor: rowColor }} className="[&_td]:text-gray-900 [&_td]:px-1.5 [&_td]:py-1">
                       {isCol('image') && (
                         <TableCell>
                           {item.reference_image_url ? (
