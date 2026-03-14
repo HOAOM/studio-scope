@@ -667,6 +667,32 @@ export interface ProjectKPIs {
   totalItems: number;
 }
 
+// ────────────────────────────────────────────────
+// Backward compatibility aliases
+// ────────────────────────────────────────────────
+
+/** @deprecated Use checkMacroPhaseGate instead */
+export const isGateBlocked = (macroArea: TaskMacroArea, items: Array<{ lifecycle_status: string | null }>) =>
+  checkMacroPhaseGate(macroArea, items);
+
+/** @deprecated Use MACRO_PHASES for gate logic */
+export const GATE_REQUIREMENTS: Partial<Record<TaskMacroArea, { requiredLifecycle: string; label: string }>> = {
+  procurement:  { requiredLifecycle: 'po_issued',        label: 'All items must have PO issued' },
+  production:   { requiredLifecycle: 'payment_executed',  label: 'All items must have payment executed' },
+  delivery:     { requiredLifecycle: 'delivered_to_site', label: 'All items must be delivered to site' },
+  installation: { requiredLifecycle: 'installed',         label: 'All items must be installed' },
+  closing:      { requiredLifecycle: 'closed',            label: 'All items must be closed' },
+};
+
+/** @deprecated Use canAdvanceTo logic via getAvailableTransitions */
+export function canAdvanceTo(current: ItemLifecycleStatus | null, target: ItemLifecycleStatus): boolean {
+  const currentIdx = getLifecycleIndex(current);
+  const targetIdx = getLifecycleIndex(target);
+  if (target === 'on_hold' || target === 'cancelled') return true;
+  if (currentIdx < 0) return targetIdx === 0;
+  return targetIdx === currentIdx + 1;
+}
+
 export function computeProjectKPIs(items: Array<{ lifecycle_status: string | null; is_active?: boolean }>): ProjectKPIs {
   const active = items.filter(i => i.is_active !== false);
   const total = active.length;
