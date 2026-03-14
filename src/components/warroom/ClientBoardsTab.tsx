@@ -154,8 +154,8 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
   // Delete board
   const deleteBoard = useMutation({
     mutationFn: async (boardId: string) => {
-      const { error } = await supabase
-        .from('client_boards' as any)
+      const { error } = await (supabase as any)
+        .from('client_boards')
         .delete()
         .eq('id', boardId);
       if (error) throw error;
