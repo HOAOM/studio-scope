@@ -94,8 +94,8 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
         ? eligibleItems.filter(i => selectedRooms.includes(i.area))
         : eligibleItems;
 
-      const { data, error } = await supabase
-        .from('client_boards' as any)
+      const { data, error } = await (supabase as any)
+        .from('client_boards')
         .insert({
           project_id: projectId,
           name: boardName || `Client Board — ${projectName}`,
