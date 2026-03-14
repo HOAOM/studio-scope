@@ -139,8 +139,8 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
         updates.signed_at = new Date().toISOString();
         updates.signed_by = user?.id;
       }
-      const { error } = await supabase
-        .from('client_boards' as any)
+      const { error } = await (supabase as any)
+        .from('client_boards')
         .update(updates)
         .eq('id', boardId);
       if (error) throw error;
