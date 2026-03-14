@@ -541,18 +541,30 @@ export default function ProjectDetail() {
                     </SelectContent>
                   </Select>
                   <Select value={lifecycleFilter} onValueChange={setLifecycleFilter}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-[170px]">
                       <SelectValue placeholder="Lifecycle" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Lifecycle</SelectItem>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="estimated">Estimated</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="ordered">Ordered</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="concept">Concept</SelectItem>
+                      <SelectItem value="in_design">In Design</SelectItem>
+                      <SelectItem value="design_ready">Design Ready</SelectItem>
+                      <SelectItem value="finishes_proposed">Finishes Proposed</SelectItem>
+                      <SelectItem value="finishes_approved_designer">Finishes ✓ Designer</SelectItem>
+                      <SelectItem value="finishes_approved_hod">Finishes ✓ HoD</SelectItem>
+                      <SelectItem value="client_board_ready">Board Ready</SelectItem>
+                      <SelectItem value="client_board_signed">Board Signed</SelectItem>
+                      <SelectItem value="quotation_preparation">Quote In Prep</SelectItem>
+                      <SelectItem value="quotation_approved_ops">Quote Approved</SelectItem>
+                      <SelectItem value="po_issued">PO Issued</SelectItem>
+                      <SelectItem value="payment_executed">Payment Executed</SelectItem>
+                      <SelectItem value="in_production">In Production</SelectItem>
+                      <SelectItem value="delivered_to_site">Delivered</SelectItem>
                       <SelectItem value="installed">Installed</SelectItem>
+                      <SelectItem value="snagging">Snagging</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
                       <SelectItem value="on_hold">On Hold</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={approvalFilter} onValueChange={setApprovalFilter}>
