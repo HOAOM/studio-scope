@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          summary: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          summary: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          summary?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       boq_coverage: {
         Row: {
           approved_count: number
@@ -48,6 +78,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "boq_coverage_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_boards: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json | null
+          name: string
+          owner_id: string
+          pdf_url: string | null
+          project_id: string
+          room_filter: string[] | null
+          signed_at: string | null
+          signed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json | null
+          name?: string
+          owner_id: string
+          pdf_url?: string | null
+          project_id: string
+          room_filter?: string[] | null
+          signed_at?: string | null
+          signed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json | null
+          name?: string
+          owner_id?: string
+          pdf_url?: string | null
+          project_id?: string
+          room_filter?: string[] | null
+          signed_at?: string | null
+          signed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_boards_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -121,6 +204,47 @@ export type Database = {
           {
             foreignKeyName: "item_costs_project_item_id_fkey"
             columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_revisions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          reason: string | null
+          revision_number: number
+          snapshot: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          reason?: string | null
+          revision_number?: number
+          snapshot?: Json | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          reason?: string | null
+          revision_number?: number
+          snapshot?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_revisions_item_id_fkey"
+            columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "project_items"
             referencedColumns: ["id"]
@@ -305,6 +429,7 @@ export type Database = {
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url: string | null
           created_at: string
+          created_by: string | null
           custom_cost: number | null
           delivery_cost: number | null
           delivery_date: string | null
@@ -322,12 +447,14 @@ export type Database = {
           installed: boolean
           installed_date: string | null
           insurance_cost: number | null
+          is_active: boolean | null
           is_selected_option: boolean | null
           item_code: string | null
           item_type_id: string | null
           lifecycle_status:
             | Database["public"]["Enums"]["item_lifecycle_status"]
             | null
+          locked_fields: string[] | null
           margin_percentage: number | null
           notes: string | null
           parent_item_id: string | null
@@ -340,6 +467,7 @@ export type Database = {
           received: boolean
           received_date: string | null
           reference_image_url: string | null
+          revision_number: number | null
           room_id: string | null
           room_number: string | null
           selling_price: number | null
@@ -359,6 +487,7 @@ export type Database = {
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
+          created_by?: string | null
           custom_cost?: number | null
           delivery_cost?: number | null
           delivery_date?: string | null
@@ -376,12 +505,14 @@ export type Database = {
           installed?: boolean
           installed_date?: string | null
           insurance_cost?: number | null
+          is_active?: boolean | null
           is_selected_option?: boolean | null
           item_code?: string | null
           item_type_id?: string | null
           lifecycle_status?:
             | Database["public"]["Enums"]["item_lifecycle_status"]
             | null
+          locked_fields?: string[] | null
           margin_percentage?: number | null
           notes?: string | null
           parent_item_id?: string | null
@@ -394,6 +525,7 @@ export type Database = {
           received?: boolean
           received_date?: string | null
           reference_image_url?: string | null
+          revision_number?: number | null
           room_id?: string | null
           room_number?: string | null
           selling_price?: number | null
@@ -413,6 +545,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
+          created_by?: string | null
           custom_cost?: number | null
           delivery_cost?: number | null
           delivery_date?: string | null
@@ -430,12 +563,14 @@ export type Database = {
           installed?: boolean
           installed_date?: string | null
           insurance_cost?: number | null
+          is_active?: boolean | null
           is_selected_option?: boolean | null
           item_code?: string | null
           item_type_id?: string | null
           lifecycle_status?:
             | Database["public"]["Enums"]["item_lifecycle_status"]
             | null
+          locked_fields?: string[] | null
           margin_percentage?: number | null
           notes?: string | null
           parent_item_id?: string | null
@@ -448,6 +583,7 @@ export type Database = {
           received?: boolean
           received_date?: string | null
           reference_image_url?: string | null
+          revision_number?: number | null
           room_id?: string | null
           room_number?: string | null
           selling_price?: number | null
@@ -766,6 +902,9 @@ export type Database = {
         | "project_manager"
         | "procurement_manager"
         | "mep_engineer"
+        | "coo"
+        | "head_of_design"
+        | "architectural_dept"
       approval_status: "pending" | "approved" | "rejected" | "revision"
       boq_category:
         | "joinery"
@@ -784,6 +923,31 @@ export type Database = {
         | "delivered"
         | "installed"
         | "on_hold"
+        | "concept"
+        | "in_design"
+        | "design_ready"
+        | "finishes_proposed"
+        | "finishes_approved_designer"
+        | "finishes_approved_hod"
+        | "client_board_ready"
+        | "client_board_waiting_signature"
+        | "client_board_signed"
+        | "quotation_preparation"
+        | "quotation_inserted"
+        | "quotation_approved_ops"
+        | "quotation_approved_high"
+        | "po_issued"
+        | "proforma_received"
+        | "payment_approval"
+        | "payment_executed"
+        | "in_production"
+        | "ready_to_ship"
+        | "in_delivery"
+        | "delivered_to_site"
+        | "installation_planned"
+        | "snagging"
+        | "closed"
+        | "cancelled"
       payment_scheme: "single" | "split_50_50" | "installments_3"
       task_macro_area:
         | "planning"
@@ -934,6 +1098,9 @@ export const Constants = {
         "project_manager",
         "procurement_manager",
         "mep_engineer",
+        "coo",
+        "head_of_design",
+        "architectural_dept",
       ],
       approval_status: ["pending", "approved", "rejected", "revision"],
       boq_category: [
@@ -954,6 +1121,31 @@ export const Constants = {
         "delivered",
         "installed",
         "on_hold",
+        "concept",
+        "in_design",
+        "design_ready",
+        "finishes_proposed",
+        "finishes_approved_designer",
+        "finishes_approved_hod",
+        "client_board_ready",
+        "client_board_waiting_signature",
+        "client_board_signed",
+        "quotation_preparation",
+        "quotation_inserted",
+        "quotation_approved_ops",
+        "quotation_approved_high",
+        "po_issued",
+        "proforma_received",
+        "payment_approval",
+        "payment_executed",
+        "in_production",
+        "ready_to_ship",
+        "in_delivery",
+        "delivered_to_site",
+        "installation_planned",
+        "snagging",
+        "closed",
+        "cancelled",
       ],
       payment_scheme: ["single", "split_50_50", "installments_3"],
       task_macro_area: [
