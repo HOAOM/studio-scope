@@ -61,8 +61,8 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
   const { data: boards = [], isLoading } = useQuery({
     queryKey: ['client_boards', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('client_boards' as any)
+      const { data, error } = await (supabase as any)
+        .from('client_boards')
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });

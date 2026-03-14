@@ -62,8 +62,8 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
     queryKey: ['audit_log', item?.id],
     queryFn: async () => {
       if (!item) return [];
-      const { data, error } = await supabase
-        .from('audit_log' as any)
+      const { data, error } = await (supabase as any)
+        .from('audit_log')
         .select('*')
         .eq('entity_id', item.id)
         .eq('entity_type', 'item')
