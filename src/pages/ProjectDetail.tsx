@@ -66,23 +66,15 @@ import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
 import { Image as ImageIcon } from 'lucide-react';
 
-type ItemLifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
+import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 
-const LIFECYCLE_COLORS: Record<ItemLifecycleStatus, string> = {
-  draft: 'bg-muted text-muted-foreground',
-  approved: 'bg-status-safe-bg text-status-safe',
-  estimated: 'bg-status-at-risk-bg text-status-at-risk',
-  ordered: 'bg-primary/10 text-primary',
-  delivered: 'bg-status-safe-bg text-status-safe',
-  installed: 'bg-status-safe-bg text-status-safe',
-  on_hold: 'bg-status-unsafe-bg text-status-unsafe',
-};
-
-function LifecycleBadge({ status }: { status: ItemLifecycleStatus | null }) {
+function LifecycleBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-xs text-muted-foreground">-</span>;
+  const colors = WF_LIFECYCLE_COLORS[status] || WF_LIFECYCLE_COLORS['concept'];
+  const label = LIFECYCLE_LABELS[status] || status.replace(/_/g, ' ');
   return (
-    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', LIFECYCLE_COLORS[status])}>
-      {status.replace('_', ' ')}
+    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', colors.bg, colors.text)}>
+      {label}
     </span>
   );
 }
