@@ -145,6 +145,8 @@ export default function ProjectDetail() {
   const [editingItem, setEditingItem] = useState<ProjectItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<ProjectItem | null>(null);
+  const [detailItem, setDetailItem] = useState<ProjectItem | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
