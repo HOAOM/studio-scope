@@ -712,6 +712,13 @@ export default function ProjectDetail() {
             </div>
           </TabsContent>
 
+          {/* CLIENT BOARDS TAB */}
+          <TabsContent value="client-boards" className="space-y-6">
+            {projectId && (
+              <ClientBoardsTab projectId={projectId} items={items} projectName={project.name} />
+            )}
+          </TabsContent>
+
           {/* PRESENTATION TAB */}
           <TabsContent value="presentation">
             {projectId && (
@@ -724,6 +731,16 @@ export default function ProjectDetail() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Item Detail Modal */}
+      {projectId && (
+        <ItemDetailModal
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          item={detailItem}
+          projectId={projectId}
+        />
+      )}
 
       {/* Item Form Dialog */}
       {projectId && (
