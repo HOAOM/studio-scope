@@ -1,108 +1,225 @@
 
+# Studio Scope — Full Upgrade Plan v2
 
-# Piano Completo: War Room Dashboard + BOQ Analyst + Presentation Builder
+## Overview
 
-## Panoramica
-
-Il progetto attuale ha una buona base (War Room overview, project detail, CRUD items, CSV import, autenticazione). Serve completarlo con le funzionalita dei due file HTML che hai allegato e risolvere i problemi aperti per renderlo production-ready.
-
-Dall'analisi dei file allegati:
-- **BOQ v2.51**: Template per gestione BOQ con form per aggiunta item, statistiche live, filtri per categoria/area/status, admin mode con password, export JSON, supporto immagini 3D reference
-- **HOA Presentation v2.2**: Builder di presentazioni A3 landscape con layout a griglia (header, 6 celle per immagini/testo), navigazione pagine, export PDF, import/export JSON
+Major upgrade from the current 7-state workflow to a full 25-state item lifecycle with auto-generated Gantt, client boards, audit trail, and expanded roles.
 
 ---
 
-## Cosa verra implementato
+## Phase 1: Database Foundation
 
-### 1. Completamento War Room (fix e miglioramenti)
+### 1.1 Enum Extensions
 
-**KPI reali calcolati dagli item** -- attualmente lo status del progetto si basa solo sulle date. Verra calcolato dai dati reali:
-- BOQ Completeness: % item con boq_included = true
-- Item Approval Coverage: % item approvati
-- Procurement Readiness: % item acquistati
-- Delivery Risk: % item con data consegna passata e non ricevuti
-- Installation Readiness: % item installati
-
-**BOQ Coverage Matrix funzionante** -- collegata ai dati reali degli item (attualmente usa il vecchio mock type). Calcolata automaticamente raggruppando gli item per categoria.
-
-### 2. BOQ Analyst integrato (dal file HTML allegato)
-
-Una nuova tab/sezione nella project detail page con:
-- **Statistiche live**: totale item, approvati, in BOQ, costo totale
-- **Filtri avanzati**: per categoria, area, status, ricerca testo
-- **Vista tabella completa** con tutte le colonne del BOQ (incluso supplier, PO ref, unit cost, quantity, total cost, production due, delivery date)
-- **Image 3D Reference**: supporto per URL immagine con thumbnail nella tabella
-- **Export dati**: esportazione in CSV/JSON degli item filtrati
-
-### 3. Presentation Builder (dal file HTML allegato)
-
-Una nuova pagina `/project/:projectId/presentation` con:
-- **Pagine A3 landscape**: layout con header (progetto, logo placeholder) e griglia 2x3 per contenuti
-- **Celle editabili**: ogni cella puo contenere un'immagine (URL) o testo formattato
-- **Gestione pagine**: aggiungi, elimina, riordina pagine
-- **Salvataggio nel database**: le presentazioni vengono salvate come JSON nella tabella dedicata
-- **Export**: generazione PDF client-side con html2canvas + jsPDF
-
-### 4. Database updates
-
-Nuova tabella per le presentazioni:
-
-```text
-presentations
---------------
-id              uuid (PK)
-project_id      uuid (FK -> projects)
-name            text
-pages_data      jsonb        -- array di pagine con celle
-created_at      timestamptz
-updated_at      timestamptz
-owner_id        uuid (FK -> auth.users)
+**item_lifecycle_status** — from 7 to 25 states:
+```
+concept, in_design, design_ready,
+finishes_proposed, finishes_approved_designer, finishes_approved_hod,
+client_board_ready, client_board_waiting_signature, client_board_signed,
+quotation_preparation, quotation_inserted, quotation_approved_ops, quotation_approved_high,
+po_issued, proforma_received, payment_approval, payment_executed,
+in_production, ready_to_ship, in_delivery, delivered_to_site,
+installation_planned, installed, snagging, closed,
+on_hold, cancelled
 ```
 
-RLS policies per `presentations` identiche al pattern esistente (is_project_owner).
+**app_role** — add 3 new roles:
+```
+existing: admin, designer, accountant, qs, head_of_payments, client, ceo, site_engineer, project_manager, procurement_manager, mep_engineer
+add: coo, head_of_design, architectural_dept
+```
 
-### 5. Navigazione aggiornata
+Role mapping from prompt:
+- COO → `coo` (new)
+- CEO → `ceo` (exists)
+- Head of Design → `head_of_design` (new)
+- Designer → `designer` (exists)
+- Architectural Dept → `architectural_dept` (new)
+- BOQ/Estimator/QS → `qs` (exists)
+- Purchasing → `procurement_manager` (exists)
+- Finance/Payments → `accountant` + `head_of_payments` (exist)
+- Project Manager → `project_manager` (exists)
+- Client → `client` (exists)
+- Admin → `admin` (exists)
 
-La project detail page avra un sistema a tab:
-- **Overview**: sommario progetto + KPI + BOQ Coverage Matrix (esistente, migliorato)
-- **Item Tracker**: tabella item completa con tutti i campi BOQ (esistente, espanso)
-- **Presentation**: builder per presentazioni A3
+### 1.2 New Tables
+
+**audit_log** — lightweight text-based log:
+```sql
+id uuid PK
+entity_type text (item, client_board, quotation, po, payment, task)
+entity_id uuid
+action text (create, update, approve, reject, revision, override, cancel)
+user_id uuid
+summary text  -- e.g. "Changed status from draft to in_design"
+created_at timestamptz
+```
+
+**item_revisions** — snapshot of item state per revision:
+```sql
+id uuid PK
+item_id uuid FK → project_items
+revision_number int (1, 2, 3...)
+status text (active, obsolete, cancelled)
+snapshot jsonb  -- frozen copy of key fields at time of revision creation
+created_at timestamptz
+created_by uuid
+reason text
+```
+
+**client_boards** — separate from presentations:
+```sql
+id uuid PK
+project_id uuid FK → projects
+name text
+room_filter text[]  -- rooms included
+items jsonb  -- item IDs and their data snapshot
+pdf_url text
+status text (draft, ready, waiting_signature, signed)
+signed_at timestamptz
+signed_by uuid
+created_at timestamptz
+updated_at timestamptz
+owner_id uuid
+```
+
+### 1.3 Schema Changes to project_items
+```sql
+ALTER TABLE project_items ADD COLUMN revision_number int DEFAULT 1;
+ALTER TABLE project_items ADD COLUMN is_active boolean DEFAULT true;
+ALTER TABLE project_items ADD COLUMN created_by uuid;
+ALTER TABLE project_items ADD COLUMN locked_fields text[] DEFAULT '{}';
+```
+
+### 1.4 Migration of existing data
+- All existing items get revision_number = 1, is_active = true
 
 ---
 
-## Dettaglio tecnico implementazione
+## Phase 2: Workflow Engine (workflow.ts rewrite)
 
-### File da creare
-| File | Scopo |
-|------|-------|
-| `src/components/warroom/PresentationBuilder.tsx` | Editor pagine A3 con griglia celle |
-| `src/components/warroom/PresentationPage.tsx` | Singola pagina A3 con layout e celle editabili |
-| `src/components/warroom/ExportButtons.tsx` | Componenti per export CSV/JSON/PDF |
-| `src/components/warroom/ProjectKPIs.tsx` | KPI calcolati dinamicamente dagli item |
-| `src/hooks/usePresentations.ts` | Hook React Query per CRUD presentazioni |
+### 2.1 State Machine
+- 25 states with valid transitions defined
+- Role-based permissions: who can trigger each transition
+- Field locking rules per state (after client_board_signed → lock dimensions, finishes, layout)
+- Hard gates: cannot PO without design + finishes + client board signed
 
-### File da modificare
-| File | Modifiche |
-|------|-----------|
-| `src/pages/ProjectDetail.tsx` | Aggiunta sistema tab (Overview / Items / Presentation), KPI reali, BOQ matrix dai dati live |
-| `src/pages/WarRoomOverview.tsx` | KPI reali per ogni progetto card (fetch items count per progetto) |
-| `src/components/warroom/BOQMatrix.tsx` | Refactor per accettare items e calcolare coverage automaticamente |
-| `src/components/warroom/ItemTracker.tsx` | Colonne aggiuntive (supplier, cost, quantity, total, 3D ref) |
-| `src/hooks/useProjects.ts` | Aggiunta hook per fetch item counts aggregati per overview |
-| `src/App.tsx` | Nuova route per presentation page |
+### 2.2 Gate Logic (expanded)
+Current gates (macro-area based) are expanded:
+- **Design validation**: all items must have design_ready
+- **Client approval**: all items must have client_board_signed
+- **Procurement**: all items must have po_issued
+- **Production**: all items must have payment_executed (if upfront required)
+- **Delivery**: all items must have delivered_to_site
+- **Installation**: all items must have installed + snagging resolved
+- **Closing**: all items must be closed
 
-### Migrazione database
-- Creazione tabella `presentations` con RLS
-- Trigger `updated_at` automatico
-
-### Dipendenze esterne (gia nel progetto o via CDN)
-- **jsPDF + html2canvas**: per export PDF delle presentazioni (importati come pacchetti npm)
+### 2.3 Revision Logic
+- Changing finishes after client_board_signed → R+1, revert to finishes_proposed
+- Changing dimensions after payment_executed → blocked (override required)
+- Previous client boards + quotations marked obsolete
 
 ---
 
-## Cosa NON e incluso (fasi future)
-- Reminder scadenze automatici (richiede edge function + cron)
-- Report periodici via email
-- Catalogo prodotti riutilizzabile
-- L'admin mode con password del file BOQ originale (sostituito dal sistema auth esistente)
+## Phase 3: Gantt Auto-Generation
 
+### 3.1 Auto Task Creation
+When a BOQ item is created, auto-generate a task chain:
+- Design task (in_design → design_ready)
+- Finishes task (finishes_proposed → finishes_approved)
+- Client Board task (client_board_ready → client_board_signed)
+- Quotation task (quotation_preparation → quotation_approved)
+- PO + Payment task (po_issued → payment_executed)
+- Production task (in_production → ready_to_ship)
+- Delivery task (in_delivery → delivered_to_site)
+- Installation task (installation_planned → installed)
+- Closing task (snagging → closed)
+
+### 3.2 Date Calculation
+- Use project start date as anchor
+- 12 working days for quotation lead time (excl. weekends + EU/UAE holidays)
+- Use supplier-defined production/delivery lead times when available
+- Recalculate on state changes
+
+### 3.3 Gantt Sync
+- Auto-update task dates when item state changes
+- Remove cancelled items from Gantt
+- Only show active revisions
+
+---
+
+## Phase 4: Item Detail Modal
+
+### 4.1 Full-screen overlay modal
+- Opens on double-click from Gantt or item table
+- Role-based field visibility
+- Tabs: Info, Design, Procurement, Finance, Delivery, History
+- Action buttons: Approve, Reject, Next State, New Revision
+- Save / Cancel to close
+
+### 4.2 Role-based visibility
+- Designer: design, finishes, dimensions, client boards (no costs/margins)
+- QS: quantities, costs, quotations
+- COO/Admin: everything
+- Client: client-facing only (no margins, no internal notes)
+
+---
+
+## Phase 5: Client Board (separate from Presentation)
+
+### 5.1 Board Generation
+- Select room/area → system aggregates items with approved design + finishes
+- Generate A3 layout with item images, descriptions, dimensions, client prices
+- No internal margins visible
+
+### 5.2 Signature Workflow
+- Generate PDF → status: waiting_signature
+- After physical signature → user sets client_board_signed
+- Upload signed PDF required
+- Locks core fields on all included items
+
+### 5.3 Invalidation
+- If item finishes/dimensions change after signing → board marked obsolete
+- New board must be generated with new revision
+
+---
+
+## Phase 6: COO Dashboard & Alerts
+
+### 6.1 Milestones
+- COO sets target dates for: all finishes approved, all POs issued, all payments executed, all installations complete
+- System continuously evaluates feasibility based on current states + lead times
+
+### 6.2 Risk Alerts
+- Items stuck in same state > X days
+- Milestones at risk / impossible
+- Macro-phases blocked by incomplete items
+- Rejected items requiring action
+
+### 6.3 KPI Expansion
+- % items per state (design approved, finishes approved, PO issued, paid, produced, delivered, installed, closed)
+- Per project, per room, per macro-area
+- Drill-down capability
+
+---
+
+## Implementation Order
+
+1. **Database migrations** (enums + tables + migration)
+2. **workflow.ts rewrite** (states, transitions, gates, field locking)
+3. **Update existing UI** (StatusBadge, ItemFormDialog, BOQAnalyst to use new states)
+4. **Audit log triggers**
+5. **Item Detail Modal** (role-based overlay)
+6. **Gantt auto-generation engine**
+7. **Client Board feature**
+8. **COO Dashboard + Alerts**
+9. **Revision system** (R+1 logic, obsolescence)
+10. **Testing & polish**
+
+---
+
+## Future (post-upgrade)
+- Internal messaging system with email notifications
+- Automated reminders (edge functions + cron)
+- Supplier catalogue
+- Report generation via email
