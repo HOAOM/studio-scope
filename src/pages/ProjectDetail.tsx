@@ -638,7 +638,7 @@ export default function ProjectDetail() {
                         const status = calculateItemStatus(item);
                         const total = (item.unit_cost || 0) * (item.quantity || 1);
                         return (
-                          <TableRow key={item.id} className={cn('tracker-row', status === 'unsafe' && 'bg-status-unsafe-bg')}>
+                          <TableRow key={item.id} className={cn('tracker-row cursor-pointer', status === 'unsafe' && 'bg-status-unsafe-bg')} onDoubleClick={() => { setDetailItem(item); setDetailModalOpen(true); }}>
                             <TableCell>
                               {item.reference_image_url ? (
                                 <img src={item.reference_image_url} alt="" className="w-8 h-8 rounded object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
