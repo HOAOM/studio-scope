@@ -277,6 +277,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
             <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
+            <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
           </TabsList>
 
