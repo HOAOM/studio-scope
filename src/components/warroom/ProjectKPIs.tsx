@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { KPIBlock } from './KPIBlock';
 import { Database } from '@/integrations/supabase/types';
+import { computeProjectKPIs as computeKPIsFromWorkflow, getLifecycleIndex, LIFECYCLE_ORDER } from '@/lib/workflow';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -8,6 +9,7 @@ interface ProjectKPIsProps {
   items: ProjectItem[];
 }
 
+// Backward compat export
 export function computeKPIs(items: ProjectItem[]) {
   const total = items.length;
   if (total === 0) {
@@ -21,34 +23,46 @@ export function computeKPIs(items: ProjectItem[]) {
   }
 
   const boqIncluded = items.filter(i => i.boq_included).length;
-  const approved = items.filter(i => i.approval_status === 'approved').length;
-  const purchased = items.filter(i => i.purchased).length;
   const now = new Date();
   const deliveryAtRisk = items.filter(i => {
     if (!i.delivery_date || i.received) return false;
     return new Date(i.delivery_date) < now;
   }).length;
-  const installed = items.filter(i => i.installed).length;
+
+  // Use new workflow KPIs
+  const wfKpis = computeKPIsFromWorkflow(items.map(i => ({ lifecycle_status: i.lifecycle_status })));
 
   return {
     boqCompleteness: Math.round((boqIncluded / total) * 100),
-    itemApprovalCoverage: Math.round((approved / total) * 100),
-    procurementReadiness: Math.round((purchased / total) * 100),
+    itemApprovalCoverage: wfKpis.clientBoardSigned,
+    procurementReadiness: wfKpis.poIssued,
     deliveryRiskIndicator: Math.round((deliveryAtRisk / total) * 100),
-    installationReadiness: Math.round((installed / total) * 100),
+    installationReadiness: wfKpis.installed,
   };
 }
 
 export function ProjectKPIs({ items }: ProjectKPIsProps) {
-  const kpis = useMemo(() => computeKPIs(items), [items]);
+  const wfKpis = useMemo(() => computeKPIsFromWorkflow(items.map(i => ({ lifecycle_status: i.lifecycle_status }))), [items]);
+  const legacyKpis = useMemo(() => computeKPIs(items), [items]);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-      <KPIBlock label="BOQ Complete" value={kpis.boqCompleteness} />
-      <KPIBlock label="Approved" value={kpis.itemApprovalCoverage} />
-      <KPIBlock label="Procurement" value={kpis.procurementReadiness} />
-      <KPIBlock label="Delivery Risk" value={kpis.deliveryRiskIndicator} inverse />
-      <KPIBlock label="Installation" value={kpis.installationReadiness} />
+    <div className="space-y-4">
+      {/* Primary KPIs - Workflow phases */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <KPIBlock label="Design Approved" value={wfKpis.designApproved} />
+        <KPIBlock label="Finishes Approved" value={wfKpis.finishesApproved} />
+        <KPIBlock label="Board Signed" value={wfKpis.clientBoardSigned} />
+        <KPIBlock label="PO Issued" value={wfKpis.poIssued} />
+        <KPIBlock label="Payment Done" value={wfKpis.paymentExecuted} />
+      </div>
+      {/* Secondary KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <KPIBlock label="In Production" value={wfKpis.inProduction} />
+        <KPIBlock label="Delivered" value={wfKpis.delivered} />
+        <KPIBlock label="Installed" value={wfKpis.installed} />
+        <KPIBlock label="Closed" value={wfKpis.closed} />
+        <KPIBlock label="Delivery Risk" value={legacyKpis.deliveryRiskIndicator} inverse />
+      </div>
     </div>
   );
 }

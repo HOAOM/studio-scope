@@ -5,12 +5,14 @@ import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { ProjectKPIs, computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ExportCSVButton, ExportJSONButton } from '@/components/warroom/ExportButtons';
 import { ItemFormDialog } from '@/components/warroom/ItemFormDialog';
+import { ItemDetailModal } from '@/components/warroom/ItemDetailModal';
 import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
 import { PresentationBuilder } from '@/components/warroom/PresentationBuilder';
 import { TaskGantt } from '@/components/warroom/TaskGantt';
 import { BOQAnalyst } from '@/components/warroom/BOQAnalyst';
 import { TeamManagement } from '@/components/warroom/TeamManagement';
 import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
+import { ClientBoardsTab } from '@/components/warroom/ClientBoardsTab';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,23 +68,15 @@ import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
 import { Image as ImageIcon } from 'lucide-react';
 
-type ItemLifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
+import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 
-const LIFECYCLE_COLORS: Record<ItemLifecycleStatus, string> = {
-  draft: 'bg-muted text-muted-foreground',
-  approved: 'bg-status-safe-bg text-status-safe',
-  estimated: 'bg-status-at-risk-bg text-status-at-risk',
-  ordered: 'bg-primary/10 text-primary',
-  delivered: 'bg-status-safe-bg text-status-safe',
-  installed: 'bg-status-safe-bg text-status-safe',
-  on_hold: 'bg-status-unsafe-bg text-status-unsafe',
-};
-
-function LifecycleBadge({ status }: { status: ItemLifecycleStatus | null }) {
+function LifecycleBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-xs text-muted-foreground">-</span>;
+  const colors = WF_LIFECYCLE_COLORS[status] || WF_LIFECYCLE_COLORS['concept'];
+  const label = LIFECYCLE_LABELS[status] || status.replace(/_/g, ' ');
   return (
-    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', LIFECYCLE_COLORS[status])}>
-      {status.replace('_', ' ')}
+    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', colors.bg, colors.text)}>
+      {label}
     </span>
   );
 }
@@ -151,6 +145,8 @@ export default function ProjectDetail() {
   const [editingItem, setEditingItem] = useState<ProjectItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<ProjectItem | null>(null);
+  const [detailItem, setDetailItem] = useState<ProjectItem | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -281,6 +277,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
             <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
+            <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
           </TabsList>
 
@@ -545,18 +542,30 @@ export default function ProjectDetail() {
                     </SelectContent>
                   </Select>
                   <Select value={lifecycleFilter} onValueChange={setLifecycleFilter}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-[170px]">
                       <SelectValue placeholder="Lifecycle" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Lifecycle</SelectItem>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="estimated">Estimated</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="ordered">Ordered</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="concept">Concept</SelectItem>
+                      <SelectItem value="in_design">In Design</SelectItem>
+                      <SelectItem value="design_ready">Design Ready</SelectItem>
+                      <SelectItem value="finishes_proposed">Finishes Proposed</SelectItem>
+                      <SelectItem value="finishes_approved_designer">Finishes ✓ Designer</SelectItem>
+                      <SelectItem value="finishes_approved_hod">Finishes ✓ HoD</SelectItem>
+                      <SelectItem value="client_board_ready">Board Ready</SelectItem>
+                      <SelectItem value="client_board_signed">Board Signed</SelectItem>
+                      <SelectItem value="quotation_preparation">Quote In Prep</SelectItem>
+                      <SelectItem value="quotation_approved_ops">Quote Approved</SelectItem>
+                      <SelectItem value="po_issued">PO Issued</SelectItem>
+                      <SelectItem value="payment_executed">Payment Executed</SelectItem>
+                      <SelectItem value="in_production">In Production</SelectItem>
+                      <SelectItem value="delivered_to_site">Delivered</SelectItem>
                       <SelectItem value="installed">Installed</SelectItem>
+                      <SelectItem value="snagging">Snagging</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
                       <SelectItem value="on_hold">On Hold</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={approvalFilter} onValueChange={setApprovalFilter}>
@@ -629,7 +638,7 @@ export default function ProjectDetail() {
                         const status = calculateItemStatus(item);
                         const total = (item.unit_cost || 0) * (item.quantity || 1);
                         return (
-                          <TableRow key={item.id} className={cn('tracker-row', status === 'unsafe' && 'bg-status-unsafe-bg')}>
+                          <TableRow key={item.id} className={cn('tracker-row cursor-pointer', status === 'unsafe' && 'bg-status-unsafe-bg')} onDoubleClick={() => { setDetailItem(item); setDetailModalOpen(true); }}>
                             <TableCell>
                               {item.reference_image_url ? (
                                 <img src={item.reference_image_url} alt="" className="w-8 h-8 rounded object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -703,6 +712,13 @@ export default function ProjectDetail() {
             </div>
           </TabsContent>
 
+          {/* CLIENT BOARDS TAB */}
+          <TabsContent value="client-boards" className="space-y-6">
+            {projectId && (
+              <ClientBoardsTab projectId={projectId} items={items} projectName={project.name} />
+            )}
+          </TabsContent>
+
           {/* PRESENTATION TAB */}
           <TabsContent value="presentation">
             {projectId && (
@@ -715,6 +731,16 @@ export default function ProjectDetail() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Item Detail Modal */}
+      {projectId && (
+        <ItemDetailModal
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          item={detailItem}
+          projectId={projectId}
+        />
+      )}
 
       {/* Item Form Dialog */}
       {projectId && (
