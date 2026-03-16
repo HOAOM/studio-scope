@@ -4,7 +4,7 @@ import { useUpdateProjectItem } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ShieldAlert, ShieldCheck, Clock, CheckCircle2, XCircle, ArrowRight, Package } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Clock, CheckCircle2, XCircle, ArrowRight, Package, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
