@@ -169,8 +169,10 @@ export function ApprovalGatesPanel({ items, projectId, canApprove = true, onItem
                   key={item.id}
                   className={cn(
                     'flex items-center justify-between rounded-lg px-3 py-2 border transition-colors',
-                    gate.bgColor, gate.borderColor, 'hover:bg-muted/30'
+                    gate.bgColor, gate.borderColor, 'hover:bg-muted/30',
+                    onItemClick && 'cursor-pointer'
                   )}
+                  onClick={() => onItemClick?.(item)}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     {item.item_code && (
@@ -178,6 +180,7 @@ export function ApprovalGatesPanel({ items, projectId, canApprove = true, onItem
                     )}
                     <span className="text-xs text-foreground truncate">{item.description}</span>
                     <span className="text-[10px] text-muted-foreground shrink-0">{item.area}</span>
+                    <Eye className="w-3 h-3 text-muted-foreground/40 shrink-0" />
                   </div>
 
                   <div className="flex items-center gap-1 ml-2 shrink-0">
