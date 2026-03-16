@@ -334,6 +334,20 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Timeline navigation */}
+          <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-muted/[0.04]">
+            <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none hover:bg-muted/20" onClick={() => scrollTimeline('left')}>
+              <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/70" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none border-x border-border/30 hover:bg-muted/20" onClick={scrollToToday}>
+              <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
+              <span className="text-[10px] ml-1 text-muted-foreground/60">Today</span>
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none hover:bg-muted/20" onClick={() => scrollTimeline('right')}>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/70" />
+            </Button>
+          </div>
+
           {/* Zoom controls */}
           <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-muted/[0.04]">
             <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none hover:bg-muted/20" onClick={() => setZoom(z => z === 'month' ? 'week' : 'day')}>
