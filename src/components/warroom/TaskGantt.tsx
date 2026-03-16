@@ -407,7 +407,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" ref={scrollRef}>
           <div style={{ minWidth: LEFT_PANEL_WIDTH + 700 }}>
             {/* Column headers — dual row: months on top, weeks/days below */}
             <div className="sticky top-0 z-20 bg-card border-b border-border/30">
