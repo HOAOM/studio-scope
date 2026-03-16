@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format, addDays, isBefore, isAfter } from 'date-fns';
-import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw, Filter, AlertTriangle, Shield } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw, Filter, AlertTriangle, Shield, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const [dragPreview, setDragPreview] = useState<{ start: string; end: string } | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
   // Filters
@@ -249,6 +250,20 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     return Array.from(cats).sort();
   }, [items]);
 
+  const scrollTimeline = useCallback((direction: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const step = scrollRef.current.clientWidth * 0.4;
+    scrollRef.current.scrollBy({ left: direction === 'right' ? step : -step, behavior: 'smooth' });
+  }, []);
+
+  const scrollToToday = useCallback(() => {
+    if (!scrollRef.current) return;
+    const totalWidth = scrollRef.current.scrollWidth;
+    const viewWidth = scrollRef.current.clientWidth;
+    const todayPos = (todayPercent / 100) * totalWidth;
+    scrollRef.current.scrollTo({ left: Math.max(0, todayPos - viewWidth / 2), behavior: 'smooth' });
+  }, [todayPercent]);
+
   return (
     <div
       ref={containerRef}
@@ -319,6 +334,20 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Timeline navigation */}
+          <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-muted/[0.04]">
+            <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none hover:bg-muted/20" onClick={() => scrollTimeline('left')}>
+              <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/70" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none border-x border-border/30 hover:bg-muted/20" onClick={scrollToToday}>
+              <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
+              <span className="text-[10px] ml-1 text-muted-foreground/60">Today</span>
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none hover:bg-muted/20" onClick={() => scrollTimeline('right')}>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/70" />
+            </Button>
+          </div>
+
           {/* Zoom controls */}
           <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-muted/[0.04]">
             <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none hover:bg-muted/20" onClick={() => setZoom(z => z === 'month' ? 'week' : 'day')}>
@@ -378,7 +407,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" ref={scrollRef}>
           <div style={{ minWidth: LEFT_PANEL_WIDTH + 700 }}>
             {/* Column headers — dual row: months on top, weeks/days below */}
             <div className="sticky top-0 z-20 bg-card border-b border-border/30">
