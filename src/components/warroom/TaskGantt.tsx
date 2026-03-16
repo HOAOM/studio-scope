@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format, addDays, isBefore, isAfter } from 'date-fns';
-import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw, Filter, AlertTriangle, Shield } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw, Filter, AlertTriangle, Shield, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
