@@ -28,7 +28,7 @@ interface GateGroup {
   description: string;
 }
 
-export function ApprovalGatesPanel({ items, projectId, canApprove = true }: ApprovalGatesPanelProps) {
+export function ApprovalGatesPanel({ items, projectId, canApprove = true, onItemClick }: ApprovalGatesPanelProps) {
   const updateItem = useUpdateProjectItem();
 
   const gates = useMemo<GateGroup[]>(() => {
