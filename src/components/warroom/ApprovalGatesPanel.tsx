@@ -14,6 +14,7 @@ interface ApprovalGatesPanelProps {
   items: ProjectItem[];
   projectId: string;
   canApprove?: boolean;
+  onItemClick?: (item: ProjectItem) => void;
 }
 
 interface GateGroup {
