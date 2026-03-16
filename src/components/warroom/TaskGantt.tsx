@@ -56,6 +56,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const [dragPreview, setDragPreview] = useState<{ start: string; end: string } | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
   // Filters
