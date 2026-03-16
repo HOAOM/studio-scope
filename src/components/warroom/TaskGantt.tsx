@@ -250,6 +250,20 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     return Array.from(cats).sort();
   }, [items]);
 
+  const scrollTimeline = useCallback((direction: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const step = scrollRef.current.clientWidth * 0.4;
+    scrollRef.current.scrollBy({ left: direction === 'right' ? step : -step, behavior: 'smooth' });
+  }, []);
+
+  const scrollToToday = useCallback(() => {
+    if (!scrollRef.current) return;
+    const totalWidth = scrollRef.current.scrollWidth;
+    const viewWidth = scrollRef.current.clientWidth;
+    const todayPos = (todayPercent / 100) * totalWidth;
+    scrollRef.current.scrollTo({ left: Math.max(0, todayPos - viewWidth / 2), behavior: 'smooth' });
+  }, [todayPercent]);
+
   return (
     <div
       ref={containerRef}
