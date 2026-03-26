@@ -7,6 +7,7 @@ export interface ProjectMemberProfile {
   role: string;
   display_name: string | null;
   email: string | null;
+  avatar_url: string | null;
 }
 
 export function useProjectMembers(projectId: string | undefined) {
