@@ -1,6 +1,6 @@
 /**
  * ItemDetailModal — Full-screen overlay for viewing/editing an item
- * Role-based field visibility, action buttons for state transitions, revision history
+ * Role-based field visibility, action buttons for state transitions, revision history, quotations
  */
 import { useState, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,8 +30,10 @@ import {
 import {
   CheckCircle2, XCircle, Clock, ArrowRight, Shield, Lock,
   FileText, Package, CreditCard, Truck, Wrench, History,
-  Image as ImageIcon, ExternalLink,
+  Image as ImageIcon, ExternalLink, ReceiptText,
 } from 'lucide-react';
+import { QuotationsTab } from './QuotationsTab';
+import { RejectDialog } from './RejectDialog';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -55,6 +57,7 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
   const { roles, canSeeCosts } = useUserRole();
   const updateItem = useUpdateProjectItem();
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const typedRoles = roles as AppRole[];
 
   // Fetch audit log for this item
@@ -175,10 +178,11 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
 
         <ScrollArea className="max-h-[calc(90vh-200px)]">
           <Tabs defaultValue="info" className="px-6 py-4">
-            <TabsList className="mb-4">
+            <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
               {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="procurement"><Package className="w-3 h-3 mr-1" />Procurement</TabsTrigger>}
+              {canSeeProcurement && <TabsTrigger value="quotations"><ReceiptText className="w-3 h-3 mr-1" />Quotations</TabsTrigger>}
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
               {canSeeLogistics && <TabsTrigger value="logistics"><Truck className="w-3 h-3 mr-1" />Logistics</TabsTrigger>}
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
@@ -271,6 +275,12 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
               </TabsContent>
             )}
 
+            {/* QUOTATIONS TAB */}
+            {canSeeProcurement && (
+              <TabsContent value="quotations" className="space-y-4">
+                <QuotationsTab itemId={item.id} canEdit={canSeeProcurement} />
+              </TabsContent>
+            )}
             {/* FINANCE TAB */}
             {(canSeePayment || canSeeCosts) && (
               <TabsContent value="finance" className="space-y-4">

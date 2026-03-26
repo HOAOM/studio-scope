@@ -13,6 +13,7 @@ import { BOQAnalyst } from '@/components/warroom/BOQAnalyst';
 import { TeamManagement } from '@/components/warroom/TeamManagement';
 import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
 import { ClientBoardsTab } from '@/components/warroom/ClientBoardsTab';
+import { MilestonesPanel } from '@/components/warroom/MilestonesPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -293,6 +294,11 @@ export default function ProjectDetail() {
             {/* Approval Gates Panel */}
             <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} onItemClick={(item) => { setDetailItem(item); setDetailModalOpen(true); }} />
 
+            {/* Milestones */}
+            {projectId && (
+              <MilestonesPanel projectId={projectId} items={items} canEdit={isAdmin || roles.includes('coo')} />
+            )}
+
             {/* KPIs */}
             <ProjectKPIs items={items} />
 
@@ -480,6 +486,7 @@ export default function ProjectDetail() {
                   id: m.user_id,
                   display_name: m.display_name,
                   email: m.email,
+                  avatar_url: m.avatar_url,
                 }))}
               />
             )}

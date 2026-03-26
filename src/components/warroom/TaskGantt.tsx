@@ -31,7 +31,7 @@ interface TaskGanttProps {
   projectStartDate: string;
   projectEndDate: string;
   items?: ProjectItem[];
-  members?: { id: string; display_name: string | null; email: string | null }[];
+  members?: { id: string; display_name: string | null; email: string | null; avatar_url?: string | null }[];
 }
 
 type FilterType = 'all' | 'tasks' | 'items';
