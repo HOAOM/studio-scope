@@ -1,6 +1,6 @@
 /**
  * ItemDetailModal — Full-screen overlay for viewing/editing an item
- * Role-based field visibility, action buttons for state transitions, revision history
+ * Role-based field visibility, action buttons for state transitions, revision history, quotations
  */
 import { useState, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,8 +30,10 @@ import {
 import {
   CheckCircle2, XCircle, Clock, ArrowRight, Shield, Lock,
   FileText, Package, CreditCard, Truck, Wrench, History,
-  Image as ImageIcon, ExternalLink,
+  Image as ImageIcon, ExternalLink, ReceiptText,
 } from 'lucide-react';
+import { QuotationsTab } from './QuotationsTab';
+import { RejectDialog } from './RejectDialog';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
