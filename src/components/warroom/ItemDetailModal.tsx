@@ -57,6 +57,7 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
   const { roles, canSeeCosts } = useUserRole();
   const updateItem = useUpdateProjectItem();
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const typedRoles = roles as AppRole[];
 
   // Fetch audit log for this item
