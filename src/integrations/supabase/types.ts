@@ -210,6 +210,59 @@ export type Database = {
           },
         ]
       }
+      item_quotations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          lead_time_days: number | null
+          notes: string | null
+          project_item_id: string
+          status: string
+          supplier: string
+          total_price: number | null
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lead_time_days?: number | null
+          notes?: string | null
+          project_item_id: string
+          status?: string
+          supplier: string
+          total_price?: number | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lead_time_days?: number | null
+          notes?: string | null
+          project_item_id?: string
+          status?: string
+          supplier?: string
+          total_price?: number | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_quotations_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_revisions: {
         Row: {
           created_at: string
@@ -401,18 +454,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           display_name: string | null
           email: string | null
           id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           display_name?: string | null
           email?: string | null
           id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           display_name?: string | null
           email?: string | null
@@ -458,12 +514,15 @@ export type Database = {
           margin_percentage: number | null
           notes: string | null
           parent_item_id: string | null
+          po_number: string | null
           production_due_date: string | null
           production_time: string | null
+          proforma_url: string | null
           project_id: string
           purchase_order_ref: string | null
           purchased: boolean
           quantity: number | null
+          quotation_ref: string | null
           received: boolean
           received_date: string | null
           reference_image_url: string | null
@@ -516,12 +575,15 @@ export type Database = {
           margin_percentage?: number | null
           notes?: string | null
           parent_item_id?: string | null
+          po_number?: string | null
           production_due_date?: string | null
           production_time?: string | null
+          proforma_url?: string | null
           project_id: string
           purchase_order_ref?: string | null
           purchased?: boolean
           quantity?: number | null
+          quotation_ref?: string | null
           received?: boolean
           received_date?: string | null
           reference_image_url?: string | null
@@ -574,12 +636,15 @@ export type Database = {
           margin_percentage?: number | null
           notes?: string | null
           parent_item_id?: string | null
+          po_number?: string | null
           production_due_date?: string | null
           production_time?: string | null
+          proforma_url?: string | null
           project_id?: string
           purchase_order_ref?: string | null
           purchased?: boolean
           quantity?: number | null
+          quotation_ref?: string | null
           received?: boolean
           received_date?: string | null
           reference_image_url?: string | null
@@ -665,6 +730,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_milestones: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          macro_area: string | null
+          project_id: string
+          required_status: string
+          target_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          macro_area?: string | null
+          project_id: string
+          required_status: string
+          target_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          macro_area?: string | null
+          project_id?: string
+          required_status?: string
+          target_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
