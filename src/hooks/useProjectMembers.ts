@@ -25,13 +25,13 @@ export function useProjectMembers(projectId: string | undefined) {
 
       // Fetch profiles for those user_ids
       const userIds = members.map(m => m.user_id);
-      const { data: profiles, error: pErr } = await supabase
+      const { data: profiles, error: pErr } = await (supabase as any)
         .from('profiles')
-        .select('id, display_name, email')
+        .select('id, display_name, email, avatar_url')
         .in('id', userIds);
       if (pErr) throw pErr;
 
-      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
       return members.map(m => {
         const profile = profileMap.get(m.user_id);
         return {
@@ -40,6 +40,7 @@ export function useProjectMembers(projectId: string | undefined) {
           role: m.role,
           display_name: profile?.display_name || null,
           email: profile?.email || null,
+          avatar_url: profile?.avatar_url || null,
         } as ProjectMemberProfile;
       });
     },
