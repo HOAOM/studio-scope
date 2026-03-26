@@ -486,6 +486,7 @@ export default function ProjectDetail() {
                   id: m.user_id,
                   display_name: m.display_name,
                   email: m.email,
+                  avatar_url: m.avatar_url,
                 }))}
               />
             )}
