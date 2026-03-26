@@ -13,6 +13,7 @@ import { BOQAnalyst } from '@/components/warroom/BOQAnalyst';
 import { TeamManagement } from '@/components/warroom/TeamManagement';
 import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
 import { ClientBoardsTab } from '@/components/warroom/ClientBoardsTab';
+import { MilestonesPanel } from '@/components/warroom/MilestonesPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
