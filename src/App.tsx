@@ -9,6 +9,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import AdminPanel from "./pages/AdminPanel";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import UserProfile from "./pages/UserProfile";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
