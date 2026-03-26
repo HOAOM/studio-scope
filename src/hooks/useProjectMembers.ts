@@ -33,7 +33,7 @@ export function useProjectMembers(projectId: string | undefined) {
 
       const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
       return members.map(m => {
-        const profile = profileMap.get(m.user_id);
+        const profile: any = profileMap.get(m.user_id);
         return {
           id: m.id,
           user_id: m.user_id,
