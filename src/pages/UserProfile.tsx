@@ -26,14 +26,14 @@ export default function UserProfile() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('profiles')
         .select('display_name, avatar_url')
         .eq('id', user.id)
         .single();
       if (data) {
         setDisplayName(data.display_name || '');
-        setAvatarUrl((data as any).avatar_url || null);
+        setAvatarUrl(data.avatar_url || null);
       }
     })();
   }, [user]);
