@@ -275,6 +275,12 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
               </TabsContent>
             )}
 
+            {/* QUOTATIONS TAB */}
+            {canSeeProcurement && (
+              <TabsContent value="quotations" className="space-y-4">
+                <QuotationsTab itemId={item.id} canEdit={canSeeProcurement} />
+              </TabsContent>
+            )}
             {/* FINANCE TAB */}
             {(canSeePayment || canSeeCosts) && (
               <TabsContent value="finance" className="space-y-4">
