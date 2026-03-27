@@ -30,7 +30,6 @@ export const GROUP_LABELS: Record<string, string> = {
   delivery: 'Delivery',
   installation: 'Installation',
   closing: 'Closing',
-  custom: 'Custom Tasks',
 };
 
 export const GROUP_COLORS: Record<string, { hue: string; bar: string; barGradient: string }> = {
