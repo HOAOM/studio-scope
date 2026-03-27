@@ -292,9 +292,6 @@ export default function ProjectDetail() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Approval Gates Panel */}
-            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} onItemClick={(item) => { setDetailItem(item); setDetailModalOpen(true); }} />
-
             {/* Milestones */}
             {projectId && (
               <MilestonesPanel projectId={projectId} items={items} canEdit={isAdmin || roles.includes('coo')} />
