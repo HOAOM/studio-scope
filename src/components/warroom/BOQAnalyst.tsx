@@ -109,6 +109,12 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: 'notes', label: 'Notes' },
 ];
 
+interface FinishEntry {
+  material: string;
+  color: string;
+  notes: string;
+}
+
 interface BOQAnalystProps {
   projectId: string;
   items: ProjectItem[];
@@ -149,6 +155,7 @@ type SortField = 'code' | 'floor' | 'room' | 'zone' | 'area' | 'brand' | 'qty' |
 
 export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
   const [form, setForm] = useState<FormData>({ ...EMPTY_FORM });
+  const [finishes, setFinishes] = useState<FinishEntry[]>([{ material: '', color: '', notes: '' }]);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField | null>(null);
@@ -301,6 +308,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     } else {
       setForm({ ...EMPTY_FORM });
     }
+    setFinishes([{ material: '', color: '', notes: '' }]);
     setEditingItemId(null);
   };
 
@@ -313,6 +321,14 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     const type = itemTypes.find(t => t.id === form.itemTypeId);
     const category = type ? itemTypeToCategory(type.code) : 'ffe';
 
+    // Serialize multiple finishes: primary goes to finish_material/finish_color/finish_notes, additional go to finish_notes as structured text
+    const primaryFinish = finishes[0] || { material: '', color: '', notes: '' };
+    const additionalFinishes = finishes.slice(1).filter(f => f.material || f.color || f.notes);
+    const finishNotesLines = [
+      primaryFinish.notes,
+      ...additionalFinishes.map((f, i) => `[Finish ${i + 2}] ${[f.material, f.color, f.notes].filter(Boolean).join(' | ')}`)
+    ].filter(Boolean).join('\n');
+
     const payload: any = {
       project_id: projectId,
       floor_id: form.floorId,
@@ -324,7 +340,9 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       area: form.zone || form.area || 'General',
       description: form.description || 'Item',
       supplier: form.brand || undefined,
-      finish_material: form.finishing || undefined,
+      finish_material: primaryFinish.material || form.finishing || undefined,
+      finish_color: primaryFinish.color || undefined,
+      finish_notes: finishNotesLines || undefined,
       dimensions: form.size || undefined,
       production_time: form.productionTime || undefined,
       reference_image_url: form.refImage || undefined,
@@ -352,6 +370,25 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
   const handleEdit = (item: ProjectItem) => {
     setEditingItemId(item.id);
+    // Parse finishes from item
+    const parsedFinishes: FinishEntry[] = [{ material: item.finish_material || '', color: item.finish_color || '', notes: '' }];
+    // Parse additional finishes from finish_notes
+    if (item.finish_notes) {
+      const lines = item.finish_notes.split('\n');
+      const additionalLines: string[] = [];
+      const primaryNotes: string[] = [];
+      lines.forEach(line => {
+        const match = line.match(/^\[Finish \d+\]\s*(.*)$/);
+        if (match) {
+          const parts = match[1].split(' | ');
+          parsedFinishes.push({ material: parts[0] || '', color: parts[1] || '', notes: parts[2] || '' });
+        } else {
+          primaryNotes.push(line);
+        }
+      });
+      parsedFinishes[0].notes = primaryNotes.join('\n');
+    }
+    setFinishes(parsedFinishes);
     setForm({
       floorId: item.floor_id || '',
       roomId: item.room_id || '',
@@ -374,7 +411,6 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       unitRate: item.unit_cost?.toString() || '',
       notes: item.notes || '',
     });
-    // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -522,11 +558,76 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Finishing</Label>
-            <Input value={form.finishing} onChange={e => updateField('finishing', e.target.value)} placeholder="Finish" />
+        {/* Finishes (dynamic) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold">Finishes</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setFinishes(prev => [...prev, { material: '', color: '', notes: '' }])}
+            >
+              <Plus className="w-3 h-3 mr-1" /> Add Finish
+            </Button>
           </div>
+          {finishes.map((fin, idx) => (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+              <div className="space-y-1">
+                <Label className="text-xs">{idx === 0 ? 'Material' : `Material #${idx + 1}`}</Label>
+                <Input
+                  value={fin.material}
+                  onChange={e => {
+                    const next = [...finishes];
+                    next[idx] = { ...next[idx], material: e.target.value };
+                    setFinishes(next);
+                  }}
+                  placeholder="e.g. Oak veneer"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Color</Label>
+                <Input
+                  value={fin.color}
+                  onChange={e => {
+                    const next = [...finishes];
+                    next[idx] = { ...next[idx], color: e.target.value };
+                    setFinishes(next);
+                  }}
+                  placeholder="e.g. Natural"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Finish Notes</Label>
+                <Input
+                  value={fin.notes}
+                  onChange={e => {
+                    const next = [...finishes];
+                    next[idx] = { ...next[idx], notes: e.target.value };
+                    setFinishes(next);
+                  }}
+                  placeholder="Details..."
+                />
+              </div>
+              <div>
+                {idx > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => setFinishes(prev => prev.filter((_, i) => i !== idx))}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Size / Dimensions</Label>
             <Input value={form.size} onChange={e => updateField('size', e.target.value)} placeholder="Size" />

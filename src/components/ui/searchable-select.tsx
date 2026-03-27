@@ -78,7 +78,7 @@ export function SearchableSelect({
             ref={inputRef}
             type="text"
             disabled={disabled}
-            className="flex-1 h-full px-3 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+            className="flex-1 h-full px-3 bg-transparent outline-none placeholder:text-muted-foreground text-sm min-w-0"
             placeholder={placeholder}
             value={open ? search : selectedLabel}
             onChange={(e) => {
@@ -89,19 +89,23 @@ export function SearchableSelect({
               if (!open) setOpen(true);
             }}
           />
-          {value && value !== '__none__' && !open && (
-            <button
-              type="button"
-              className="px-1 text-muted-foreground hover:text-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                onValueChange('__none__');
-              }}
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <ChevronDown className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <div className="flex items-center shrink-0 h-full">
+            {value && value !== '__none__' && !open && (
+              <button
+                type="button"
+                className="flex items-center justify-center w-6 h-full text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onValueChange('__none__');
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <div className="flex items-center justify-center w-8 h-full">
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+            </div>
+          </div>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0 max-h-[250px] overflow-y-auto" align="start">
