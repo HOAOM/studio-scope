@@ -57,6 +57,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [dependsOn, setDependsOn] = useState<string>('none');
+  const [linkedItemId, setLinkedItemId] = useState<string>('none');
 
   useEffect(() => {
     if (task) {
@@ -68,7 +69,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setStartDate(task.start_date ? parseISO(task.start_date) : undefined);
       setEndDate(task.end_date ? parseISO(task.end_date) : undefined);
       setDependsOn((task as any).depends_on || 'none');
-    } else {
+      setLinkedItemId(task.linked_item_id || 'none');
       setTitle('');
       setDescription('');
       setMacroArea('custom');
