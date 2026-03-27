@@ -1,5 +1,6 @@
 import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay, startOfMonth } from 'date-fns';
 import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn } from './types';
+import { MACRO_PHASES, getMacroPhase } from '@/lib/workflow';
 import { ProjectTask } from '@/hooks/useTasks';
 import { ITEM_PHASE_STYLES, GROUP_ORDER } from './constants';
 import { getMacroPhase } from '@/lib/workflow';
