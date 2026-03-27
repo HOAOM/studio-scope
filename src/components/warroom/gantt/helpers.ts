@@ -2,6 +2,7 @@ import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay,
 import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn } from './types';
 import { ProjectTask } from '@/hooks/useTasks';
 import { ITEM_PHASE_STYLES, GROUP_ORDER } from './constants';
+import { getMacroPhase } from '@/lib/workflow';
 
 export function calcTaskProgress(task: ProjectTask): number {
   if (task.status === 'done') return 100;
@@ -29,7 +30,13 @@ export function calcItemProgress(item: ProjectItem): number {
 
 export function itemsToRows(items: ProjectItem[]): GanttRow[] {
   return items
-    .filter(item => item.production_due_date || item.delivery_date || item.site_movement_date || item.installation_start_date || item.installed_date)
+    .filter(item => {
+      // Only show active items and selected options (or items without parent)
+      if (item.is_active === false) return false;
+      if (item.lifecycle_status === 'cancelled' || item.lifecycle_status === 'on_hold') return false;
+      if (item.parent_item_id && !item.is_selected_option) return false;
+      return item.production_due_date || item.delivery_date || item.site_movement_date || item.installation_start_date || item.installed_date;
+    })
     .map(item => {
       const phases: GanttRow['phases'] = [];
       if (item.production_due_date)
@@ -44,12 +51,15 @@ export function itemsToRows(items: ProjectItem[]): GanttRow[] {
       const allDates = [item.production_due_date, item.delivery_date, item.received_date, item.site_movement_date, item.installation_start_date, item.installed_date].filter(Boolean) as string[];
       allDates.sort();
 
+      // Group by workflow macro-phase instead of BOQ category
+      const macroPhase = getMacroPhase(item.lifecycle_status as any);
+
       return {
         id: `item-${item.id}`,
         type: 'item' as const,
         label: item.item_code || item.description.slice(0, 30),
         sublabel: item.description,
-        group: `items_${item.category}`,
+        group: macroPhase,
         status: item.lifecycle_status || 'draft',
         startDate: allDates[0] || null,
         endDate: allDates[allDates.length - 1] || null,
