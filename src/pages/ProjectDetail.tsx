@@ -70,6 +70,7 @@ import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
 import { Image as ImageIcon } from 'lucide-react';
 
 import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
+import { useProjectTasks } from '@/hooks/useTasks';
 
 function LifecycleBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-xs text-muted-foreground">-</span>;
@@ -138,6 +139,12 @@ export default function ProjectDetail() {
   const { canSeeCosts, roles } = useUserRole();
   const isAdmin = roles.includes('admin');
   const { data: projectMembers = [] } = useProjectMembers(projectId);
+  const { data: projectTasks = [] } = useProjectTasks(projectId);
+  
+  const urgentTasks = useMemo(() => {
+    return projectTasks.filter(t => t.linked_item_id && t.status !== 'done');
+  }, [projectTasks]);
+
   const [clientViewMode, setClientViewMode] = useState(false);
   const effectiveCanSeeCosts = canSeeCosts && !clientViewMode;
   
@@ -292,6 +299,29 @@ export default function ProjectDetail() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Urgent Tasks Alert */}
+            {urgentTasks.length > 0 && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                  <h3 className="text-sm font-semibold text-destructive">{urgentTasks.length} Urgent Task{urgentTasks.length > 1 ? 's' : ''} Pending</h3>
+                </div>
+                <div className="space-y-1">
+                  {urgentTasks.slice(0, 5).map(t => {
+                    const linkedItem = items.find(i => i.id === t.linked_item_id);
+                    return (
+                      <p key={t.id} className="text-xs text-destructive/80">
+                        <span className="font-mono">{linkedItem?.item_code || '—'}</span>
+                        {' → '}{t.title}
+                        {t.assignee_id && <span className="text-muted-foreground ml-1">(assigned)</span>}
+                      </p>
+                    );
+                  })}
+                  {urgentTasks.length > 5 && <p className="text-xs text-destructive/60">...and {urgentTasks.length - 5} more</p>}
+                </div>
+              </div>
+            )}
+
             {/* Milestones */}
             {projectId && (
               <MilestonesPanel projectId={projectId} items={items} canEdit={isAdmin || roles.includes('coo')} />
