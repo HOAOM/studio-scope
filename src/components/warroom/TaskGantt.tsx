@@ -293,9 +293,6 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     <div
       ref={containerRef}
       className="bg-card rounded-xl border border-border/60 overflow-hidden"
-      onMouseMove={dragging ? handleDragMove : undefined}
-      onMouseUp={dragging ? handleDragEnd : undefined}
-      onMouseLeave={dragging ? handleDragEnd : undefined}
     >
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-border/40">
