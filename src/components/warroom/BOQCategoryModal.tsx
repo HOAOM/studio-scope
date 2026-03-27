@@ -16,9 +16,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from './StatusBadge';
 import { ItemFormDialog } from './ItemFormDialog';
+import { ItemDetailModal } from './ItemDetailModal';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
-import { Edit, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { Edit, Image as ImageIcon, ExternalLink, Eye } from 'lucide-react';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type BOQCategory = Database['public']['Enums']['boq_category'];
@@ -53,6 +54,8 @@ export function BOQCategoryModal({
   const [editingItem, setEditingItem] = useState<ProjectItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [detailItem, setDetailItem] = useState<ProjectItem | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   if (!category) return null;
 
@@ -100,9 +103,13 @@ export function BOQCategoryModal({
                       <TableRow
                         key={item.id}
                         className={cn(
-                          'group',
+                          'group cursor-pointer',
                           status === 'unsafe' && 'bg-status-unsafe-bg'
                         )}
+                        onDoubleClick={() => {
+                          setDetailItem(item);
+                          setDetailOpen(true);
+                        }}
                       >
                         {/* Reference Image */}
                         <TableCell>
@@ -191,17 +198,32 @@ export function BOQCategoryModal({
                           </TableCell>
                         )}
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              setEditingItem(item);
-                              setEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailItem(item);
+                                setDetailOpen(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingItem(item);
+                                setEditDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -242,6 +264,14 @@ export function BOQCategoryModal({
         onOpenChange={setEditDialogOpen}
         projectId={projectId}
         item={editingItem}
+      />
+
+      {/* Item Detail Modal */}
+      <ItemDetailModal
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        item={detailItem}
+        projectId={projectId}
       />
     </>
   );
