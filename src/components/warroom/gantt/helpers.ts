@@ -2,6 +2,7 @@ import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay,
 import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn } from './types';
 import { MACRO_PHASES, getMacroPhase, addWorkingDays, TaskMacroArea } from '@/lib/workflow';
 import { ITEM_PHASE_STYLES, GROUP_ORDER, PHASE_DURATIONS } from './constants';
+import { ProjectTask } from '@/hooks/useTasks';
 
 export function calcTaskProgress(task: ProjectTask): number {
   if (task.status === 'done') return 100;

@@ -85,6 +85,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
 
   const handleSubmit = async () => {
     if (!title.trim()) { toast.error('Title is required'); return; }
+    if (linkedItemId === 'none') { toast.error('Please link this task to an item'); return; }
     const payload = {
       title: title.trim(),
       description: description.trim() || null,
