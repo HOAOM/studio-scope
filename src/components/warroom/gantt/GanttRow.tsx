@@ -29,6 +29,7 @@ export function GanttRowComponent({
   row, index, columns, timelineStart, totalDays,
   dragging, dragPreview, getMemberName,
   onStatusToggle, onEdit, onDelete, onDragStart,
+  onItemDoubleClick,
   isCriticalPath = false,
 }: Props) {
   const sConfig = STATUS_CONFIG[row.status] || STATUS_CONFIG.todo;
