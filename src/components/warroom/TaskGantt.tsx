@@ -93,29 +93,27 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
 
   /* ── Build unified rows ── */
   const allRows = useMemo(() => {
-    const taskRows: GanttRowType[] = tasks.map(t => {
-      // Check gate blocking
-      const gateInfo = isGateBlocked(t.macro_area as any, items);
-      const effectiveStatus = gateInfo.blocked ? 'blocked' : t.status;
-
-      return {
-        id: t.id,
-        type: 'task' as const,
-        label: t.title,
-        group: t.macro_area,
-        status: effectiveStatus,
-        assignee: t.assignee_id || undefined,
-        startDate: t.start_date,
-        endDate: t.end_date,
-        progress: calcTaskProgress(t),
-        dependsOn: (t as any).depends_on || undefined,
-        task: t,
-        gateBlocked: gateInfo.blocked,
-        gateReason: gateInfo.reason,
-        gateProgress: gateInfo.progress,
-      };
-    });
-    const itemRows = itemsToRows(items, projectStartDate, projectEndDate);
+    // Separate linked vs unlinked tasks
+    const linkedTasks = tasks.filter(t => t.linked_item_id);
+    const unlinkedTasks = tasks.filter(t => !t.linked_item_id);
+    
+    // Unlinked tasks (legacy, should be rare)
+    const freeTaskRows: GanttRowType[] = unlinkedTasks.map(t => ({
+      id: t.id,
+      type: 'task' as const,
+      label: t.title,
+      group: t.macro_area,
+      status: t.status,
+      assignee: t.assignee_id || undefined,
+      startDate: t.start_date,
+      endDate: t.end_date,
+      progress: calcTaskProgress(t),
+      dependsOn: (t as any).depends_on || undefined,
+      task: t,
+    }));
+    
+    // Items with their linked tasks nested underneath
+    const itemRows = itemsToRows(items, projectStartDate, projectEndDate, linkedTasks);
 
     // Gate milestone rows
     const gateRows: GanttRowType[] = [];
@@ -132,8 +130,13 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       }
     }
 
-    return [...gateRows, ...taskRows, ...itemRows];
-  }, [tasks, items, showGateIndicators]);
+    return [...gateRows, ...freeTaskRows, ...itemRows];
+  }, [tasks, items, showGateIndicators, projectStartDate, projectEndDate]);
+
+  /* ── Urgent tasks for alerts ── */
+  const urgentTasks = useMemo(() => {
+    return tasks.filter(t => t.linked_item_id && t.status !== 'done');
+  }, [tasks]);
 
   /* ── Critical path ── */
   const criticalPathIds = useMemo(() => {
@@ -301,6 +304,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           <p className="text-[11px] text-muted-foreground/60 mt-0.5">
             {tasks.length} tasks · {allRows.filter(r => r.type === 'item').length} items
             {activeFilterCount > 0 && <span className="text-primary ml-1">· {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active</span>}
+            {urgentTasks.length > 0 && <span className="text-destructive ml-1 font-medium">· ⚠ {urgentTasks.length} urgent task{urgentTasks.length > 1 ? 's' : ''}</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -545,7 +549,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       )}
 
       {/* Dialogs */}
-      <TaskFormDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} projectId={projectId} task={editingTask} members={members} tasks={tasks} items={items.map(i => ({ id: i.id, item_code: i.item_code, description: i.description }))} />
+      <TaskFormDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} projectId={projectId} task={editingTask} members={members} tasks={tasks} items={items.map(i => ({ id: i.id, item_code: i.item_code, description: i.description, lifecycle_status: i.lifecycle_status }))} />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>

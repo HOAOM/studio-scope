@@ -20,6 +20,9 @@ export interface GanttRow {
   itemId?: string;
   delayed?: boolean;
   task?: ProjectTask;
+  isSubTask?: boolean;
+  parentItemId?: string;
+  urgent?: boolean;
   gateBlocked?: boolean;
   gateReason?: string;
   gateProgress?: number;

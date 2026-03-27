@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { parseISO, format } from 'date-fns';
-import { Edit, Trash2, Package } from 'lucide-react';
+import { Edit, Trash2, Package, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GanttRow as GanttRowType, TimelineColumn, DragState } from './types';
 import { ROW_HEIGHT, LEFT_PANEL_WIDTH, GROUP_COLORS, STATUS_CONFIG } from './constants';
@@ -59,7 +59,7 @@ export function GanttRowComponent({
       {/* Left panel */}
       <div className="flex items-center border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
         {/* Status checkbox / icon */}
-        <div className="flex items-center justify-center w-10 flex-shrink-0">
+        <div className={cn('flex items-center justify-center flex-shrink-0', row.isSubTask ? 'w-10 pl-4' : 'w-10')}>
           {row.type === 'task' && row.task ? (
             <button
               onClick={() => onStatusToggle(row.task!)}
@@ -85,8 +85,16 @@ export function GanttRowComponent({
         </div>
 
         {/* Task / Item label */}
-        <div className="flex-1 min-w-0 pr-2">
-          <p className={cn('text-[11px] truncate leading-tight', row.status === 'done' ? 'line-through text-muted-foreground/60' : 'text-foreground/90')} title={row.sublabel || row.label}>
+        <div className={cn('flex-1 min-w-0 pr-2', row.isSubTask && 'pl-2')}>
+          <p className={cn(
+            'text-[11px] truncate leading-tight',
+            row.status === 'done' ? 'line-through text-muted-foreground/60' : 'text-foreground/90',
+            row.isSubTask && 'italic text-muted-foreground/80',
+            row.urgent && row.status !== 'done' && 'text-destructive font-medium'
+          )} title={row.sublabel || row.label}>
+            {row.urgent && row.status !== 'done' && (
+              <AlertCircle className="w-3 h-3 inline-block mr-1 text-destructive" />
+            )}
             {row.type === 'item' && row.label !== row.sublabel ? (
               <span className="font-mono text-primary/70 mr-1 text-[10px]">{row.label}</span>
             ) : null}
