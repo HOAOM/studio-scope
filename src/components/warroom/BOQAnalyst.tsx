@@ -558,11 +558,76 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Finishing</Label>
-            <Input value={form.finishing} onChange={e => updateField('finishing', e.target.value)} placeholder="Finish" />
+        {/* Finishes (dynamic) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold">Finishes</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setFinishes(prev => [...prev, { material: '', color: '', notes: '' }])}
+            >
+              <Plus className="w-3 h-3 mr-1" /> Add Finish
+            </Button>
           </div>
+          {finishes.map((fin, idx) => (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+              <div className="space-y-1">
+                <Label className="text-xs">{idx === 0 ? 'Material' : `Material #${idx + 1}`}</Label>
+                <Input
+                  value={fin.material}
+                  onChange={e => {
+                    const next = [...finishes];
+                    next[idx] = { ...next[idx], material: e.target.value };
+                    setFinishes(next);
+                  }}
+                  placeholder="e.g. Oak veneer"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Color</Label>
+                <Input
+                  value={fin.color}
+                  onChange={e => {
+                    const next = [...finishes];
+                    next[idx] = { ...next[idx], color: e.target.value };
+                    setFinishes(next);
+                  }}
+                  placeholder="e.g. Natural"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Finish Notes</Label>
+                <Input
+                  value={fin.notes}
+                  onChange={e => {
+                    const next = [...finishes];
+                    next[idx] = { ...next[idx], notes: e.target.value };
+                    setFinishes(next);
+                  }}
+                  placeholder="Details..."
+                />
+              </div>
+              <div>
+                {idx > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => setFinishes(prev => prev.filter((_, i) => i !== idx))}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Size / Dimensions</Label>
             <Input value={form.size} onChange={e => updateField('size', e.target.value)} placeholder="Size" />
