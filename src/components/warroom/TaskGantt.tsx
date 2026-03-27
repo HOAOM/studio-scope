@@ -432,28 +432,36 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto" ref={scrollRef}>
-          <div style={{ minWidth: LEFT_PANEL_WIDTH + 700 }}>
+        <div
+          className={cn('overflow-x-auto', isPanning && 'cursor-grabbing', !isPanning && 'cursor-grab')}
+          ref={scrollRef}
+          onMouseDown={handlePanStart}
+          onMouseMove={(e) => { handlePanMove(e); if (dragging) handleDragMove(e); }}
+          onMouseUp={() => { handlePanEnd(); if (dragging) handleDragEnd(); }}
+          onMouseLeave={() => { handlePanEnd(); if (dragging) handleDragEnd(); }}
+          style={{ userSelect: isPanning ? 'none' : undefined }}
+        >
+          <div style={{ minWidth: LEFT_PANEL_WIDTH + 900 }}>
             {/* Column headers — dual row: months on top, weeks/days below */}
-            <div className="sticky top-0 z-20 bg-card border-b border-border/30">
+            <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border/50">
               {/* Month row */}
-              <div className="flex border-b border-border/20">
-                <div className="border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
-                <div className="flex-1 relative h-6">
+              <div className="flex border-b border-border/30">
+                <div className="border-r border-border/40 bg-muted/[0.04]" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
+                <div className="flex-1 relative h-7 bg-muted/[0.02]">
                   {monthColumns.map((col, i) => (
                     <div
                       key={i}
-                      className="absolute top-0 h-full flex items-center justify-center border-r border-border/20"
+                      className="absolute top-0 h-full flex items-center justify-center border-r border-border/25"
                       style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
                     >
-                      <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider truncate px-1">{col.label}</span>
+                      <span className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest truncate px-2">{col.label}</span>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Day/Week row + left panel labels */}
               <div className="flex">
-                <div className="flex items-center border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
+                <div className="flex items-center border-r border-border/40 bg-muted/[0.04]" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
                   <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] pl-10 w-auto flex-1">Task / Item</span>
                   <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[72px] px-1">Assignee</span>
                   <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[70px] px-1">Status</span>
@@ -464,13 +472,13 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
                     <div
                       key={i}
                       className={cn(
-                        'absolute top-0 h-full flex flex-col justify-center border-r border-border/[0.12] px-1',
-                        col.isWeekend && 'bg-muted/[0.06]'
+                        'absolute top-0 h-full flex flex-col justify-center border-r border-border/15 px-1',
+                        col.isWeekend && 'bg-muted/[0.08]'
                       )}
                       style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
                     >
-                      <span className="text-[9px] font-medium text-muted-foreground/50 truncate leading-tight">{col.label}</span>
-                      {col.sub && <span className="text-[7px] text-muted-foreground/30 leading-tight">{col.sub}</span>}
+                      <span className="text-[9px] font-semibold text-muted-foreground/50 truncate leading-tight">{col.label}</span>
+                      {col.sub && <span className="text-[7px] text-muted-foreground/35 leading-tight font-medium">{col.sub}</span>}
                     </div>
                   ))}
                 </div>
