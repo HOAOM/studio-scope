@@ -61,24 +61,34 @@ export function GanttRowComponent({
         {/* Status checkbox / icon */}
         <div className={cn('flex items-center justify-center flex-shrink-0', row.isSubTask ? 'w-10 pl-4' : 'w-10')}>
           {row.type === 'task' && row.task ? (
-            <button
-              onClick={() => onStatusToggle(row.task!)}
-              className={cn(
-                'w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex-shrink-0 transition-all duration-200 flex items-center justify-center',
-                row.status === 'done'
-                  ? 'border-transparent'
-                  : row.status === 'in_progress'
-                  ? 'border-primary/60 bg-primary/10'
-                  : row.status === 'blocked'
-                  ? 'bg-[hsl(var(--status-unsafe))]/10'
-                  : 'border-muted-foreground/30 hover:border-muted-foreground/50'
-              )}
-              style={row.status === 'done' ? { background: sConfig.dotColor } : row.status === 'blocked' ? { borderColor: sConfig.dotColor } : undefined}
-            >
-              {row.status === 'done' && (
-                <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              )}
-            </button>
+            (() => {
+              const hasAutoComplete = row.task && (row.task as any).completion_fields?.length > 0;
+              return (
+                <button
+                  onClick={() => !hasAutoComplete && onStatusToggle(row.task!)}
+                  className={cn(
+                    'w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex-shrink-0 transition-all duration-200 flex items-center justify-center',
+                    hasAutoComplete && row.status !== 'done' && 'border-primary/40 bg-primary/5 cursor-not-allowed',
+                    !hasAutoComplete && row.status === 'done'
+                      ? 'border-transparent'
+                      : !hasAutoComplete && row.status === 'in_progress'
+                      ? 'border-primary/60 bg-primary/10'
+                      : !hasAutoComplete && row.status === 'blocked'
+                      ? 'bg-[hsl(var(--status-unsafe))]/10'
+                      : !hasAutoComplete ? 'border-muted-foreground/30 hover:border-muted-foreground/50' : ''
+                  )}
+                  style={row.status === 'done' ? { background: sConfig.dotColor } : row.status === 'blocked' ? { borderColor: sConfig.dotColor } : undefined}
+                  title={hasAutoComplete ? 'Auto-completing: fill required fields on item' : undefined}
+                >
+                  {row.status === 'done' && (
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  )}
+                  {hasAutoComplete && row.status !== 'done' && (
+                    <svg className="w-2.5 h-2.5 text-primary/60" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="2" fill="currentColor"/></svg>
+                  )}
+                </button>
+              );
+            })()
           ) : (
             <Package className="w-3.5 h-3.5 text-muted-foreground/50" />
           )}

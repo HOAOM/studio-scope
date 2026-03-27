@@ -201,6 +201,11 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   };
 
   const handleStatusToggle = async (task: ProjectTask) => {
+    // Block manual toggle for auto-complete tasks
+    if (task.completion_fields && task.completion_fields.length > 0) {
+      toast.info('This task auto-completes when the required fields are filled on the item');
+      return;
+    }
     const next = task.status === 'done' ? 'todo' : task.status === 'todo' ? 'in_progress' : 'done';
     try {
       await updateTask.mutateAsync({ id: task.id, projectId, status: next } as any);
