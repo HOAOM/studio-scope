@@ -19,7 +19,7 @@ export const PHASE_DURATIONS: Record<TaskMacroArea, number> = {
 
 export const GROUP_ORDER = [
   'planning', 'design_validation', 'procurement', 'production',
-  'delivery', 'installation', 'closing', 'custom',
+  'delivery', 'installation', 'closing',
 ];
 
 export const GROUP_LABELS: Record<string, string> = {
