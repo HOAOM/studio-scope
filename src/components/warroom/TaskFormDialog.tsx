@@ -118,6 +118,25 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Linked Item */}
+          {items.length > 0 && (
+            <div>
+              <Label>Linked Item</Label>
+              <Select value={linkedItemId} onValueChange={setLinkedItemId}>
+                <SelectTrigger><SelectValue placeholder="Select item..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No linked item</SelectItem>
+                  {items.map(item => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.item_code ? `${item.item_code} — ` : ''}{item.description.slice(0, 50)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">Link this task to a specific BOQ item</p>
+            </div>
+          )}
+
           <div>
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title..." />
