@@ -137,26 +137,36 @@ export function GanttItemPhaseBars({ row, timelineStart, totalDays }: ItemPhaseB
         const e = phase.end ? differenceInDays(parseISO(phase.end), timelineStart) : s + 3;
         const left = dayToPercent(s, totalDays);
         const width = dayToPercent(Math.max(e - s, 1), totalDays);
+        const isActive = (phase as any).isActive === true;
+        const isPast = (phase as any).isPast === true;
+        const opacity = isActive ? 0.9 : isPast ? 0.55 : 0.18;
+        const height = isActive ? 24 : 16;
 
         return (
           <TooltipProvider key={phase.key}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute top-1/2 -translate-y-1/2 rounded-[4px] overflow-hidden hover:shadow-[0_1px_6px_rgba(0,0,0,0.25)] transition-shadow"
-                  style={{ left: `${left}%`, width: `${Math.max(width, 0.4)}%`, minWidth: 8, height: 20 }}
+                  className={cn(
+                    'absolute top-1/2 -translate-y-1/2 rounded-[4px] overflow-hidden transition-all',
+                    isActive && 'shadow-[0_2px_8px_rgba(0,0,0,0.2)] ring-1 ring-white/20',
+                    !isActive && 'hover:shadow-[0_1px_4px_rgba(0,0,0,0.15)]',
+                  )}
+                  style={{ left: `${left}%`, width: `${Math.max(width, 0.4)}%`, minWidth: 8, height }}
                 >
-                  <div className="absolute inset-0 rounded-[4px]" style={{ background: style?.gradient || phase.color, opacity: 0.25 }} />
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-l-[4px]"
-                    style={{ width: `${row.progress}%`, background: style?.gradient || phase.color, opacity: 0.75 }}
-                  />
+                  <div className="absolute inset-0 rounded-[4px]" style={{ background: style?.gradient || phase.color, opacity }} />
+                  {isActive && (
+                    <span className="relative z-10 text-[9px] text-white font-semibold px-1.5 truncate block drop-shadow-sm" style={{ lineHeight: `${height}px` }}>
+                      {phase.label}
+                    </span>
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent className="p-3" side="top">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2.5 h-2.5 rounded-sm" style={{ background: style?.color || phase.color }} />
                   <p className="text-xs font-semibold">{phase.label}</p>
+                  {isActive && <span className="text-[9px] bg-primary/20 text-primary px-1.5 rounded-full font-medium">Active</span>}
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   {format(parseISO(phase.start), 'dd MMM yyyy')}

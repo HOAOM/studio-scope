@@ -21,6 +21,7 @@ interface Props {
   onEdit: (task: ProjectTask) => void;
   onDelete: (task: ProjectTask) => void;
   onDragStart: (e: React.MouseEvent, rowId: string, edge: 'start' | 'end' | 'move', startDate: string, endDate: string) => void;
+  onItemDoubleClick?: (itemId: string) => void;
   isCriticalPath?: boolean;
 }
 
