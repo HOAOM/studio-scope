@@ -3,6 +3,7 @@ import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn }
 import { MACRO_PHASES, getMacroPhase, addWorkingDays, TaskMacroArea } from '@/lib/workflow';
 import { ProjectTask } from '@/hooks/useTasks';
 import { ITEM_PHASE_STYLES, GROUP_ORDER, PHASE_DURATIONS } from './constants';
+import { ProjectTask } from '@/hooks/useTasks';
 
 export function calcTaskProgress(task: ProjectTask): number {
   if (task.status === 'done') return 100;
@@ -79,7 +80,12 @@ function isItemDelayed(phases: GanttRow['phases']): boolean {
   return isAfter(new Date(), parseISO(activePhase.end));
 }
 
-export function itemsToRows(items: ProjectItem[], projectStartDate?: string, projectEndDate?: string): GanttRow[] {
+export function itemsToRows(
+  items: ProjectItem[],
+  projectStartDate?: string,
+  projectEndDate?: string,
+  linkedTasks?: ProjectTask[],
+): GanttRow[] {
   const pStart = projectStartDate || format(new Date(), 'yyyy-MM-dd');
   
   return items
@@ -91,10 +97,40 @@ export function itemsToRows(items: ProjectItem[], projectStartDate?: string, pro
     })
     .map(item => {
       const phases = computeItemPhases(item, pStart);
-      const startDate = phases?.[0]?.start || null;
-      const endDate = phases?.[phases.length - 1]?.end || null;
       const macroPhase = getMacroPhase(item.lifecycle_status as any);
       const delayed = isItemDelayed(phases);
+      
+      // Check for incomplete linked tasks that block cascade
+      const itemTasks = (linkedTasks || []).filter(t => t.linked_item_id === item.id);
+      const hasBlockingTask = itemTasks.some(t => t.status !== 'done');
+      
+      // If there's a blocking task, shift all phases after the active one
+      let adjustedPhases = phases;
+      if (hasBlockingTask && phases) {
+        const blockingTask = itemTasks.find(t => t.status !== 'done' && t.end_date);
+        if (blockingTask?.end_date) {
+          const activeIdx = phases.findIndex(p => p.isActive);
+          if (activeIdx >= 0) {
+            const taskEnd = parseISO(blockingTask.end_date);
+            const phaseEnd = phases[activeIdx].end ? parseISO(phases[activeIdx].end!) : null;
+            if (phaseEnd && isAfter(taskEnd, phaseEnd)) {
+              // Shift subsequent phases
+              let cursor = taskEnd;
+              adjustedPhases = phases.map((p, i) => {
+                if (i <= activeIdx) return p;
+                const duration = PHASE_DURATIONS[p.key as TaskMacroArea] || 5;
+                const newEnd = addWorkingDays(cursor, duration);
+                const shifted = { ...p, start: format(cursor, 'yyyy-MM-dd'), end: format(newEnd, 'yyyy-MM-dd') };
+                cursor = newEnd;
+                return shifted;
+              });
+            }
+          }
+        }
+      }
+      
+      const startDate = adjustedPhases?.[0]?.start || null;
+      const endDate = adjustedPhases?.[adjustedPhases.length - 1]?.end || null;
 
       return {
         id: `item-${item.id}`,
@@ -106,10 +142,31 @@ export function itemsToRows(items: ProjectItem[], projectStartDate?: string, pro
         startDate,
         endDate,
         progress: calcItemProgress(item),
-        phases,
+        phases: adjustedPhases,
         itemId: item.id,
-        delayed,
+        delayed: delayed || hasBlockingTask,
       };
+    })
+    .flatMap(itemRow => {
+      const itemTasks = (linkedTasks || []).filter(t => t.linked_item_id === itemRow.itemId);
+      const subTaskRows: GanttRow[] = itemTasks.map(t => ({
+        id: t.id,
+        type: 'task' as const,
+        label: `↳ ${t.title}`,
+        sublabel: t.description || undefined,
+        group: itemRow.group,
+        status: t.status,
+        assignee: t.assignee_id || undefined,
+        startDate: t.start_date,
+        endDate: t.end_date,
+        progress: calcTaskProgress(t),
+        dependsOn: t.depends_on || undefined,
+        task: t,
+        isSubTask: true,
+        parentItemId: itemRow.itemId,
+        urgent: t.status !== 'done',
+      }));
+      return [itemRow, ...subTaskRows];
     });
 }
 
