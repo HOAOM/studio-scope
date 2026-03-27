@@ -60,6 +60,11 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
+  // Drag-to-scroll state
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartX = useRef(0);
+  const panScrollLeft = useRef(0);
+
   // Filters
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -264,6 +269,25 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     const todayPos = (todayPercent / 100) * totalWidth;
     scrollRef.current.scrollTo({ left: Math.max(0, todayPos - viewWidth / 2), behavior: 'smooth' });
   }, [todayPercent]);
+
+  // Drag-to-pan handlers
+  const handlePanStart = useCallback((e: React.MouseEvent) => {
+    if (dragging) return; // don't pan while dragging a bar
+    if ((e.target as HTMLElement).closest('button, [role="button"]')) return;
+    setIsPanning(true);
+    panStartX.current = e.clientX;
+    panScrollLeft.current = scrollRef.current?.scrollLeft || 0;
+  }, [dragging]);
+
+  const handlePanMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning || !scrollRef.current) return;
+    const dx = e.clientX - panStartX.current;
+    scrollRef.current.scrollLeft = panScrollLeft.current - dx;
+  }, [isPanning]);
+
+  const handlePanEnd = useCallback(() => {
+    setIsPanning(false);
+  }, []);
 
   return (
     <div
