@@ -512,7 +512,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       )}
 
       {/* Dialogs */}
-      <TaskFormDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} projectId={projectId} task={editingTask} members={members} tasks={tasks} />
+      <TaskFormDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} projectId={projectId} task={editingTask} members={members} tasks={tasks} items={items.map(i => ({ id: i.id, item_code: i.item_code, description: i.description }))} />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
