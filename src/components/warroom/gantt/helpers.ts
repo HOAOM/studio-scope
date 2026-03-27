@@ -1,8 +1,8 @@
 import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay, startOfMonth } from 'date-fns';
 import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn } from './types';
-import { MACRO_PHASES, getMacroPhase } from '@/lib/workflow';
+import { MACRO_PHASES, getMacroPhase, addWorkingDays, TaskMacroArea } from '@/lib/workflow';
 import { ProjectTask } from '@/hooks/useTasks';
-import { ITEM_PHASE_STYLES, GROUP_ORDER } from './constants';
+import { ITEM_PHASE_STYLES, GROUP_ORDER, PHASE_DURATIONS } from './constants';
 
 export function calcTaskProgress(task: ProjectTask): number {
   if (task.status === 'done') return 100;
@@ -28,82 +28,73 @@ export function calcItemProgress(item: ProjectItem): number {
   return Math.round((stages.filter(Boolean).length / stages.length) * 100);
 }
 
-/** Estimate default start/end dates for items without any dates, based on lifecycle phase and project timeline */
-function estimateItemDates(item: ProjectItem, projectStartDate?: string, projectEndDate?: string): { startDate: string; endDate: string } {
-  const projStart = projectStartDate ? parseISO(projectStartDate) : new Date();
-  const projEnd = projectEndDate ? parseISO(projectEndDate) : addDays(projStart, 180);
-  const totalSpan = differenceInDays(projEnd, projStart);
+/** Maps lifecycle_status to the index of the active macro-phase (0-6) */
+function getActivePhaseIndex(status: string | null): number {
+  const phase = getMacroPhase(status as any);
+  const order: TaskMacroArea[] = ['planning', 'design_validation', 'procurement', 'production', 'delivery', 'installation', 'closing'];
+  const idx = order.indexOf(phase);
+  return idx >= 0 ? idx : 0;
+}
 
-  const macroPhase = getMacroPhase(item.lifecycle_status as any);
-  // Map each macro-phase to a proportional slice of the project timeline
-  const phaseSlots: Record<string, { startPct: number; endPct: number }> = {
-    planning:          { startPct: 0,    endPct: 0.10 },
-    design_validation: { startPct: 0.05, endPct: 0.25 },
-    procurement:       { startPct: 0.20, endPct: 0.45 },
-    production:        { startPct: 0.40, endPct: 0.65 },
-    delivery:          { startPct: 0.60, endPct: 0.80 },
-    installation:      { startPct: 0.75, endPct: 0.95 },
-    closing:           { startPct: 0.90, endPct: 1.00 },
-    custom:            { startPct: 0.10, endPct: 0.30 },
-  };
+/** Compute 7 sequential phase bars for an item based on project start + default durations */
+function computeItemPhases(item: ProjectItem, projectStartDate: string): GanttRow['phases'] {
+  const phases: GanttRow['phases'] = [];
+  const phaseOrder: TaskMacroArea[] = ['planning', 'design_validation', 'procurement', 'production', 'delivery', 'installation', 'closing'];
+  const activeIdx = getActivePhaseIndex(item.lifecycle_status);
+  
+  let cursor = parseISO(projectStartDate);
+  
+  for (let i = 0; i < phaseOrder.length; i++) {
+    const phaseKey = phaseOrder[i];
+    const duration = PHASE_DURATIONS[phaseKey];
+    const phaseEnd = addWorkingDays(cursor, duration);
+    const style = ITEM_PHASE_STYLES[phaseKey];
+    
+    const isActive = i === activeIdx;
+    const isPast = i < activeIdx;
+    const isFuture = i > activeIdx;
+    
+    phases.push({
+      key: phaseKey,
+      label: style?.label || phaseKey,
+      color: style?.color || 'hsl(0,0%,65%)',
+      start: format(cursor, 'yyyy-MM-dd'),
+      end: format(phaseEnd, 'yyyy-MM-dd'),
+      isActive,
+      isPast,
+      isFuture,
+    });
+    
+    cursor = phaseEnd;
+  }
+  
+  return phases;
+}
 
-  const slot = phaseSlots[macroPhase] || phaseSlots.planning;
-  const start = addDays(projStart, Math.round(totalSpan * slot.startPct));
-  const end = addDays(projStart, Math.round(totalSpan * slot.endPct));
-
-  return {
-    startDate: format(start, 'yyyy-MM-dd'),
-    endDate: format(end, 'yyyy-MM-dd'),
-  };
+/** Check if an item is delayed: if today is past the expected end of the active phase */
+function isItemDelayed(phases: GanttRow['phases']): boolean {
+  if (!phases) return false;
+  const activePhase = phases.find((p: any) => p.isActive);
+  if (!activePhase || !activePhase.end) return false;
+  return isAfter(new Date(), parseISO(activePhase.end));
 }
 
 export function itemsToRows(items: ProjectItem[], projectStartDate?: string, projectEndDate?: string): GanttRow[] {
+  const pStart = projectStartDate || format(new Date(), 'yyyy-MM-dd');
+  
   return items
     .filter(item => {
-      // Only show active items and selected options (or items without parent)
       if (item.is_active === false) return false;
       if (item.lifecycle_status === 'cancelled' || item.lifecycle_status === 'on_hold') return false;
       if (item.parent_item_id && !item.is_selected_option) return false;
-      return true; // Show ALL active items, even without dates
+      return true;
     })
     .map(item => {
-      const phases: GanttRow['phases'] = [];
-      if (item.production_due_date)
-        phases.push({ key: 'production', label: ITEM_PHASE_STYLES.production.label, color: ITEM_PHASE_STYLES.production.color, start: item.production_due_date, end: item.delivery_date });
-      if (item.delivery_date)
-        phases.push({ key: 'transit', label: ITEM_PHASE_STYLES.transit.label, color: ITEM_PHASE_STYLES.transit.color, start: item.delivery_date, end: item.received_date || item.site_movement_date });
-      if (item.site_movement_date)
-        phases.push({ key: 'site', label: ITEM_PHASE_STYLES.site.label, color: ITEM_PHASE_STYLES.site.color, start: item.site_movement_date, end: item.installation_start_date });
-      if (item.installation_start_date)
-        phases.push({ key: 'install', label: ITEM_PHASE_STYLES.install.label, color: ITEM_PHASE_STYLES.install.color, start: item.installation_start_date, end: item.installed_date });
-
-      const allDates = [item.production_due_date, item.delivery_date, item.received_date, item.site_movement_date, item.installation_start_date, item.installed_date].filter(Boolean) as string[];
-      allDates.sort();
-
-      const hasDates = allDates.length > 0;
-      let startDate: string | null;
-      let endDate: string | null;
-
-      if (hasDates) {
-        startDate = allDates[0];
-        endDate = allDates[allDates.length - 1];
-      } else {
-        // Generate estimated dates so the item is visible on the Gantt
-        const estimated = estimateItemDates(item, projectStartDate, projectEndDate);
-        startDate = estimated.startDate;
-        endDate = estimated.endDate;
-        // Add a single placeholder phase bar for visibility
-        phases.push({
-          key: 'estimated',
-          label: 'Estimated',
-          color: 'hsl(var(--muted-foreground) / 0.4)',
-          start: estimated.startDate,
-          end: estimated.endDate,
-        });
-      }
-
-      // Group by workflow macro-phase
+      const phases = computeItemPhases(item, pStart);
+      const startDate = phases?.[0]?.start || null;
+      const endDate = phases?.[phases.length - 1]?.end || null;
       const macroPhase = getMacroPhase(item.lifecycle_status as any);
+      const delayed = isItemDelayed(phases);
 
       return {
         id: `item-${item.id}`,
@@ -116,6 +107,8 @@ export function itemsToRows(items: ProjectItem[], projectStartDate?: string, pro
         endDate,
         progress: calcItemProgress(item),
         phases,
+        itemId: item.id,
+        delayed,
       };
     });
 }
@@ -162,13 +155,10 @@ export function computeColumns(timelineStart: Date, timelineEnd: Date, totalDays
   return cols;
 }
 
-/** Compute month-level header row for the dual-row calendar */
 export function computeMonthColumns(timelineStart: Date, timelineEnd: Date, totalDays: number): TimelineMonthColumn[] {
   const cols: TimelineMonthColumn[] = [];
-  // Start from the first day of the month containing timelineStart
   let cursor = startOfMonth(timelineStart);
   if (isBefore(cursor, timelineStart)) {
-    // The first month column starts at timelineStart, not before
     const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
     const startDay = 0;
     const endDay = Math.min(differenceInDays(nextMonth, timelineStart), totalDays);
