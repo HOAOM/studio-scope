@@ -60,6 +60,11 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
+  // Drag-to-scroll state
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartX = useRef(0);
+  const panScrollLeft = useRef(0);
+
   // Filters
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -265,13 +270,29 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     scrollRef.current.scrollTo({ left: Math.max(0, todayPos - viewWidth / 2), behavior: 'smooth' });
   }, [todayPercent]);
 
+  // Drag-to-pan handlers
+  const handlePanStart = useCallback((e: React.MouseEvent) => {
+    if (dragging) return; // don't pan while dragging a bar
+    if ((e.target as HTMLElement).closest('button, [role="button"]')) return;
+    setIsPanning(true);
+    panStartX.current = e.clientX;
+    panScrollLeft.current = scrollRef.current?.scrollLeft || 0;
+  }, [dragging]);
+
+  const handlePanMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning || !scrollRef.current) return;
+    const dx = e.clientX - panStartX.current;
+    scrollRef.current.scrollLeft = panScrollLeft.current - dx;
+  }, [isPanning]);
+
+  const handlePanEnd = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
   return (
     <div
       ref={containerRef}
       className="bg-card rounded-xl border border-border/60 overflow-hidden"
-      onMouseMove={dragging ? handleDragMove : undefined}
-      onMouseUp={dragging ? handleDragEnd : undefined}
-      onMouseLeave={dragging ? handleDragEnd : undefined}
     >
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-border/40">
@@ -285,12 +306,16 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
         <div className="flex items-center gap-2">
           {/* Phase legend (compact) */}
           <div className="hidden xl:flex items-center gap-3 text-[10px] text-muted-foreground/60 mr-2 border-r border-border/30 pr-3">
-            {Object.entries(ITEM_PHASE_STYLES).map(([k, v]) => (
-              <span key={k} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2 rounded-sm" style={{ background: v.color }} />
-                <span>{v.label}</span>
-              </span>
-            ))}
+            {['planning', 'design_validation', 'procurement', 'production', 'delivery', 'installation', 'closing'].map(k => {
+              const v = ITEM_PHASE_STYLES[k];
+              if (!v) return null;
+              return (
+                <span key={k} className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2 rounded-sm" style={{ background: v.color }} />
+                  <span>{v.label}</span>
+                </span>
+              );
+            })}
           </div>
 
           {/* Filters dropdown */}
@@ -408,28 +433,36 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto" ref={scrollRef}>
-          <div style={{ minWidth: LEFT_PANEL_WIDTH + 700 }}>
+        <div
+          className={cn('overflow-x-auto', isPanning && 'cursor-grabbing', !isPanning && 'cursor-grab')}
+          ref={scrollRef}
+          onMouseDown={handlePanStart}
+          onMouseMove={(e) => { handlePanMove(e); if (dragging) handleDragMove(e); }}
+          onMouseUp={() => { handlePanEnd(); if (dragging) handleDragEnd(); }}
+          onMouseLeave={() => { handlePanEnd(); if (dragging) handleDragEnd(); }}
+          style={{ userSelect: isPanning ? 'none' : undefined }}
+        >
+          <div style={{ minWidth: LEFT_PANEL_WIDTH + 900 }}>
             {/* Column headers — dual row: months on top, weeks/days below */}
-            <div className="sticky top-0 z-20 bg-card border-b border-border/30">
+            <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border/50">
               {/* Month row */}
-              <div className="flex border-b border-border/20">
-                <div className="border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
-                <div className="flex-1 relative h-6">
+              <div className="flex border-b border-border/30">
+                <div className="border-r border-border/40 bg-muted/[0.04]" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
+                <div className="flex-1 relative h-7 bg-muted/[0.02]">
                   {monthColumns.map((col, i) => (
                     <div
                       key={i}
-                      className="absolute top-0 h-full flex items-center justify-center border-r border-border/20"
+                      className="absolute top-0 h-full flex items-center justify-center border-r border-border/25"
                       style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
                     >
-                      <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider truncate px-1">{col.label}</span>
+                      <span className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest truncate px-2">{col.label}</span>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Day/Week row + left panel labels */}
               <div className="flex">
-                <div className="flex items-center border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
+                <div className="flex items-center border-r border-border/40 bg-muted/[0.04]" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
                   <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] pl-10 w-auto flex-1">Task / Item</span>
                   <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[72px] px-1">Assignee</span>
                   <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.08em] w-[70px] px-1">Status</span>
@@ -440,13 +473,13 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
                     <div
                       key={i}
                       className={cn(
-                        'absolute top-0 h-full flex flex-col justify-center border-r border-border/[0.12] px-1',
-                        col.isWeekend && 'bg-muted/[0.06]'
+                        'absolute top-0 h-full flex flex-col justify-center border-r border-border/15 px-1',
+                        col.isWeekend && 'bg-muted/[0.08]'
                       )}
                       style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
                     >
-                      <span className="text-[9px] font-medium text-muted-foreground/50 truncate leading-tight">{col.label}</span>
-                      {col.sub && <span className="text-[7px] text-muted-foreground/30 leading-tight">{col.sub}</span>}
+                      <span className="text-[9px] font-semibold text-muted-foreground/50 truncate leading-tight">{col.label}</span>
+                      {col.sub && <span className="text-[7px] text-muted-foreground/35 leading-tight font-medium">{col.sub}</span>}
                     </div>
                   ))}
                 </div>

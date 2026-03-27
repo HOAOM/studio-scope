@@ -215,13 +215,22 @@ export const MACRO_PHASES: MacroPhase[] = [
   { key: 'closing',            label: 'Closing',               states: ['closed'] },
 ];
 
+/** Legacy status → macro-phase mapping */
+const LEGACY_PHASE_MAP: Record<string, TaskMacroArea> = {
+  draft: 'planning',
+  estimated: 'procurement',
+  approved: 'procurement',
+  ordered: 'procurement',
+  delivered: 'delivery',
+};
+
 /** Which macro-phase a lifecycle status belongs to */
 export function getMacroPhase(status: ItemLifecycleStatus | null): TaskMacroArea {
   if (!status) return 'planning';
   for (const mp of MACRO_PHASES) {
     if ((mp.states as string[]).includes(status)) return mp.key;
   }
-  return 'custom';
+  return LEGACY_PHASE_MAP[status] || 'planning';
 }
 
 // ────────────────────────────────────────────────
