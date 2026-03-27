@@ -45,9 +45,16 @@ export function GanttRowComponent({
         index % 2 === 0 ? 'bg-transparent' : 'bg-muted/[0.03]',
         isDraggingThis && 'bg-primary/[0.04]',
         isCriticalPath && 'bg-destructive/[0.03] border-l-2 border-l-destructive/40',
-        row.gateBlocked && 'opacity-60'
+        row.gateBlocked && 'opacity-60',
+        row.delayed && 'bg-destructive/[0.04]',
+        row.type === 'item' && 'cursor-pointer',
       )}
       style={{ height: ROW_HEIGHT }}
+      onDoubleClick={() => {
+        if (row.type === 'item' && row.itemId && onItemDoubleClick) {
+          onItemDoubleClick(row.itemId);
+        }
+      }}
     >
       {/* Left panel */}
       <div className="flex items-center border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
