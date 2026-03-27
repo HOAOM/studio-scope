@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -11,22 +11,15 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Wand2, Info } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useCreateTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
+import { TASK_TEMPLATES, ITEM_FIELD_LABELS } from '@/lib/taskTemplates';
+import { getMacroPhase } from '@/lib/workflow';
 import { toast } from 'sonner';
-
-const MACRO_AREAS = [
-  { value: 'planning', label: 'Planning & Prep' },
-  { value: 'design_validation', label: 'Design Validation' },
-  { value: 'procurement', label: 'Procurement' },
-  { value: 'production', label: 'Production' },
-  { value: 'delivery', label: 'Delivery' },
-  { value: 'installation', label: 'Installation' },
-  { value: 'closing', label: 'Closing' },
-  { value: 'custom', label: 'Custom' },
-];
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const STATUSES = [
   { value: 'todo', label: 'To Do' },
@@ -42,7 +35,7 @@ interface TaskFormDialogProps {
   task?: ProjectTask | null;
   members?: { id: string; display_name: string | null; email: string | null }[];
   tasks?: ProjectTask[];
-  items?: { id: string; item_code: string | null; description: string }[];
+  items?: { id: string; item_code: string | null; description: string; lifecycle_status?: string | null }[];
 }
 
 export function TaskFormDialog({ open, onOpenChange, projectId, task, members = [], tasks = [], items = [] }: TaskFormDialogProps) {
@@ -51,37 +44,59 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [macroArea, setMacroArea] = useState('custom');
   const [status, setStatus] = useState('todo');
   const [assigneeId, setAssigneeId] = useState<string>('none');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [dependsOn, setDependsOn] = useState<string>('none');
   const [linkedItemId, setLinkedItemId] = useState<string>('none');
+  const [completionFields, setCompletionFields] = useState<string[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('none');
+
+  // Derive macro_area from linked item
+  const derivedMacroArea = useMemo(() => {
+    if (linkedItemId === 'none') return 'planning';
+    const item = items.find(i => i.id === linkedItemId);
+    if (!item?.lifecycle_status) return 'planning';
+    return getMacroPhase(item.lifecycle_status as any) || 'planning';
+  }, [linkedItemId, items]);
 
   useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDescription(task.description || '');
-      setMacroArea(task.macro_area);
       setStatus(task.status);
       setAssigneeId(task.assignee_id || 'none');
       setStartDate(task.start_date ? parseISO(task.start_date) : undefined);
       setEndDate(task.end_date ? parseISO(task.end_date) : undefined);
       setDependsOn((task as any).depends_on || 'none');
       setLinkedItemId(task.linked_item_id || 'none');
+      setCompletionFields((task as any).completion_fields || []);
+      setSelectedTemplate('none');
     } else {
       setTitle('');
       setDescription('');
-      setMacroArea('custom');
       setStatus('todo');
       setAssigneeId('none');
       setStartDate(undefined);
       setEndDate(undefined);
       setDependsOn('none');
       setLinkedItemId('none');
+      setCompletionFields([]);
+      setSelectedTemplate('none');
     }
   }, [task, open]);
+
+  const handleTemplateSelect = (templateKey: string) => {
+    setSelectedTemplate(templateKey);
+    if (templateKey === 'none') return;
+    const tpl = TASK_TEMPLATES.find(t => t.key === templateKey);
+    if (tpl) {
+      setTitle(tpl.label);
+      setDescription(tpl.description);
+      setCompletionFields(tpl.completionFields);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) { toast.error('Title is required'); return; }
@@ -89,13 +104,14 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
     const payload = {
       title: title.trim(),
       description: description.trim() || null,
-      macro_area: macroArea,
+      macro_area: derivedMacroArea,
       status,
       assignee_id: assigneeId === 'none' ? null : assigneeId,
       start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
       end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
       depends_on: dependsOn === 'none' ? null : dependsOn,
       linked_item_id: linkedItemId === 'none' ? null : linkedItemId,
+      completion_fields: completionFields.length > 0 ? completionFields : null,
     };
     try {
       if (task) {
@@ -111,30 +127,52 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
     }
   };
 
+  // Has completion fields = auto-completing task, disable manual status change to 'done'
+  const isAutoComplete = completionFields.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-lg">
+      <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{task ? 'Edit Task' : 'New Task'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Linked Item */}
-          {items.length > 0 && (
+          {/* Linked Item (required) */}
+          <div>
+            <Label>Linked Item <span className="text-destructive">*</span></Label>
+            <Select value={linkedItemId} onValueChange={setLinkedItemId}>
+              <SelectTrigger><SelectValue placeholder="Select item..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select an item...</SelectItem>
+                {items.map(item => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.item_code ? `${item.item_code} — ` : ''}{item.description.slice(0, 50)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Template quick-select */}
+          {!task && (
             <div>
-              <Label>Linked Item</Label>
-              <Select value={linkedItemId} onValueChange={setLinkedItemId}>
-                <SelectTrigger><SelectValue placeholder="Select item..." /></SelectTrigger>
+              <Label className="flex items-center gap-1.5">
+                <Wand2 className="w-3.5 h-3.5 text-primary" />
+                Task Template
+              </Label>
+              <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
+                <SelectTrigger><SelectValue placeholder="Choose a template..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No linked item</SelectItem>
-                  {items.map(item => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.item_code ? `${item.item_code} — ` : ''}{item.description.slice(0, 50)}
+                  <SelectItem value="none">Custom task (manual)</SelectItem>
+                  {TASK_TEMPLATES.map(tpl => (
+                    <SelectItem key={tpl.key} value={tpl.key}>
+                      {tpl.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground mt-1">Link this task to a specific BOQ item</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Templates auto-complete when the required fields are filled on the item</p>
             </div>
           )}
 
@@ -147,24 +185,58 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description..." rows={2} />
           </div>
 
+          {/* Auto-completion fields display */}
+          {isAutoComplete && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary" />
+                <span className="text-[11px] font-medium text-primary">Auto-completing task</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                This task will automatically mark as "Done" when the following fields are filled on the item:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {completionFields.map(f => (
+                  <Badge key={f} variant="secondary" className="text-[10px] h-5">
+                    {ITEM_FIELD_LABELS[f] || f}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Macro Area</Label>
-              <Select value={macroArea} onValueChange={setMacroArea}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MACRO_AREAS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Status</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Select 
+                        value={status} 
+                        onValueChange={setStatus}
+                        disabled={isAutoComplete}
+                      >
+                        <SelectTrigger className={cn(isAutoComplete && 'opacity-50')}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {STATUSES.filter(s => !isAutoComplete || s.value !== 'done').map(s => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TooltipTrigger>
+                  {isAutoComplete && (
+                    <TooltipContent>
+                      <p className="text-xs">Status is controlled automatically by field completion</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div>
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Macro Phase</Label>
+              <Input value={derivedMacroArea.replace('_', ' ')} disabled className="capitalize text-muted-foreground opacity-60" />
             </div>
           </div>
 
