@@ -1,2 +1,0 @@
--- This file documents the trigger logic for reference only.
--- The actual migration is applied via the migration tool.
