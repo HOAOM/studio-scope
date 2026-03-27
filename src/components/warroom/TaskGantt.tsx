@@ -306,12 +306,16 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
         <div className="flex items-center gap-2">
           {/* Phase legend (compact) */}
           <div className="hidden xl:flex items-center gap-3 text-[10px] text-muted-foreground/60 mr-2 border-r border-border/30 pr-3">
-            {Object.entries(ITEM_PHASE_STYLES).map(([k, v]) => (
-              <span key={k} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2 rounded-sm" style={{ background: v.color }} />
-                <span>{v.label}</span>
-              </span>
-            ))}
+            {['planning', 'design_validation', 'procurement', 'production', 'delivery', 'installation', 'closing'].map(k => {
+              const v = ITEM_PHASE_STYLES[k];
+              if (!v) return null;
+              return (
+                <span key={k} className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2 rounded-sm" style={{ background: v.color }} />
+                  <span>{v.label}</span>
+                </span>
+              );
+            })}
           </div>
 
           {/* Filters dropdown */}
