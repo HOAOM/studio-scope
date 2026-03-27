@@ -70,6 +70,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setEndDate(task.end_date ? parseISO(task.end_date) : undefined);
       setDependsOn((task as any).depends_on || 'none');
       setLinkedItemId(task.linked_item_id || 'none');
+    } else {
       setTitle('');
       setDescription('');
       setMacroArea('custom');
@@ -78,6 +79,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setStartDate(undefined);
       setEndDate(undefined);
       setDependsOn('none');
+      setLinkedItemId('none');
     }
   }, [task, open]);
 
