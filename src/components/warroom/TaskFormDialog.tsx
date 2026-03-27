@@ -94,8 +94,8 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
       end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
       depends_on: dependsOn === 'none' ? null : dependsOn,
+      linked_item_id: linkedItemId === 'none' ? null : linkedItemId,
     };
-    try {
       if (task) {
         await updateTask.mutateAsync({ id: task.id, projectId, ...payload });
         toast.success('Task updated');
