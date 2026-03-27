@@ -486,8 +486,17 @@ export default function ProjectDetail() {
                   email: m.email,
                   avatar_url: m.avatar_url,
                 }))}
+                onItemClick={(itemId) => {
+                  const item = items.find(i => i.id === itemId);
+                  if (item) { setDetailItem(item); setDetailModalOpen(true); }
+                }}
               />
             )}
+          </TabsContent>
+
+          {/* APPROVAL GATES TAB */}
+          <TabsContent value="approval" className="space-y-6">
+            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} onItemClick={(item) => { setDetailItem(item); setDetailModalOpen(true); }} />
           </TabsContent>
 
           {/* ITEMS TAB */}
