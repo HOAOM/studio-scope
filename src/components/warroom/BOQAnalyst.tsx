@@ -321,6 +321,14 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     const type = itemTypes.find(t => t.id === form.itemTypeId);
     const category = type ? itemTypeToCategory(type.code) : 'ffe';
 
+    // Serialize multiple finishes: primary goes to finish_material/finish_color/finish_notes, additional go to finish_notes as structured text
+    const primaryFinish = finishes[0] || { material: '', color: '', notes: '' };
+    const additionalFinishes = finishes.slice(1).filter(f => f.material || f.color || f.notes);
+    const finishNotesLines = [
+      primaryFinish.notes,
+      ...additionalFinishes.map((f, i) => `[Finish ${i + 2}] ${[f.material, f.color, f.notes].filter(Boolean).join(' | ')}`)
+    ].filter(Boolean).join('\n');
+
     const payload: any = {
       project_id: projectId,
       floor_id: form.floorId,
@@ -332,7 +340,9 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       area: form.zone || form.area || 'General',
       description: form.description || 'Item',
       supplier: form.brand || undefined,
-      finish_material: form.finishing || undefined,
+      finish_material: primaryFinish.material || form.finishing || undefined,
+      finish_color: primaryFinish.color || undefined,
+      finish_notes: finishNotesLines || undefined,
       dimensions: form.size || undefined,
       production_time: form.productionTime || undefined,
       reference_image_url: form.refImage || undefined,
@@ -360,6 +370,25 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
   const handleEdit = (item: ProjectItem) => {
     setEditingItemId(item.id);
+    // Parse finishes from item
+    const parsedFinishes: FinishEntry[] = [{ material: item.finish_material || '', color: item.finish_color || '', notes: '' }];
+    // Parse additional finishes from finish_notes
+    if (item.finish_notes) {
+      const lines = item.finish_notes.split('\n');
+      const additionalLines: string[] = [];
+      const primaryNotes: string[] = [];
+      lines.forEach(line => {
+        const match = line.match(/^\[Finish \d+\]\s*(.*)$/);
+        if (match) {
+          const parts = match[1].split(' | ');
+          parsedFinishes.push({ material: parts[0] || '', color: parts[1] || '', notes: parts[2] || '' });
+        } else {
+          primaryNotes.push(line);
+        }
+      });
+      parsedFinishes[0].notes = primaryNotes.join('\n');
+    }
+    setFinishes(parsedFinishes);
     setForm({
       floorId: item.floor_id || '',
       roomId: item.room_id || '',
@@ -382,7 +411,6 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       unitRate: item.unit_cost?.toString() || '',
       notes: item.notes || '',
     });
-    // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
