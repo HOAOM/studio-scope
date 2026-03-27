@@ -109,6 +109,12 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: 'notes', label: 'Notes' },
 ];
 
+interface FinishEntry {
+  material: string;
+  color: string;
+  notes: string;
+}
+
 interface BOQAnalystProps {
   projectId: string;
   items: ProjectItem[];
