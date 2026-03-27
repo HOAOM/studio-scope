@@ -308,6 +308,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     } else {
       setForm({ ...EMPTY_FORM });
     }
+    setFinishes([{ material: '', color: '', notes: '' }]);
     setEditingItemId(null);
   };
 
