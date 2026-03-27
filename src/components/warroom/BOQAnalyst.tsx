@@ -155,6 +155,7 @@ type SortField = 'code' | 'floor' | 'room' | 'zone' | 'area' | 'brand' | 'qty' |
 
 export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
   const [form, setForm] = useState<FormData>({ ...EMPTY_FORM });
+  const [finishes, setFinishes] = useState<FinishEntry[]>([{ material: '', color: '', notes: '' }]);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField | null>(null);
