@@ -1,12 +1,14 @@
 /**
  * ItemDetailModal — Full-screen overlay for viewing/editing an item
- * Role-based field visibility, action buttons for state transitions, revision history, quotations
+ * Role-based field visibility, edit mode with Save/Cancel, action buttons for state transitions, revision history, quotations, item options
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,9 +30,9 @@ import {
   type ItemLifecycleStatus,
 } from '@/lib/workflow';
 import {
-  CheckCircle2, XCircle, Clock, ArrowRight, Shield, Lock,
+  CheckCircle2, XCircle, Clock, ArrowRight, Shield, Lock, Pencil, Save, X,
   FileText, Package, CreditCard, Truck, Wrench, History,
-  Image as ImageIcon, ExternalLink, ReceiptText,
+  Image as ImageIcon, ExternalLink, ReceiptText, Layers,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { RejectDialog } from './RejectDialog';
@@ -56,9 +58,34 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
   const { user } = useAuth();
   const { roles, canSeeCosts } = useUserRole();
   const updateItem = useUpdateProjectItem();
-  const [rejectReason, setRejectReason] = useState('');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState<Partial<ProjectItem>>({});
   const typedRoles = roles as AppRole[];
+
+  // Reset edit mode when item changes or modal closes
+  useEffect(() => {
+    if (!open) {
+      setEditMode(false);
+      setEditData({});
+    }
+  }, [open, item?.id]);
+
+  // Fetch child options for this item
+  const { data: childOptions = [] } = useQuery({
+    queryKey: ['item-options', item?.id],
+    queryFn: async () => {
+      if (!item) return [];
+      const { data, error } = await supabase
+        .from('project_items')
+        .select('*')
+        .eq('parent_item_id', item.id)
+        .order('created_at', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!item && open,
+  });
 
   // Fetch audit log for this item
   const { data: auditLog = [] } = useQuery({
@@ -91,15 +118,80 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
   const handleTransition = useCallback(async (toStatus: ItemLifecycleStatus) => {
     if (!item) return;
     try {
-      await updateItem.mutateAsync({
-        id: item.id,
-        lifecycle_status: toStatus as any,
-      });
+      await updateItem.mutateAsync({ id: item.id, lifecycle_status: toStatus as any });
       toast.success(`Status changed to ${LIFECYCLE_LABELS[toStatus]}`);
     } catch {
       toast.error('Failed to update status');
     }
   }, [item, updateItem]);
+
+  const handleEnterEdit = () => {
+    if (!item) return;
+    setEditData({
+      description: item.description,
+      area: item.area,
+      supplier: item.supplier,
+      dimensions: item.dimensions,
+      finish_material: item.finish_material,
+      finish_color: item.finish_color,
+      finish_notes: item.finish_notes,
+      production_time: item.production_time,
+      notes: item.notes,
+      quantity: item.quantity,
+      unit_cost: item.unit_cost,
+      selling_price: item.selling_price,
+      margin_percentage: item.margin_percentage,
+      delivery_cost: item.delivery_cost,
+      installation_cost: item.installation_cost,
+      insurance_cost: item.insurance_cost,
+      duty_cost: item.duty_cost,
+      custom_cost: item.custom_cost,
+      reference_image_url: item.reference_image_url,
+      technical_drawing_url: item.technical_drawing_url,
+      company_product_url: item.company_product_url,
+      production_due_date: item.production_due_date,
+      delivery_date: item.delivery_date,
+      site_movement_date: item.site_movement_date,
+      installation_start_date: item.installation_start_date,
+      po_number: item.po_number,
+      quotation_ref: item.quotation_ref,
+      proforma_url: item.proforma_url,
+    });
+    setEditMode(true);
+  };
+
+  const handleSave = async () => {
+    if (!item) return;
+    try {
+      await updateItem.mutateAsync({ id: item.id, ...editData });
+      toast.success('Item updated successfully');
+      setEditMode(false);
+      setEditData({});
+    } catch {
+      toast.error('Failed to update item');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setEditData({});
+  };
+
+  const handleSelectOption = async (option: ProjectItem) => {
+    if (!item) return;
+    try {
+      // Mark this option as selected, deselect others
+      for (const child of childOptions) {
+        await updateItem.mutateAsync({
+          id: child.id,
+          is_selected_option: child.id === option.id,
+        });
+      }
+      toast.success(`Selected: ${option.description}`);
+    } catch {
+      toast.error('Failed to select option');
+    }
+  };
 
   if (!item) return null;
 
@@ -112,17 +204,72 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
   const canSeeLogistics = canSeeFieldGroup('logistics', typedRoles);
   const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
 
-  const renderField = (label: string, value: string | number | null | undefined, locked = false) => (
-    <div className="flex justify-between items-start py-1.5">
-      <span className="text-sm text-muted-foreground flex items-center gap-1">
-        {locked && <Lock className="w-3 h-3" />}
-        {label}
-      </span>
-      <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">
-        {value != null && value !== '' ? String(value) : '—'}
-      </span>
-    </div>
-  );
+  const isLocked = (field: string) => lockedFields.includes(field);
+  const val = (field: keyof ProjectItem) => editMode ? (editData as any)[field] : (item as any)[field];
+  const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
+
+  const renderField = (label: string, field: keyof ProjectItem, opts?: { locked?: boolean; type?: 'text' | 'number' | 'date' | 'textarea' }) => {
+    const locked = opts?.locked ?? isLocked(field);
+    const fieldType = opts?.type ?? 'text';
+    const value = val(field);
+
+    if (editMode && !locked) {
+      return (
+        <div className="flex flex-col gap-1 py-1.5">
+          <Label className="text-xs text-muted-foreground">{label}</Label>
+          {fieldType === 'textarea' ? (
+            <Textarea
+              value={value ?? ''}
+              onChange={e => setVal(field, e.target.value)}
+              className="text-sm min-h-[60px]"
+            />
+          ) : (
+            <Input
+              type={fieldType}
+              value={value ?? ''}
+              onChange={e => setVal(field, fieldType === 'number' ? (e.target.value ? parseFloat(e.target.value) : null) : e.target.value)}
+              className="text-sm h-8"
+            />
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex justify-between items-start py-1.5">
+        <span className="text-sm text-muted-foreground flex items-center gap-1">
+          {locked && <Lock className="w-3 h-3" />}
+          {label}
+        </span>
+        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">
+          {value != null && value !== '' ? String(value) : '—'}
+        </span>
+      </div>
+    );
+  };
+
+  const renderLink = (label: string, field: keyof ProjectItem) => {
+    const value = val(field);
+    if (editMode) {
+      return (
+        <div className="flex flex-col gap-1 py-1.5">
+          <Label className="text-xs text-muted-foreground">{label}</Label>
+          <Input
+            value={value ?? ''}
+            onChange={e => setVal(field, e.target.value)}
+            placeholder="Paste URL or file path..."
+            className="text-sm h-8"
+          />
+        </div>
+      );
+    }
+    if (!value) return null;
+    return (
+      <a href={value} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline py-1">
+        <ExternalLink className="w-3 h-3" /> {label}
+      </a>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,12 +292,34 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
                 <span className="text-xs text-muted-foreground">{item.category}</span>
                 <span className="text-xs text-muted-foreground">•</span>
                 <span className="text-xs text-muted-foreground">{item.area}</span>
+                {childOptions.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Layers className="w-3 h-3 mr-1" />{childOptions.length} options
+                  </Badge>
+                )}
               </div>
+            </div>
+            {/* Edit / Save / Cancel buttons */}
+            <div className="flex items-center gap-2">
+              {editMode ? (
+                <>
+                  <Button size="sm" onClick={handleSave} disabled={updateItem.isPending}>
+                    <Save className="w-3 h-3 mr-1" /> Save
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                    <X className="w-3 h-3 mr-1" /> Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" variant="outline" onClick={handleEnterEdit}>
+                  <Pencil className="w-3 h-3 mr-1" /> Edit
+                </Button>
+              )}
             </div>
           </div>
 
           {/* Action Buttons */}
-          {availableTransitions.length > 0 && (
+          {!editMode && availableTransitions.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {availableTransitions
                 .filter(t => t.to !== 'on_hold' && t.to !== 'cancelled')
@@ -186,6 +355,7 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
               {canSeeLogistics && <TabsTrigger value="logistics"><Truck className="w-3 h-3 mr-1" />Logistics</TabsTrigger>}
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
+              {childOptions.length > 0 && <TabsTrigger value="options"><Layers className="w-3 h-3 mr-1" />Options</TabsTrigger>}
               <TabsTrigger value="history"><History className="w-3 h-3 mr-1" />History</TabsTrigger>
             </TabsList>
 
@@ -194,30 +364,37 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <h4 className="text-sm font-semibold text-foreground mb-2">General</h4>
-                  {renderField('Item Code', item.item_code)}
-                  {renderField('Category', item.category)}
-                  {renderField('Area', item.area, lockedFields.includes('area'))}
-                  {renderField('Description', item.description, lockedFields.includes('description'))}
-                  {renderField('Revision', item.revision_number ? `R${item.revision_number}` : 'R1')}
-                  {renderField('BOQ Included', item.boq_included ? 'Yes' : 'No')}
-                  {renderField('Approval', item.approval_status)}
+                  {renderField('Item Code', 'item_code', { locked: true })}
+                  {renderField('Category', 'category', { locked: true })}
+                  {renderField('Area', 'area')}
+                  {renderField('Description', 'description')}
+                  {renderField('Revision', 'revision_number', { locked: true })}
+                  {renderField('BOQ Included', 'boq_included', { locked: true })}
+                  {renderField('Approval', 'approval_status', { locked: true })}
                 </div>
                 <div className="space-y-1">
                   <h4 className="text-sm font-semibold text-foreground mb-2">Location</h4>
-                  {renderField('Apartment', item.apartment_number)}
-                  {renderField('Room Number', item.room_number)}
-                  {renderField('Dimensions', item.dimensions, lockedFields.includes('dimensions'))}
-                  {canSeeCosts && renderField('Quantity', item.quantity)}
-                  {canSeeCosts && renderField('Unit Cost', item.unit_cost != null ? `${item.unit_cost.toFixed(2)}` : null)}
-                  {canSeeCosts && renderField('Selling Price', item.selling_price != null ? `${item.selling_price.toFixed(2)}` : null)}
+                  {renderField('Apartment', 'apartment_number')}
+                  {renderField('Room Number', 'room_number', { locked: true })}
+                  {renderField('Dimensions', 'dimensions')}
+                  {canSeeCosts && renderField('Quantity', 'quantity', { type: 'number' })}
+                  {canSeeCosts && renderField('Unit Cost', 'unit_cost', { type: 'number' })}
+                  {canSeeCosts && renderField('Selling Price', 'selling_price', { type: 'number' })}
                 </div>
               </div>
-              {item.notes && (
-                <div className="pt-3 border-t border-border">
-                  <h4 className="text-sm font-semibold text-foreground mb-1">Notes</h4>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.notes}</p>
-                </div>
-              )}
+              <div className="pt-3 border-t border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-1">Notes</h4>
+                {editMode ? (
+                  <Textarea
+                    value={editData.notes ?? item.notes ?? ''}
+                    onChange={e => setVal('notes', e.target.value)}
+                    className="text-sm min-h-[60px]"
+                    placeholder="Add notes..."
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.notes || '—'}</p>
+                )}
+              </div>
             </TabsContent>
 
             {/* DESIGN TAB */}
@@ -226,28 +403,20 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Finishes</h4>
-                    {renderField('Material', item.finish_material, lockedFields.includes('finish_material'))}
-                    {renderField('Color', item.finish_color, lockedFields.includes('finish_color'))}
-                    {renderField('Notes', item.finish_notes, lockedFields.includes('finish_notes'))}
-                    {renderField('Production Time', item.production_time)}
+                    {renderField('Material', 'finish_material')}
+                    {renderField('Color', 'finish_color')}
+                    {renderField('Finish Notes', 'finish_notes', { type: 'textarea' })}
+                    {renderField('Production Time', 'production_time')}
                   </div>
                   <div className="space-y-2">
                     <h4 className="text-sm font-semibold text-foreground mb-2">References</h4>
-                    {item.reference_image_url && (
-                      <div>
-                        <span className="text-xs text-muted-foreground">Reference Image</span>
-                        <img src={item.reference_image_url} alt="Reference" className="w-full max-h-40 object-cover rounded-lg border border-border mt-1" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    {renderLink('Reference Image', 'reference_image_url')}
+                    {renderLink('Technical Drawing', 'technical_drawing_url')}
+                    {renderLink('Company Product', 'company_product_url')}
+                    {!editMode && item.reference_image_url && (
+                      <div className="mt-2">
+                        <img src={item.reference_image_url} alt="Reference" className="w-full max-h-40 object-cover rounded-lg border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       </div>
-                    )}
-                    {item.technical_drawing_url && (
-                      <a href={item.technical_drawing_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                        <ExternalLink className="w-3 h-3" /> Technical Drawing
-                      </a>
-                    )}
-                    {item.company_product_url && (
-                      <a href={item.company_product_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                        <ExternalLink className="w-3 h-3" /> Company Product
-                      </a>
                     )}
                   </div>
                 </div>
@@ -260,16 +429,18 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Supplier & PO</h4>
-                    {renderField('Supplier', item.supplier, lockedFields.includes('supplier'))}
-                    {renderField('PO Reference', item.purchase_order_ref)}
-                    {renderField('Purchased', item.purchased ? 'Yes' : 'No')}
-                    {renderField('Production Due', item.production_due_date)}
+                    {renderField('Supplier', 'supplier')}
+                    {renderField('PO Number', 'po_number')}
+                    {renderField('Quotation Ref', 'quotation_ref')}
+                    {renderLink('Proforma', 'proforma_url')}
+                    {renderField('Production Due', 'production_due_date', { type: 'date' })}
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
-                    {renderField('Lifecycle', statusLabel)}
-                    {renderField('Received', item.received ? 'Yes' : 'No')}
-                    {renderField('Received Date', item.received_date)}
+                    {renderField('Lifecycle', 'lifecycle_status', { locked: true })}
+                    {renderField('Purchased', 'purchased', { locked: true })}
+                    {renderField('Received', 'received', { locked: true })}
+                    {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                 </div>
               </TabsContent>
@@ -281,25 +452,31 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
                 <QuotationsTab itemId={item.id} canEdit={canSeeProcurement} />
               </TabsContent>
             )}
+
             {/* FINANCE TAB */}
             {(canSeePayment || canSeeCosts) && (
               <TabsContent value="finance" className="space-y-4">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Costs</h4>
-                    {renderField('Unit Cost', item.unit_cost != null ? item.unit_cost.toFixed(2) : null, lockedFields.includes('unit_cost'))}
-                    {renderField('Quantity', item.quantity, lockedFields.includes('quantity'))}
-                    {renderField('Delivery Cost', item.delivery_cost != null ? item.delivery_cost.toFixed(2) : null)}
-                    {renderField('Installation Cost', item.installation_cost != null ? item.installation_cost.toFixed(2) : null)}
-                    {renderField('Insurance', item.insurance_cost != null ? item.insurance_cost.toFixed(2) : null)}
-                    {renderField('Duty', item.duty_cost != null ? item.duty_cost.toFixed(2) : null)}
-                    {renderField('Custom Cost', item.custom_cost != null ? item.custom_cost.toFixed(2) : null)}
+                    {renderField('Unit Cost', 'unit_cost', { type: 'number' })}
+                    {renderField('Quantity', 'quantity', { type: 'number' })}
+                    {renderField('Delivery Cost', 'delivery_cost', { type: 'number' })}
+                    {renderField('Installation Cost', 'installation_cost', { type: 'number' })}
+                    {renderField('Insurance', 'insurance_cost', { type: 'number' })}
+                    {renderField('Duty', 'duty_cost', { type: 'number' })}
+                    {renderField('Custom Cost', 'custom_cost', { type: 'number' })}
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Pricing</h4>
-                    {renderField('Margin %', item.margin_percentage != null ? `${item.margin_percentage}%` : null)}
-                    {renderField('Selling Price', item.selling_price != null ? item.selling_price.toFixed(2) : null, lockedFields.includes('selling_price'))}
-                    {renderField('Total', item.unit_cost && item.quantity ? (item.unit_cost * item.quantity).toFixed(2) : null)}
+                    {renderField('Margin %', 'margin_percentage', { type: 'number' })}
+                    {renderField('Selling Price', 'selling_price', { type: 'number' })}
+                    <div className="flex justify-between items-start py-1.5">
+                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="text-sm font-bold text-foreground">
+                        {item.unit_cost && item.quantity ? (item.unit_cost * item.quantity).toFixed(2) : '—'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -311,16 +488,15 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Dates</h4>
-                    {renderField('Production Due', item.production_due_date)}
-                    {renderField('Delivery Date', item.delivery_date)}
-                    {renderField('Site Movement', item.site_movement_date)}
-                    {renderField('Received Date', item.received_date)}
+                    {renderField('Production Due', 'production_due_date', { type: 'date' })}
+                    {renderField('Delivery Date', 'delivery_date', { type: 'date' })}
+                    {renderField('Site Movement', 'site_movement_date', { type: 'date' })}
+                    {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
-                    {renderField('Purchased', item.purchased ? 'Yes' : 'No')}
-                    {renderField('Received', item.received ? 'Yes' : 'No')}
-                    {renderField('Delivered to Site', item.lifecycle_status === 'delivered_to_site' || item.lifecycle_status === 'installation_planned' || item.lifecycle_status === 'installed' || item.lifecycle_status === 'snagging' || item.lifecycle_status === 'closed' ? 'Yes' : 'No')}
+                    {renderField('Purchased', 'purchased', { locked: true })}
+                    {renderField('Received', 'received', { locked: true })}
                   </div>
                 </div>
               </TabsContent>
@@ -332,10 +508,60 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Installation</h4>
-                    {renderField('Installation Start', item.installation_start_date)}
-                    {renderField('Installed', item.installed ? 'Yes' : 'No')}
-                    {renderField('Installed Date', item.installed_date)}
+                    {renderField('Installation Start', 'installation_start_date', { type: 'date' })}
+                    {renderField('Installed', 'installed', { locked: true })}
+                    {renderField('Installed Date', 'installed_date', { type: 'date' })}
                   </div>
+                </div>
+              </TabsContent>
+            )}
+
+            {/* OPTIONS TAB */}
+            {childOptions.length > 0 && (
+              <TabsContent value="options" className="space-y-4">
+                <h4 className="text-sm font-semibold text-foreground">Item Options ({childOptions.length})</h4>
+                <p className="text-xs text-muted-foreground">Select the option the client has chosen. Only the selected option will appear in the Gantt and advance through the workflow.</p>
+                <div className="grid gap-3">
+                  {childOptions.map((opt, i) => (
+                    <div
+                      key={opt.id}
+                      className={cn(
+                        'rounded-lg border p-4 transition-all',
+                        opt.is_selected_option
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                          : 'border-border bg-card hover:border-muted-foreground/30'
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground">Option {i + 1}</span>
+                            {opt.is_selected_option && (
+                              <Badge className="text-xs bg-primary/10 text-primary border-primary/20">
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> Selected
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-foreground mt-1">{opt.description}</p>
+                          <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
+                            {opt.supplier && <span>Supplier: <strong className="text-foreground">{opt.supplier}</strong></span>}
+                            {opt.finish_material && <span>Material: <strong className="text-foreground">{opt.finish_material}</strong></span>}
+                            {opt.finish_color && <span>Color: <strong className="text-foreground">{opt.finish_color}</strong></span>}
+                            {opt.dimensions && <span>Size: <strong className="text-foreground">{opt.dimensions}</strong></span>}
+                            {canSeeCosts && opt.unit_cost != null && <span>Cost: <strong className="text-foreground font-mono">{opt.unit_cost.toFixed(2)}</strong></span>}
+                          </div>
+                          {opt.reference_image_url && (
+                            <img src={opt.reference_image_url} alt="Option" className="mt-2 h-20 w-auto object-cover rounded border border-border" />
+                          )}
+                        </div>
+                        {!opt.is_selected_option && (
+                          <Button size="sm" variant="outline" onClick={() => handleSelectOption(opt)}>
+                            Select
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </TabsContent>
             )}
@@ -374,7 +600,16 @@ export function ItemDetailModal({ open, onOpenChange, item, projectId }: ItemDet
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-border flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          {editMode ? (
+            <>
+              <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+              <Button onClick={handleSave} disabled={updateItem.isPending}>
+                <Save className="w-4 h-4 mr-1" /> Save Changes
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
