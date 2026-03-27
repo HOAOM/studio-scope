@@ -28,14 +28,43 @@ export function calcItemProgress(item: ProjectItem): number {
   return Math.round((stages.filter(Boolean).length / stages.length) * 100);
 }
 
-export function itemsToRows(items: ProjectItem[]): GanttRow[] {
+/** Estimate default start/end dates for items without any dates, based on lifecycle phase and project timeline */
+function estimateItemDates(item: ProjectItem, projectStartDate?: string, projectEndDate?: string): { startDate: string; endDate: string } {
+  const projStart = projectStartDate ? parseISO(projectStartDate) : new Date();
+  const projEnd = projectEndDate ? parseISO(projectEndDate) : addDays(projStart, 180);
+  const totalSpan = differenceInDays(projEnd, projStart);
+
+  const macroPhase = getMacroPhase(item.lifecycle_status as any);
+  // Map each macro-phase to a proportional slice of the project timeline
+  const phaseSlots: Record<string, { startPct: number; endPct: number }> = {
+    planning:          { startPct: 0,    endPct: 0.10 },
+    design_validation: { startPct: 0.05, endPct: 0.25 },
+    procurement:       { startPct: 0.20, endPct: 0.45 },
+    production:        { startPct: 0.40, endPct: 0.65 },
+    delivery:          { startPct: 0.60, endPct: 0.80 },
+    installation:      { startPct: 0.75, endPct: 0.95 },
+    closing:           { startPct: 0.90, endPct: 1.00 },
+    custom:            { startPct: 0.10, endPct: 0.30 },
+  };
+
+  const slot = phaseSlots[macroPhase] || phaseSlots.planning;
+  const start = addDays(projStart, Math.round(totalSpan * slot.startPct));
+  const end = addDays(projStart, Math.round(totalSpan * slot.endPct));
+
+  return {
+    startDate: format(start, 'yyyy-MM-dd'),
+    endDate: format(end, 'yyyy-MM-dd'),
+  };
+}
+
+export function itemsToRows(items: ProjectItem[], projectStartDate?: string, projectEndDate?: string): GanttRow[] {
   return items
     .filter(item => {
       // Only show active items and selected options (or items without parent)
       if (item.is_active === false) return false;
       if (item.lifecycle_status === 'cancelled' || item.lifecycle_status === 'on_hold') return false;
       if (item.parent_item_id && !item.is_selected_option) return false;
-      return item.production_due_date || item.delivery_date || item.site_movement_date || item.installation_start_date || item.installed_date;
+      return true; // Show ALL active items, even without dates
     })
     .map(item => {
       const phases: GanttRow['phases'] = [];
@@ -51,7 +80,29 @@ export function itemsToRows(items: ProjectItem[]): GanttRow[] {
       const allDates = [item.production_due_date, item.delivery_date, item.received_date, item.site_movement_date, item.installation_start_date, item.installed_date].filter(Boolean) as string[];
       allDates.sort();
 
-      // Group by workflow macro-phase instead of BOQ category
+      const hasDates = allDates.length > 0;
+      let startDate: string | null;
+      let endDate: string | null;
+
+      if (hasDates) {
+        startDate = allDates[0];
+        endDate = allDates[allDates.length - 1];
+      } else {
+        // Generate estimated dates so the item is visible on the Gantt
+        const estimated = estimateItemDates(item, projectStartDate, projectEndDate);
+        startDate = estimated.startDate;
+        endDate = estimated.endDate;
+        // Add a single placeholder phase bar for visibility
+        phases.push({
+          key: 'estimated',
+          label: 'Estimated',
+          color: 'hsl(var(--muted-foreground) / 0.4)',
+          start: estimated.startDate,
+          end: estimated.endDate,
+        });
+      }
+
+      // Group by workflow macro-phase
       const macroPhase = getMacroPhase(item.lifecycle_status as any);
 
       return {
@@ -61,8 +112,8 @@ export function itemsToRows(items: ProjectItem[]): GanttRow[] {
         sublabel: item.description,
         group: macroPhase,
         status: item.lifecycle_status || 'draft',
-        startDate: allDates[0] || null,
-        endDate: allDates[allDates.length - 1] || null,
+        startDate,
+        endDate,
         progress: calcItemProgress(item),
         phases,
       };
