@@ -784,6 +784,7 @@ export type Database = {
       project_tasks: {
         Row: {
           assignee_id: string | null
+          completion_fields: string[] | null
           created_at: string
           depends_on: string | null
           description: string | null
@@ -800,6 +801,7 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          completion_fields?: string[] | null
           created_at?: string
           depends_on?: string | null
           description?: string | null
@@ -816,6 +818,7 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          completion_fields?: string[] | null
           created_at?: string
           depends_on?: string | null
           description?: string | null
