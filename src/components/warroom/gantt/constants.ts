@@ -51,6 +51,7 @@ export const ITEM_PHASE_STYLES: Record<string, { gradient: string; label: string
   transit:    { gradient: 'linear-gradient(135deg, hsl(38,85%,48%), hsl(38,85%,60%))',    label: 'Transit',    color: 'hsl(38,85%,52%)' },
   site:       { gradient: 'linear-gradient(135deg, hsl(270,50%,48%), hsl(270,50%,60%))',  label: 'Site Move',  color: 'hsl(270,50%,55%)' },
   install:    { gradient: 'linear-gradient(135deg, hsl(155,60%,38%), hsl(155,60%,50%))',  label: 'Install',    color: 'hsl(155,60%,45%)' },
+  estimated:  { gradient: 'linear-gradient(135deg, hsl(0,0%,60%), hsl(0,0%,72%))',        label: 'Estimated',  color: 'hsl(0,0%,65%)' },
 };
 
 export const STATUS_CONFIG: Record<string, { label: string; dotColor: string; textClass: string }> = {
