@@ -109,7 +109,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
         gateProgress: gateInfo.progress,
       };
     });
-    const itemRows = itemsToRows(items);
+    const itemRows = itemsToRows(items, projectStartDate, projectEndDate);
 
     // Gate milestone rows
     const gateRows: GanttRowType[] = [];
