@@ -3,7 +3,6 @@ import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn }
 import { MACRO_PHASES, getMacroPhase } from '@/lib/workflow';
 import { ProjectTask } from '@/hooks/useTasks';
 import { ITEM_PHASE_STYLES, GROUP_ORDER } from './constants';
-import { MACRO_PHASES, getMacroPhase } from '@/lib/workflow';
 
 export function calcTaskProgress(task: ProjectTask): number {
   if (task.status === 'done') return 100;
