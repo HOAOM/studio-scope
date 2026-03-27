@@ -32,13 +32,14 @@ interface TaskGanttProps {
   projectEndDate: string;
   items?: ProjectItem[];
   members?: { id: string; display_name: string | null; email: string | null; avatar_url?: string | null }[];
+  onItemClick?: (itemId: string) => void;
 }
 
 type FilterType = 'all' | 'tasks' | 'items';
 type FilterStatus = 'all' | 'todo' | 'in_progress' | 'done' | 'blocked';
 type FilterCategory = string; // 'all' or specific boq_category
 
-export function TaskGantt({ projectId, projectStartDate, projectEndDate, items = [], members = [] }: TaskGanttProps) {
+export function TaskGantt({ projectId, projectStartDate, projectEndDate, items = [], members = [], onItemClick }: TaskGanttProps) {
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
@@ -499,6 +500,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
                       onEdit={(t) => { setEditingTask(t); setTaskDialogOpen(true); }}
                       onDelete={(t) => { setTaskToDelete(t); setDeleteDialogOpen(true); }}
                       onDragStart={handleDragStart}
+                      onItemDoubleClick={onItemClick}
                       isCriticalPath={criticalPathIds.has(row.id)}
                     />
                   ))}
@@ -510,7 +512,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       )}
 
       {/* Dialogs */}
-      <TaskFormDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} projectId={projectId} task={editingTask} members={members} tasks={tasks} />
+      <TaskFormDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} projectId={projectId} task={editingTask} members={members} tasks={tasks} items={items.map(i => ({ id: i.id, item_code: i.item_code, description: i.description }))} />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>

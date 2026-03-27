@@ -1,13 +1,25 @@
+import { TaskMacroArea } from '@/lib/workflow';
+
 export const ROW_HEIGHT = 40;
 export const GROUP_HEADER_HEIGHT = 36;
 export const LEFT_PANEL_WIDTH = 420;
 export const MIN_CHART_WIDTH = 700;
 
+/** Default working-day durations per macro-phase */
+export const PHASE_DURATIONS: Record<TaskMacroArea, number> = {
+  planning: 10,
+  design_validation: 7,
+  procurement: 13,
+  production: 60,
+  delivery: 35,
+  installation: 7,
+  closing: 5,
+  custom: 5,
+};
+
 export const GROUP_ORDER = [
   'planning', 'design_validation', 'procurement', 'production',
   'delivery', 'installation', 'closing', 'custom',
-  'items_joinery', 'items_loose-furniture', 'items_lighting',
-  'items_finishes', 'items_ffe', 'items_accessories', 'items_appliances',
 ];
 
 export const GROUP_LABELS: Record<string, string> = {
@@ -19,13 +31,6 @@ export const GROUP_LABELS: Record<string, string> = {
   installation: 'Installation',
   closing: 'Closing',
   custom: 'Custom Tasks',
-  items_joinery: 'Joinery Items',
-  'items_loose-furniture': 'Loose Furniture',
-  items_lighting: 'Lighting Items',
-  items_finishes: 'Finishes',
-  items_ffe: 'FF&E Items',
-  items_accessories: 'Accessories',
-  items_appliances: 'Appliances',
 };
 
 export const GROUP_COLORS: Record<string, { hue: string; bar: string; barGradient: string }> = {
@@ -37,17 +42,18 @@ export const GROUP_COLORS: Record<string, { hue: string; bar: string; barGradien
   installation:      { hue: '155', bar: 'hsl(155, 65%, 45%)', barGradient: 'linear-gradient(135deg, hsl(155,65%,40%), hsl(155,65%,52%))' },
   closing:           { hue: '350', bar: 'hsl(350, 65%, 55%)', barGradient: 'linear-gradient(135deg, hsl(350,65%,50%), hsl(350,65%,62%))' },
   custom:            { hue: '215', bar: 'hsl(215, 20%, 50%)', barGradient: 'linear-gradient(135deg, hsl(215,20%,45%), hsl(215,20%,55%))' },
-  items_joinery:          { hue: '25',  bar: 'hsl(25, 70%, 52%)',  barGradient: 'linear-gradient(135deg, hsl(25,70%,48%), hsl(25,70%,58%))' },
-  'items_loose-furniture':{ hue: '172', bar: 'hsl(172, 55%, 45%)', barGradient: 'linear-gradient(135deg, hsl(172,55%,40%), hsl(172,55%,52%))' },
-  items_lighting:         { hue: '45',  bar: 'hsl(45, 85%, 50%)',  barGradient: 'linear-gradient(135deg, hsl(45,85%,45%), hsl(45,85%,58%))' },
-  items_finishes:         { hue: '330', bar: 'hsl(330, 60%, 55%)', barGradient: 'linear-gradient(135deg, hsl(330,60%,50%), hsl(330,60%,62%))' },
-  items_ffe:              { hue: '85',  bar: 'hsl(85, 55%, 45%)',  barGradient: 'linear-gradient(135deg, hsl(85,55%,40%), hsl(85,55%,52%))' },
-  items_accessories:      { hue: '200', bar: 'hsl(200, 70%, 55%)', barGradient: 'linear-gradient(135deg, hsl(200,70%,50%), hsl(200,70%,62%))' },
-  items_appliances:       { hue: '0',   bar: 'hsl(0, 65%, 55%)',  barGradient: 'linear-gradient(135deg, hsl(0,65%,50%), hsl(0,65%,62%))' },
 };
 
+/** Phase styles for item bars - one per macro-phase, colored to match group */
 export const ITEM_PHASE_STYLES: Record<string, { gradient: string; label: string; color: string }> = {
-  production: { gradient: 'linear-gradient(135deg, hsl(245,55%,50%), hsl(245,55%,62%))', label: 'Production', color: 'hsl(245,55%,58%)' },
+  planning:          { gradient: 'linear-gradient(135deg, hsl(210,80%,50%), hsl(210,80%,62%))',  label: 'Planning & Prep',     color: 'hsl(210,80%,55%)' },
+  design_validation: { gradient: 'linear-gradient(135deg, hsl(190,80%,45%), hsl(190,80%,58%))',  label: 'Design Validation',   color: 'hsl(190,80%,50%)' },
+  procurement:       { gradient: 'linear-gradient(135deg, hsl(38,90%,48%), hsl(38,90%,60%))',    label: 'Procurement',         color: 'hsl(38,90%,52%)' },
+  production:        { gradient: 'linear-gradient(135deg, hsl(245,55%,50%), hsl(245,55%,62%))',  label: 'Production',          color: 'hsl(245,55%,58%)' },
+  delivery:          { gradient: 'linear-gradient(135deg, hsl(270,50%,48%), hsl(270,50%,60%))',  label: 'Delivery',            color: 'hsl(270,50%,55%)' },
+  installation:      { gradient: 'linear-gradient(135deg, hsl(155,60%,38%), hsl(155,60%,50%))',  label: 'Installation',        color: 'hsl(155,60%,45%)' },
+  closing:           { gradient: 'linear-gradient(135deg, hsl(350,65%,50%), hsl(350,65%,62%))',  label: 'Closing',             color: 'hsl(350,65%,55%)' },
+  // Legacy keys kept for backward compat
   transit:    { gradient: 'linear-gradient(135deg, hsl(38,85%,48%), hsl(38,85%,60%))',    label: 'Transit',    color: 'hsl(38,85%,52%)' },
   site:       { gradient: 'linear-gradient(135deg, hsl(270,50%,48%), hsl(270,50%,60%))',  label: 'Site Move',  color: 'hsl(270,50%,55%)' },
   install:    { gradient: 'linear-gradient(135deg, hsl(155,60%,38%), hsl(155,60%,50%))',  label: 'Install',    color: 'hsl(155,60%,45%)' },
@@ -60,7 +66,7 @@ export const STATUS_CONFIG: Record<string, { label: string; dotColor: string; te
   in_progress: { label: 'In Progress', dotColor: 'hsl(var(--primary))',          textClass: 'text-primary' },
   done:        { label: 'Done',        dotColor: 'hsl(var(--status-safe))',       textClass: 'text-[hsl(var(--status-safe))]' },
   blocked:     { label: 'Blocked',     dotColor: 'hsl(var(--status-unsafe))',     textClass: 'text-[hsl(var(--status-unsafe))]' },
-  // Item lifecycle statuses (full 25-state)
+  // Item lifecycle statuses
   concept:                        { label: 'Concept',              dotColor: 'hsl(var(--muted-foreground))', textClass: 'text-muted-foreground' },
   in_design:                      { label: 'In Design',            dotColor: 'hsl(210, 80%, 50%)',           textClass: 'text-blue-600' },
   design_ready:                   { label: 'Design Ready',         dotColor: 'hsl(210, 80%, 50%)',           textClass: 'text-blue-600' },

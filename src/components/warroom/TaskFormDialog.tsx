@@ -42,9 +42,10 @@ interface TaskFormDialogProps {
   task?: ProjectTask | null;
   members?: { id: string; display_name: string | null; email: string | null }[];
   tasks?: ProjectTask[];
+  items?: { id: string; item_code: string | null; description: string }[];
 }
 
-export function TaskFormDialog({ open, onOpenChange, projectId, task, members = [], tasks = [] }: TaskFormDialogProps) {
+export function TaskFormDialog({ open, onOpenChange, projectId, task, members = [], tasks = [], items = [] }: TaskFormDialogProps) {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
 
@@ -56,6 +57,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [dependsOn, setDependsOn] = useState<string>('none');
+  const [linkedItemId, setLinkedItemId] = useState<string>('none');
 
   useEffect(() => {
     if (task) {
@@ -67,6 +69,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setStartDate(task.start_date ? parseISO(task.start_date) : undefined);
       setEndDate(task.end_date ? parseISO(task.end_date) : undefined);
       setDependsOn((task as any).depends_on || 'none');
+      setLinkedItemId(task.linked_item_id || 'none');
     } else {
       setTitle('');
       setDescription('');
@@ -76,6 +79,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       setStartDate(undefined);
       setEndDate(undefined);
       setDependsOn('none');
+      setLinkedItemId('none');
     }
   }, [task, open]);
 
@@ -90,6 +94,7 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
       start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
       end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
       depends_on: dependsOn === 'none' ? null : dependsOn,
+      linked_item_id: linkedItemId === 'none' ? null : linkedItemId,
     };
     try {
       if (task) {
@@ -113,6 +118,25 @@ export function TaskFormDialog({ open, onOpenChange, projectId, task, members = 
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Linked Item */}
+          {items.length > 0 && (
+            <div>
+              <Label>Linked Item</Label>
+              <Select value={linkedItemId} onValueChange={setLinkedItemId}>
+                <SelectTrigger><SelectValue placeholder="Select item..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No linked item</SelectItem>
+                  {items.map(item => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.item_code ? `${item.item_code} — ` : ''}{item.description.slice(0, 50)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">Link this task to a specific BOQ item</p>
+            </div>
+          )}
+
           <div>
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title..." />

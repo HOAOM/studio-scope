@@ -277,6 +277,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
             <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
+            <TabsTrigger value="approval">Approval Gates</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
@@ -291,9 +292,6 @@ export default function ProjectDetail() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Approval Gates Panel */}
-            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} onItemClick={(item) => { setDetailItem(item); setDetailModalOpen(true); }} />
-
             {/* Milestones */}
             {projectId && (
               <MilestonesPanel projectId={projectId} items={items} canEdit={isAdmin || roles.includes('coo')} />
@@ -488,8 +486,17 @@ export default function ProjectDetail() {
                   email: m.email,
                   avatar_url: m.avatar_url,
                 }))}
+                onItemClick={(itemId) => {
+                  const item = items.find(i => i.id === itemId);
+                  if (item) { setDetailItem(item); setDetailModalOpen(true); }
+                }}
               />
             )}
+          </TabsContent>
+
+          {/* APPROVAL GATES TAB */}
+          <TabsContent value="approval" className="space-y-6">
+            <ApprovalGatesPanel items={items} projectId={projectId || ''} canApprove={isAdmin || roles.includes('ceo') || roles.includes('designer')} onItemClick={(item) => { setDetailItem(item); setDetailModalOpen(true); }} />
           </TabsContent>
 
           {/* ITEMS TAB */}

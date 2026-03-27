@@ -16,7 +16,9 @@ export interface GanttRow {
   endDate: string | null;
   progress: number;
   dependsOn?: string;
-  phases?: { key: string; label: string; color: string; start: string; end: string | null }[];
+  phases?: { key: string; label: string; color: string; start: string; end: string | null; isActive?: boolean; isPast?: boolean; isFuture?: boolean }[];
+  itemId?: string;
+  delayed?: boolean;
   task?: ProjectTask;
   gateBlocked?: boolean;
   gateReason?: string;
