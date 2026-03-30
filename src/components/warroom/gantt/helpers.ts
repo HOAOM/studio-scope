@@ -1,8 +1,10 @@
 import { differenceInDays, parseISO, addDays, isBefore, isAfter, format, getDay, startOfMonth } from 'date-fns';
-import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn } from './types';
-import { MACRO_PHASES, getMacroPhase, addWorkingDays, TaskMacroArea } from '@/lib/workflow';
-import { ITEM_PHASE_STYLES, GROUP_ORDER, PHASE_DURATIONS } from './constants';
+import { GanttRow, ProjectItem, ZoomLevel, TimelineColumn, TimelineMonthColumn, PhaseSegment, GateMarker, ItemTag } from './types';
+import { MACRO_PHASES, getMacroPhase, addWorkingDays, TaskMacroArea, LIFECYCLE_ORDER, getLifecycleIndex } from '@/lib/workflow';
+import { ITEM_PHASE_STYLES, GROUP_ORDER, PHASE_DURATIONS, PHASE_GATES, WAITING_CLIENT_STATUSES, WAITING_SUPPLIER_STATUSES } from './constants';
 import { ProjectTask } from '@/hooks/useTasks';
+
+// ─── Progress Calculations ───
 
 export function calcTaskProgress(task: ProjectTask): number {
   if (task.status === 'done') return 100;
@@ -17,18 +19,14 @@ export function calcTaskProgress(task: ProjectTask): number {
 }
 
 export function calcItemProgress(item: ProjectItem): number {
-  const stages = [
-    item.lifecycle_status === 'installed',
-    item.installed,
-    item.received,
-    item.purchased,
-    item.approval_status === 'approved',
-    item.boq_included,
-  ];
-  return Math.round((stages.filter(Boolean).length / stages.length) * 100);
+  const idx = getLifecycleIndex(item.lifecycle_status as any);
+  const total = LIFECYCLE_ORDER.length;
+  if (idx < 0) return 0;
+  return Math.round((idx / total) * 100);
 }
 
-/** Maps lifecycle_status to the index of the active macro-phase (0-6) */
+// ─── Phase Index ───
+
 function getActivePhaseIndex(status: string | null): number {
   const phase = getMacroPhase(status as any);
   const order: TaskMacroArea[] = ['planning', 'design_validation', 'procurement', 'production', 'delivery', 'installation', 'closing'];
@@ -36,23 +34,115 @@ function getActivePhaseIndex(status: string | null): number {
   return idx >= 0 ? idx : 0;
 }
 
-/** Compute 7 sequential phase bars for an item based on project start + default durations */
-function computeItemPhases(item: ProjectItem, projectStartDate: string): GanttRow['phases'] {
-  const phases: GanttRow['phases'] = [];
+// ─── Gate Computation ───
+
+function computeGatesForPhase(phaseKey: string, lifecycleStatus: string | null): GateMarker[] {
+  const gateDefs = PHASE_GATES[phaseKey];
+  if (!gateDefs) return [];
+  
+  const currentIdx = getLifecycleIndex(lifecycleStatus as any);
+  
+  return gateDefs.map(g => {
+    // Check if item has reached any of the required statuses
+    const isApproved = g.requiredStatuses.some(s => {
+      const requiredIdx = getLifecycleIndex(s as any);
+      return currentIdx >= requiredIdx;
+    });
+    
+    if (isApproved) return { key: g.key, label: g.label, status: 'approved' as const };
+    return { key: g.key, label: g.label, status: 'pending' as const };
+  });
+}
+
+// ─── At-Risk / Delayed ───
+
+function computePhaseRisk(phaseStart: string, phaseEnd: string | null, isActive: boolean): { atRisk: boolean; delayed: boolean } {
+  if (!isActive || !phaseEnd) return { atRisk: false, delayed: false };
+  
+  const now = new Date();
+  const end = parseISO(phaseEnd);
+  const start = parseISO(phaseStart);
+  const totalDuration = differenceInDays(end, start);
+  const elapsed = differenceInDays(now, start);
+  
+  if (isAfter(now, end)) return { atRisk: false, delayed: true };
+  if (totalDuration > 0 && elapsed / totalDuration >= 0.9) return { atRisk: true, delayed: false };
+  return { atRisk: false, delayed: false };
+}
+
+// ─── Actual Progress ───
+
+function computeActualProgress(phaseKey: string, lifecycleStatus: string | null, phaseIndex: number, activeIndex: number): number {
+  if (phaseIndex < activeIndex) return 1; // Past phase = complete
+  if (phaseIndex > activeIndex) return 0; // Future phase = 0
+  
+  // Active phase: compute sub-progress based on lifecycle states within the phase
+  const macroPhase = MACRO_PHASES.find(m => m.key === phaseKey);
+  if (!macroPhase || !lifecycleStatus) return 0.5;
+  
+  const statesInPhase = macroPhase.states;
+  const stateIdx = statesInPhase.indexOf(lifecycleStatus as any);
+  if (stateIdx < 0) return 0.5;
+  return Math.min((stateIdx + 1) / statesInPhase.length, 1);
+}
+
+// ─── Build Phases ───
+
+function computeItemPhases(
+  item: ProjectItem,
+  projectStartDate: string,
+  linkedTasks: ProjectTask[],
+): PhaseSegment[] {
+  const phases: PhaseSegment[] = [];
   const phaseOrder: TaskMacroArea[] = ['planning', 'design_validation', 'procurement', 'production', 'delivery', 'installation', 'closing'];
   const activeIdx = getActivePhaseIndex(item.lifecycle_status);
+  const isCancelled = item.lifecycle_status === 'cancelled';
+  const isOnHold = item.lifecycle_status === 'on_hold';
   
   let cursor = parseISO(projectStartDate);
+  // Baseline cursor for original plan
+  let baselineCursor = parseISO(projectStartDate);
+  
+  // Check for blocking tasks that shift phases
+  const itemTasks = linkedTasks.filter(t => t.linked_item_id === item.id);
   
   for (let i = 0; i < phaseOrder.length; i++) {
     const phaseKey = phaseOrder[i];
     const duration = PHASE_DURATIONS[phaseKey];
-    const phaseEnd = addWorkingDays(cursor, duration);
-    const style = ITEM_PHASE_STYLES[phaseKey];
     
-    const isActive = i === activeIdx;
+    // Baseline (original plan)
+    const baselineEnd = addWorkingDays(baselineCursor, duration);
+    const baselineStartStr = format(baselineCursor, 'yyyy-MM-dd');
+    const baselineEndStr = format(baselineEnd, 'yyyy-MM-dd');
+    baselineCursor = baselineEnd;
+    
+    // For cancelled items, don't show future phases
+    if (isCancelled && i > activeIdx) continue;
+    
+    // Forecast (adjusted for blocking tasks)
+    let phaseEnd = addWorkingDays(cursor, duration);
+    
+    // Check if blocking tasks in this phase push the end date
+    if (i === activeIdx) {
+      const blockingTasks = itemTasks.filter(t => t.status !== 'done' && t.end_date);
+      blockingTasks.forEach(t => {
+        if (t.end_date) {
+          const taskEnd = parseISO(t.end_date);
+          if (isAfter(taskEnd, phaseEnd)) {
+            phaseEnd = taskEnd;
+          }
+        }
+      });
+    }
+    
+    const style = ITEM_PHASE_STYLES[phaseKey];
+    const isActive = i === activeIdx && !isCancelled;
     const isPast = i < activeIdx;
     const isFuture = i > activeIdx;
+    
+    const risk = computePhaseRisk(format(cursor, 'yyyy-MM-dd'), format(phaseEnd, 'yyyy-MM-dd'), isActive);
+    const actualProgress = computeActualProgress(phaseKey, item.lifecycle_status, i, activeIdx);
+    const gates = computeGatesForPhase(phaseKey, item.lifecycle_status);
     
     phases.push({
       key: phaseKey,
@@ -60,9 +150,15 @@ function computeItemPhases(item: ProjectItem, projectStartDate: string): GanttRo
       color: style?.color || 'hsl(0,0%,65%)',
       start: format(cursor, 'yyyy-MM-dd'),
       end: format(phaseEnd, 'yyyy-MM-dd'),
-      isActive,
+      isActive: isActive && !isOnHold,
       isPast,
-      isFuture,
+      isFuture: isFuture || isOnHold,
+      baselineStart: baselineStartStr,
+      baselineEnd: baselineEndStr,
+      actualProgress,
+      gates: gates.length > 0 ? gates : undefined,
+      atRisk: risk.atRisk,
+      delayed: risk.delayed,
     });
     
     cursor = phaseEnd;
@@ -71,13 +167,35 @@ function computeItemPhases(item: ProjectItem, projectStartDate: string): GanttRo
   return phases;
 }
 
-/** Check if an item is delayed: if today is past the expected end of the active phase */
-function isItemDelayed(phases: GanttRow['phases']): boolean {
-  if (!phases) return false;
-  const activePhase = phases.find((p: any) => p.isActive);
-  if (!activePhase || !activePhase.end) return false;
-  return isAfter(new Date(), parseISO(activePhase.end));
+// ─── Derive waiting_for ───
+
+function deriveWaitingFor(status: string | null): 'client' | 'supplier' | null {
+  if (!status) return null;
+  if (WAITING_CLIENT_STATUSES.has(status)) return 'client';
+  if (WAITING_SUPPLIER_STATUSES.has(status)) return 'supplier';
+  return null;
 }
+
+// ─── Derive tags ───
+
+function deriveItemTags(item: ProjectItem, phases: PhaseSegment[], hasOptions: boolean): ItemTag[] {
+  const tags: ItemTag[] = [];
+  
+  if (item.lifecycle_status === 'on_hold') tags.push('on_hold');
+  if (item.lifecycle_status === 'cancelled') tags.push('cancelled');
+  if ((item.revision_number || 1) > 1) tags.push('revision');
+  if (hasOptions) tags.push('options');
+  
+  // Check phases for delay/at-risk
+  const hasDelay = phases.some(p => p.delayed);
+  const hasAtRisk = phases.some(p => p.atRisk);
+  if (hasDelay) tags.push('delayed');
+  else if (hasAtRisk) tags.push('at_risk');
+  
+  return tags;
+}
+
+// ─── Item → GanttRow ───
 
 export function itemsToRows(
   items: ProjectItem[],
@@ -86,50 +204,37 @@ export function itemsToRows(
   linkedTasks?: ProjectTask[],
 ): GanttRow[] {
   const pStart = projectStartDate || format(new Date(), 'yyyy-MM-dd');
+  const allTasks = linkedTasks || [];
   
-  return items
+  // Sort items by item_code (contains floor/room/item info)
+  const sortedItems = [...items]
     .filter(item => {
-      if (item.is_active === false) return false;
-      if (item.lifecycle_status === 'cancelled' || item.lifecycle_status === 'on_hold') return false;
+      if (item.is_active === false && item.lifecycle_status !== 'cancelled') return false;
       if (item.parent_item_id && !item.is_selected_option) return false;
       return true;
     })
+    .sort((a, b) => {
+      const codeA = a.item_code || '';
+      const codeB = b.item_code || '';
+      return codeA.localeCompare(codeB);
+    });
+  
+  return sortedItems
     .map(item => {
-      const phases = computeItemPhases(item, pStart);
+      const phases = computeItemPhases(item, pStart, allTasks);
       const macroPhase = getMacroPhase(item.lifecycle_status as any);
-      const delayed = isItemDelayed(phases);
+      const itemTasks = allTasks.filter(t => t.linked_item_id === item.id);
+      const openTasks = itemTasks.filter(t => t.status !== 'done');
       
-      // Check for incomplete linked tasks that block cascade
-      const itemTasks = (linkedTasks || []).filter(t => t.linked_item_id === item.id);
-      const hasBlockingTask = itemTasks.some(t => t.status !== 'done');
+      // Check if item has unselected options
+      const hasOptions = items.some(other => other.parent_item_id === item.id);
       
-      // If there's a blocking task, shift all phases after the active one
-      let adjustedPhases = phases;
-      if (hasBlockingTask && phases) {
-        const blockingTask = itemTasks.find(t => t.status !== 'done' && t.end_date);
-        if (blockingTask?.end_date) {
-          const activeIdx = phases.findIndex(p => p.isActive);
-          if (activeIdx >= 0) {
-            const taskEnd = parseISO(blockingTask.end_date);
-            const phaseEnd = phases[activeIdx].end ? parseISO(phases[activeIdx].end!) : null;
-            if (phaseEnd && isAfter(taskEnd, phaseEnd)) {
-              // Shift subsequent phases
-              let cursor = taskEnd;
-              adjustedPhases = phases.map((p, i) => {
-                if (i <= activeIdx) return p;
-                const duration = PHASE_DURATIONS[p.key as TaskMacroArea] || 5;
-                const newEnd = addWorkingDays(cursor, duration);
-                const shifted = { ...p, start: format(cursor, 'yyyy-MM-dd'), end: format(newEnd, 'yyyy-MM-dd') };
-                cursor = newEnd;
-                return shifted;
-              });
-            }
-          }
-        }
-      }
+      const tags = deriveItemTags(item, phases, hasOptions);
+      const isDelayed = tags.includes('delayed');
+      const isAtRisk = tags.includes('at_risk');
       
-      const startDate = adjustedPhases?.[0]?.start || null;
-      const endDate = adjustedPhases?.[adjustedPhases.length - 1]?.end || null;
+      const startDate = phases[0]?.start || null;
+      const endDate = phases[phases.length - 1]?.end || null;
 
       return {
         id: `item-${item.id}`,
@@ -141,13 +246,23 @@ export function itemsToRows(
         startDate,
         endDate,
         progress: calcItemProgress(item),
-        phases: adjustedPhases,
+        phases,
         itemId: item.id,
-        delayed: delayed || hasBlockingTask,
+        delayed: isDelayed,
+        atRisk: isAtRisk,
+        tags,
+        revisionNumber: item.revision_number || 1,
+        hasOptions,
+        isOnHold: item.lifecycle_status === 'on_hold',
+        isCancelled: item.lifecycle_status === 'cancelled',
+        waitingFor: deriveWaitingFor(item.lifecycle_status),
+        taskCount: itemTasks.length,
+        openTaskCount: openTasks.length,
+        category: item.category,
       };
     })
     .flatMap(itemRow => {
-      const itemTasks = (linkedTasks || []).filter(t => t.linked_item_id === itemRow.itemId);
+      const itemTasks = allTasks.filter(t => t.linked_item_id === itemRow.itemId);
       const subTaskRows: GanttRow[] = itemTasks.map(t => ({
         id: t.id,
         type: 'task' as const,
@@ -168,6 +283,8 @@ export function itemsToRows(
       return [itemRow, ...subTaskRows];
     });
 }
+
+// ─── Timeline Computation ───
 
 export function computeTimelineRange(rows: GanttRow[], projectStartDate: string, projectEndDate: string) {
   let earliest = parseISO(projectStartDate);
@@ -216,20 +333,15 @@ export function computeMonthColumns(timelineStart: Date, timelineEnd: Date, tota
   let cursor = startOfMonth(timelineStart);
   if (isBefore(cursor, timelineStart)) {
     const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
-    const startDay = 0;
     const endDay = Math.min(differenceInDays(nextMonth, timelineStart), totalDays);
-    if (endDay > 0) {
-      cols.push({ label: format(timelineStart, 'MMM yyyy'), startDay, widthDays: endDay });
-    }
+    if (endDay > 0) cols.push({ label: format(timelineStart, 'MMM yyyy'), startDay: 0, widthDays: endDay });
     cursor = nextMonth;
   }
   while (isBefore(cursor, timelineEnd)) {
     const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
     const startDay = differenceInDays(cursor, timelineStart);
     const widthDays = Math.min(differenceInDays(nextMonth, cursor), totalDays - startDay);
-    if (widthDays > 0) {
-      cols.push({ label: format(cursor, 'MMM yyyy'), startDay, widthDays });
-    }
+    if (widthDays > 0) cols.push({ label: format(cursor, 'MMM yyyy'), startDay, widthDays });
     cursor = nextMonth;
   }
   return cols;
