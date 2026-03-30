@@ -1,12 +1,43 @@
 import { cn } from '@/lib/utils';
 import { parseISO, format } from 'date-fns';
-import { Edit, Trash2, Package, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Package, MessageSquare, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { GanttRow as GanttRowType, TimelineColumn, DragState } from './types';
+import { Badge } from '@/components/ui/badge';
+import { GanttRow as GanttRowType, TimelineColumn, DragState, ItemTag } from './types';
 import { ROW_HEIGHT, LEFT_PANEL_WIDTH, GROUP_COLORS, STATUS_CONFIG } from './constants';
 import { dayToPercent } from './helpers';
 import { GanttTaskBar, GanttItemPhaseBars, GanttMilestoneDot } from './GanttTaskBar';
 import { ProjectTask } from '@/hooks/useTasks';
+
+// ─── Tag Badges ───
+
+const TAG_CONFIG: Record<ItemTag, { label: string; className: string }> = {
+  on_hold:   { label: 'On Hold',   className: 'bg-[hsl(var(--status-unsafe))]/15 text-[hsl(var(--status-unsafe))] border-[hsl(var(--status-unsafe))]/20' },
+  cancelled: { label: 'Cancelled', className: 'bg-muted/50 text-muted-foreground line-through border-muted-foreground/20' },
+  at_risk:   { label: 'At Risk',   className: 'bg-[hsl(var(--status-at-risk))]/15 text-[hsl(var(--status-at-risk))] border-[hsl(var(--status-at-risk))]/20' },
+  delayed:   { label: 'Delayed',   className: 'bg-destructive/15 text-destructive border-destructive/20' },
+  options:   { label: 'Options',   className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+  revision:  { label: '',          className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+};
+
+function ItemTags({ tags, revisionNumber }: { tags?: ItemTag[]; revisionNumber?: number }) {
+  if (!tags?.length) return null;
+  return (
+    <div className="flex items-center gap-0.5 flex-shrink-0">
+      {tags.map(tag => {
+        const conf = TAG_CONFIG[tag];
+        const label = tag === 'revision' ? `R${revisionNumber || 1}` : conf.label;
+        return (
+          <span key={tag} className={cn('text-[7px] font-semibold px-1 py-px rounded border leading-tight', conf.className)}>
+            {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Main Row Component ───
 
 interface Props {
   row: GanttRowType;
@@ -41,12 +72,14 @@ export function GanttRowComponent({
   return (
     <div
       className={cn(
-        'flex items-center border-b border-border/15 transition-colors group/row relative',
-        index % 2 === 0 ? 'bg-transparent' : 'bg-muted/[0.03]',
+        'flex items-center border-b border-border/10 transition-colors group/row relative',
+        index % 2 === 0 ? 'bg-transparent' : 'bg-muted/[0.02]',
         isDraggingThis && 'bg-primary/[0.04]',
-        isCriticalPath && 'bg-destructive/[0.03] border-l-2 border-l-destructive/40',
-        row.gateBlocked && 'opacity-60',
-        row.delayed && 'bg-destructive/[0.04]',
+        isCriticalPath && 'bg-destructive/[0.02]',
+        row.delayed && !row.isCancelled && 'bg-destructive/[0.03]',
+        row.atRisk && !row.delayed && 'bg-[hsl(var(--status-at-risk))]/[0.03]',
+        row.isOnHold && 'opacity-70',
+        row.isCancelled && 'opacity-50',
         row.type === 'item' && 'cursor-pointer',
       )}
       style={{ height: ROW_HEIGHT }}
@@ -56,10 +89,10 @@ export function GanttRowComponent({
         }
       }}
     >
-      {/* Left panel */}
-      <div className="flex items-center border-r border-border/30" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
-        {/* Status checkbox / icon */}
-        <div className={cn('flex items-center justify-center flex-shrink-0', row.isSubTask ? 'w-10 pl-4' : 'w-10')}>
+      {/* ── Left Panel ── */}
+      <div className="flex items-center border-r border-border/20" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
+        {/* Icon */}
+        <div className={cn('flex items-center justify-center flex-shrink-0', row.isSubTask ? 'w-8 pl-3' : 'w-8')}>
           {row.type === 'task' && row.task ? (
             (() => {
               const hasAutoComplete = row.task && (row.task as any).completion_fields?.length > 0;
@@ -67,85 +100,74 @@ export function GanttRowComponent({
                 <button
                   onClick={() => !hasAutoComplete && onStatusToggle(row.task!)}
                   className={cn(
-                    'w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex-shrink-0 transition-all duration-200 flex items-center justify-center',
-                    hasAutoComplete && row.status !== 'done' && 'border-primary/40 bg-primary/5 cursor-not-allowed',
-                    !hasAutoComplete && row.status === 'done'
-                      ? 'border-transparent'
-                      : !hasAutoComplete && row.status === 'in_progress'
-                      ? 'border-primary/60 bg-primary/10'
-                      : !hasAutoComplete && row.status === 'blocked'
-                      ? 'bg-[hsl(var(--status-unsafe))]/10'
-                      : !hasAutoComplete ? 'border-muted-foreground/30 hover:border-muted-foreground/50' : ''
+                    'w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex-shrink-0 transition-all flex items-center justify-center',
+                    hasAutoComplete && row.status !== 'done' && 'border-primary/30 bg-primary/5 cursor-not-allowed',
+                    !hasAutoComplete && row.status === 'done' ? 'border-transparent' :
+                    !hasAutoComplete && row.status === 'in_progress' ? 'border-primary/50 bg-primary/10' :
+                    !hasAutoComplete && row.status === 'blocked' ? 'bg-[hsl(var(--status-unsafe))]/10' :
+                    !hasAutoComplete ? 'border-muted-foreground/25 hover:border-muted-foreground/45' : ''
                   )}
                   style={row.status === 'done' ? { background: sConfig.dotColor } : row.status === 'blocked' ? { borderColor: sConfig.dotColor } : undefined}
-                  title={hasAutoComplete ? 'Auto-completing: fill required fields on item' : undefined}
+                  title={hasAutoComplete ? 'Auto-completes when fields are filled' : undefined}
                 >
                   {row.status === 'done' && (
-                    <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  )}
-                  {hasAutoComplete && row.status !== 'done' && (
-                    <svg className="w-2.5 h-2.5 text-primary/60" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="2" fill="currentColor"/></svg>
+                    <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   )}
                 </button>
               );
             })()
           ) : (
-            <Package className="w-3.5 h-3.5 text-muted-foreground/50" />
+            <Package className="w-3 h-3 text-muted-foreground/40" />
           )}
         </div>
 
-        {/* Task / Item label */}
-        <div className={cn('flex-1 min-w-0 pr-2', row.isSubTask && 'pl-2')}>
-          <p className={cn(
-            'text-[11px] truncate leading-tight',
-            row.status === 'done' ? 'line-through text-muted-foreground/60' : 'text-foreground/90',
-            row.isSubTask && 'italic text-muted-foreground/80',
-            row.urgent && row.status !== 'done' && 'text-destructive font-medium'
-          )} title={row.sublabel || row.label}>
-            {row.urgent && row.status !== 'done' && (
-              <AlertCircle className="w-3 h-3 inline-block mr-1 text-destructive" />
-            )}
-            {row.type === 'item' && row.label !== row.sublabel ? (
-              <span className="font-mono text-primary/70 mr-1 text-[10px]">{row.label}</span>
-            ) : null}
-            {row.type === 'item' ? (row.sublabel || row.label) : row.label}
-          </p>
-        </div>
-
-        {/* Assignee */}
-        <div className="w-[72px] flex-shrink-0 px-1">
-          {getMemberName(row.assignee) ? (
-            <span className="text-[10px] text-muted-foreground/70 truncate block">{getMemberName(row.assignee)}</span>
-          ) : (
-            <span className="text-[10px] text-muted-foreground/30">—</span>
+        {/* Label + Tags */}
+        <div className={cn('flex-1 min-w-0 pr-1.5 flex items-center gap-1', row.isSubTask && 'pl-1')}>
+          <div className="min-w-0 flex-1">
+            <p className={cn(
+              'text-[10px] truncate leading-tight',
+              row.status === 'done' || row.isCancelled ? 'line-through text-muted-foreground/50' : 'text-foreground/85',
+              row.isSubTask && 'italic text-muted-foreground/70',
+            )} title={row.sublabel || row.label}>
+              {row.type === 'item' && row.label !== row.sublabel && (
+                <span className="font-mono text-primary/60 mr-1 text-[9px]">{row.label}</span>
+              )}
+              {row.type === 'item' ? (row.sublabel || row.label) : row.label}
+            </p>
+          </div>
+          <ItemTags tags={row.tags} revisionNumber={row.revisionNumber} />
+          
+          {/* Task/note indicators */}
+          {row.type === 'item' && (row.openTaskCount || 0) > 0 && (
+            <span className="text-[8px] text-muted-foreground/50 font-mono flex-shrink-0">
+              {row.openTaskCount}
+              <AlertTriangle className="w-2 h-2 inline ml-px" />
+            </span>
           )}
         </div>
 
-        {/* Status */}
-        <div className="w-[70px] flex-shrink-0 flex items-center gap-1.5 px-1">
-          <div className="w-[6px] h-[6px] rounded-full flex-shrink-0" style={{ background: sConfig.dotColor }} />
-          <span className={cn('text-[10px] truncate', sConfig.textClass)}>{sConfig.label}</span>
+        {/* Status dot + label */}
+        <div className="w-[60px] flex-shrink-0 flex items-center gap-1 px-1">
+          <div className="w-[5px] h-[5px] rounded-full flex-shrink-0" style={{ background: sConfig.dotColor }} />
+          <span className={cn('text-[9px] truncate', sConfig.textClass)}>{sConfig.label}</span>
         </div>
 
-        {/* Dates */}
-        <div className="w-[80px] flex-shrink-0 px-1">
-          <span className="text-[9px] font-mono text-muted-foreground/50">
+        {/* Dates (compact) */}
+        <div className="w-[65px] flex-shrink-0 px-1">
+          <span className="text-[8px] font-mono text-muted-foreground/40">
             {displayStart ? format(parseISO(displayStart), 'dd/MM') : '—'}
             {displayEnd && displayEnd !== displayStart ? ` → ${format(parseISO(displayEnd), 'dd/MM')}` : ''}
           </span>
         </div>
       </div>
 
-      {/* Timeline area */}
+      {/* ── Timeline Area ── */}
       <div className="flex-1 relative h-full">
-        {/* Column grid lines + weekend shading */}
+        {/* Grid lines */}
         {columns.map((col, i) => (
           <div
             key={i}
-            className={cn(
-              'absolute top-0 h-full border-r border-border/[0.12]',
-              col.isWeekend && 'bg-muted/[0.06]'
-            )}
+            className={cn('absolute top-0 h-full border-r border-border/[0.08]', col.isWeekend && 'bg-muted/[0.04]')}
             style={{ left: `${dayToPercent(col.startDay, totalDays)}%`, width: `${dayToPercent(col.widthDays, totalDays)}%` }}
           />
         ))}
@@ -170,14 +192,14 @@ export function GanttRowComponent({
         )}
       </div>
 
-      {/* Hover actions */}
+      {/* Hover actions for tasks */}
       {row.type === 'task' && row.task && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover/row:flex items-center gap-0.5 bg-card/95 backdrop-blur-sm rounded-md shadow-md border border-border/50 px-0.5 py-0.5">
-          <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted/30" onClick={() => onEdit(row.task!)}>
-            <Edit className="w-3 h-3 text-muted-foreground" />
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover/row:flex items-center gap-0.5 bg-card/95 backdrop-blur-sm rounded-md shadow-sm border border-border/40 px-0.5 py-0.5">
+          <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-muted/30" onClick={() => onEdit(row.task!)}>
+            <Edit className="w-2.5 h-2.5 text-muted-foreground" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10" onClick={() => onDelete(row.task!)}>
-            <Trash2 className="w-3 h-3 text-destructive/70" />
+          <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-destructive/10" onClick={() => onDelete(row.task!)}>
+            <Trash2 className="w-2.5 h-2.5 text-destructive/60" />
           </Button>
         </div>
       )}
