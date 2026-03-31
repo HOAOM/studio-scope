@@ -62,7 +62,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const { roles, canSeeCosts } = useUserRole();
   const updateItem = useUpdateProjectItem();
   const queryClient = useQueryClient();
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<ProjectItem>>({});
   const typedRoles = roles as AppRole[];
