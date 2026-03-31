@@ -341,7 +341,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     return m?.display_name || m?.email?.split('@')[0] || null;
   };
 
-  const renderField = (label: string, field: keyof ProjectItem, opts?: { locked?: boolean; type?: 'text' | 'number' | 'date' | 'textarea' }) => {
+  const renderField = (label: string, field: string, opts?: { locked?: boolean; type?: 'text' | 'number' | 'date' | 'textarea' }) => {
     const locked = opts?.locked ?? isLocked(field);
     const fieldType = opts?.type ?? 'text';
     const value = val(field);
