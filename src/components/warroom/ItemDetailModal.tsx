@@ -601,15 +601,23 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               <TabsContent value="finance" className="space-y-4">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Costs</h4>
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Base Cost</h4>
                     {renderField('Unit Cost', 'unit_cost', { type: 'number' })}
                     {renderField('Quantity', 'quantity', { type: 'number' })}
                     <Separator className="my-2" />
-                    {renderField('Delivery Cost', 'delivery_cost', { type: 'number' })}
-                    {renderField('Installation Cost', 'installation_cost', { type: 'number' })}
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Landed Costs</h4>
+                    {renderField('Boxing', 'boxing_cost' as any, { type: 'number' })}
+                    {renderField('Delivery', 'delivery_cost', { type: 'number' })}
+                    {renderField('Shifting (port/storage/site)', 'shifting_cost' as any, { type: 'number' })}
+                    {renderField('Installation', 'installation_cost', { type: 'number' })}
                     {renderField('Insurance', 'insurance_cost', { type: 'number' })}
-                    {renderField('Duty', 'duty_cost', { type: 'number' })}
-                    {renderField('Custom Cost', 'custom_cost', { type: 'number' })}
+                    <Separator className="my-2" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>{renderField('Duty', 'duty_cost', { type: 'number' })}</div>
+                      <div>{renderField('Custom', 'custom_cost', { type: 'number' })}</div>
+                    </div>
+                    <Separator className="my-2" />
+                    {renderField('Extra / Safe', 'extra_safe_cost' as any, { type: 'number' })}
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Pricing</h4>
