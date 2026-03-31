@@ -63,7 +63,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const updateItem = useUpdateProjectItem();
   const queryClient = useQueryClient();
   const [editMode, setEditMode] = useState(false);
-  const [editData, setEditData] = useState<Partial<ProjectItem>>({});
+  const [editData, setEditData] = useState<Record<string, any>>({});
   const typedRoles = roles as AppRole[];
 
   // Fetch live item data to avoid stale state after save
