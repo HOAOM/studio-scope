@@ -440,6 +440,34 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
                 </div>
               )}
 
+              {/* Milestone lines */}
+              {milestones.map(ms => {
+                const msDay = differenceInDays(parseISO(ms.target_date), timelineStart);
+                const msPercent = dayToPercent(msDay, totalDays);
+                if (msPercent < 0 || msPercent > 100) return null;
+                return (
+                  <TooltipProvider key={ms.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="absolute top-0 bottom-0 z-15 cursor-pointer"
+                          style={{ left: `calc(${LEFT_PANEL_WIDTH}px + (100% - ${LEFT_PANEL_WIDTH}px) * ${msPercent / 100})` }}
+                        >
+                          <div className="w-[2px] h-full bg-primary/40 border-l border-dashed border-primary/30" />
+                          <span className="absolute top-0 -translate-x-1/2 text-[6px] font-bold bg-primary text-primary-foreground px-1 py-[1px] rounded-b-sm tracking-wider uppercase whitespace-nowrap max-w-[80px] truncate">
+                            ◆ {ms.label}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        <p className="font-semibold">{ms.label}</p>
+                        <p className="text-muted-foreground">{ms.target_date} • {ms.required_status}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
+
               <GanttDependencyArrows
                 allRows={filteredRows}
                 flatVisibleRows={flatVisibleRows}
