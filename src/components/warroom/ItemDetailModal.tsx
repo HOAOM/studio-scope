@@ -381,7 +381,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     );
   };
 
-  const renderLink = (label: string, field: keyof ProjectItem) => {
+  const renderLink = (label: string, field: string) => {
     const value = val(field);
     if (editMode) {
       return (
