@@ -332,7 +332,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
 
   const isLocked = (field: string) => lockedFields.includes(field);
-  const val = (field: keyof ProjectItem) => editMode ? (editData as any)[field] : (item as any)[field];
+  const val = (field: string) => editMode ? (editData as any)[field] : (item as any)[field];
   const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
 
   const getMemberName = (id: string | null) => {
