@@ -47,6 +47,7 @@ const QUICK_FILTERS: { key: QuickFilter; label: string }[] = [
 export function TaskGantt({ projectId, projectStartDate, projectEndDate, items = [], members = [], onItemClick }: TaskGanttProps) {
   const { user } = useAuth();
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
+  const { data: milestones = [] } = useProjectMilestones(projectId);
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
   const { missingTasks, syncSuggestions, generateTemplateTasks, syncTasks, hasTemplate, isGenerating, isSyncing } = useTaskTemplate(
