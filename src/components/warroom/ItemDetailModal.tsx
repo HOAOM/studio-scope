@@ -33,13 +33,12 @@ import {
   type ItemLifecycleStatus,
 } from '@/lib/workflow';
 import {
-  CheckCircle2, XCircle, Clock, ArrowRight, Shield, Lock, Pencil, Save, X,
+  CheckCircle2, XCircle, Clock, ArrowRight, Lock, Pencil, Save, X,
   FileText, Package, CreditCard, Truck, Wrench, History,
   Image as ImageIcon, ExternalLink, ReceiptText, Layers,
   ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
-import { RejectDialog } from './RejectDialog';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
