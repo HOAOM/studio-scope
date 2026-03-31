@@ -298,23 +298,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     } catch { toast.error('Failed to delete task'); }
   };
 
-  if (!item) return null;
-
-  const colors = LIFECYCLE_COLORS[item.lifecycle_status || 'concept'] || LIFECYCLE_COLORS['concept'];
-  const statusLabel = LIFECYCLE_LABELS[item.lifecycle_status || 'concept'] || 'Unknown';
-  const canSeeDesign = canSeeFieldGroup('design', typedRoles);
-  const canSeeFinishes = canSeeFieldGroup('finishes', typedRoles);
-  const canSeeProcurement = canSeeFieldGroup('procurement', typedRoles);
-  const canSeePayment = canSeeFieldGroup('payment', typedRoles);
-  const canSeeLogistics = canSeeFieldGroup('logistics', typedRoles);
-  const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
-
-  const isLocked = (field: string) => lockedFields.includes(field);
-  const val = (field: keyof ProjectItem) => editMode ? (editData as any)[field] : (item as any)[field];
-  const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
-
-  // Compute real total including all landed costs + margin
+  // Compute real total including all landed costs + margin (must be before early return)
   const computedTotal = useMemo(() => {
+    if (!item) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
     const src = editMode ? { ...item, ...editData } : item;
     const unitCost = Number(src.unit_cost) || 0;
     const qty = Number(src.quantity) || 1;
@@ -329,6 +315,21 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     const totalWithMargin = landedCost * (1 + margin / 100);
     return { subtotal, landedCost, totalWithMargin, margin };
   }, [item, editData, editMode]);
+
+  if (!item) return null;
+
+  const colors = LIFECYCLE_COLORS[item.lifecycle_status || 'concept'] || LIFECYCLE_COLORS['concept'];
+  const statusLabel = LIFECYCLE_LABELS[item.lifecycle_status || 'concept'] || 'Unknown';
+  const canSeeDesign = canSeeFieldGroup('design', typedRoles);
+  const canSeeFinishes = canSeeFieldGroup('finishes', typedRoles);
+  const canSeeProcurement = canSeeFieldGroup('procurement', typedRoles);
+  const canSeePayment = canSeeFieldGroup('payment', typedRoles);
+  const canSeeLogistics = canSeeFieldGroup('logistics', typedRoles);
+  const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
+
+  const isLocked = (field: string) => lockedFields.includes(field);
+  const val = (field: keyof ProjectItem) => editMode ? (editData as any)[field] : (item as any)[field];
+  const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
 
   const getMemberName = (id: string | null) => {
     if (!id) return null;
