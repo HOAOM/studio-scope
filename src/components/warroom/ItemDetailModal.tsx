@@ -63,7 +63,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const updateItem = useUpdateProjectItem();
   const queryClient = useQueryClient();
   const [editMode, setEditMode] = useState(false);
-  const [editData, setEditData] = useState<Partial<ProjectItem>>({});
+  const [editData, setEditData] = useState<Record<string, any>>({});
   const typedRoles = roles as AppRole[];
 
   // Fetch live item data to avoid stale state after save
@@ -199,6 +199,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       insurance_cost: item.insurance_cost,
       duty_cost: item.duty_cost,
       custom_cost: item.custom_cost,
+      boxing_cost: (item as any).boxing_cost,
+      shifting_cost: (item as any).shifting_cost,
+      extra_safe_cost: (item as any).extra_safe_cost,
       reference_image_url: item.reference_image_url,
       technical_drawing_url: item.technical_drawing_url,
       company_product_url: item.company_product_url,
@@ -218,7 +221,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     try {
       // Ensure numeric fields are properly typed
       const payload: Record<string, any> = { id: item.id };
-      const numericFields = ['quantity', 'unit_cost', 'selling_price', 'margin_percentage', 'delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost'];
+      const numericFields = ['quantity', 'unit_cost', 'selling_price', 'margin_percentage', 'delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost', 'boxing_cost', 'shifting_cost', 'extra_safe_cost'];
       
       for (const [key, value] of Object.entries(editData)) {
         if (numericFields.includes(key)) {
@@ -300,16 +303,19 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const computedTotal = useMemo(() => {
     if (!item) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
     const src = editMode ? { ...item, ...editData } : item;
-    const unitCost = Number(src.unit_cost) || 0;
-    const qty = Number(src.quantity) || 1;
+    const unitCost = Number((src as any).unit_cost) || 0;
+    const qty = Number((src as any).quantity) || 1;
     const subtotal = unitCost * qty;
-    const delivery = Number(src.delivery_cost) || 0;
-    const installation = Number(src.installation_cost) || 0;
-    const insurance = Number(src.insurance_cost) || 0;
-    const duty = Number(src.duty_cost) || 0;
-    const custom = Number(src.custom_cost) || 0;
-    const landedCost = subtotal + delivery + installation + insurance + duty + custom;
-    const margin = Number(src.margin_percentage) || 0;
+    const delivery = Number((src as any).delivery_cost) || 0;
+    const installation = Number((src as any).installation_cost) || 0;
+    const insurance = Number((src as any).insurance_cost) || 0;
+    const duty = Number((src as any).duty_cost) || 0;
+    const custom = Number((src as any).custom_cost) || 0;
+    const boxing = Number((src as any).boxing_cost) || 0;
+    const shifting = Number((src as any).shifting_cost) || 0;
+    const extraSafe = Number((src as any).extra_safe_cost) || 0;
+    const landedCost = subtotal + delivery + installation + insurance + duty + custom + boxing + shifting + extraSafe;
+    const margin = Number((src as any).margin_percentage) || 0;
     const totalWithMargin = landedCost * (1 + margin / 100);
     return { subtotal, landedCost, totalWithMargin, margin };
   }, [item, editData, editMode]);
@@ -326,7 +332,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
 
   const isLocked = (field: string) => lockedFields.includes(field);
-  const val = (field: keyof ProjectItem) => editMode ? (editData as any)[field] : (item as any)[field];
+  const val = (field: string) => editMode ? (editData as any)[field] : (item as any)[field];
   const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
 
   const getMemberName = (id: string | null) => {
@@ -335,7 +341,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     return m?.display_name || m?.email?.split('@')[0] || null;
   };
 
-  const renderField = (label: string, field: keyof ProjectItem, opts?: { locked?: boolean; type?: 'text' | 'number' | 'date' | 'textarea' }) => {
+  const renderField = (label: string, field: string, opts?: { locked?: boolean; type?: 'text' | 'number' | 'date' | 'textarea' }) => {
     const locked = opts?.locked ?? isLocked(field);
     const fieldType = opts?.type ?? 'text';
     const value = val(field);
@@ -375,7 +381,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     );
   };
 
-  const renderLink = (label: string, field: keyof ProjectItem) => {
+  const renderLink = (label: string, field: string) => {
     const value = val(field);
     if (editMode) {
       return (
@@ -595,15 +601,23 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               <TabsContent value="finance" className="space-y-4">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Costs</h4>
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Base Cost</h4>
                     {renderField('Unit Cost', 'unit_cost', { type: 'number' })}
                     {renderField('Quantity', 'quantity', { type: 'number' })}
                     <Separator className="my-2" />
-                    {renderField('Delivery Cost', 'delivery_cost', { type: 'number' })}
-                    {renderField('Installation Cost', 'installation_cost', { type: 'number' })}
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Landed Costs</h4>
+                    {renderField('Boxing', 'boxing_cost' as any, { type: 'number' })}
+                    {renderField('Delivery', 'delivery_cost', { type: 'number' })}
+                    {renderField('Shifting (port/storage/site)', 'shifting_cost' as any, { type: 'number' })}
+                    {renderField('Installation', 'installation_cost', { type: 'number' })}
                     {renderField('Insurance', 'insurance_cost', { type: 'number' })}
-                    {renderField('Duty', 'duty_cost', { type: 'number' })}
-                    {renderField('Custom Cost', 'custom_cost', { type: 'number' })}
+                    <Separator className="my-2" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>{renderField('Duty', 'duty_cost', { type: 'number' })}</div>
+                      <div>{renderField('Custom', 'custom_cost', { type: 'number' })}</div>
+                    </div>
+                    <Separator className="my-2" />
+                    {renderField('Extra / Safe', 'extra_safe_cost' as any, { type: 'number' })}
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Pricing</h4>
