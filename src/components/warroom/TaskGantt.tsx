@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
-
+import { useProjectMilestones, ProjectMilestone } from '@/hooks/useMilestones';
 import { GanttRow as GanttRowType, DragState, ZoomLevel, QuickFilter } from './gantt/types';
 import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES } from './gantt/constants';
 import { calcTaskProgress, itemsToRows, computeTimelineRange, computeColumns, computeMonthColumns, groupRows, dayToPercent } from './gantt/helpers';
