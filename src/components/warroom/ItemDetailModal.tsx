@@ -303,16 +303,19 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const computedTotal = useMemo(() => {
     if (!item) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
     const src = editMode ? { ...item, ...editData } : item;
-    const unitCost = Number(src.unit_cost) || 0;
-    const qty = Number(src.quantity) || 1;
+    const unitCost = Number((src as any).unit_cost) || 0;
+    const qty = Number((src as any).quantity) || 1;
     const subtotal = unitCost * qty;
-    const delivery = Number(src.delivery_cost) || 0;
-    const installation = Number(src.installation_cost) || 0;
-    const insurance = Number(src.insurance_cost) || 0;
-    const duty = Number(src.duty_cost) || 0;
-    const custom = Number(src.custom_cost) || 0;
-    const landedCost = subtotal + delivery + installation + insurance + duty + custom;
-    const margin = Number(src.margin_percentage) || 0;
+    const delivery = Number((src as any).delivery_cost) || 0;
+    const installation = Number((src as any).installation_cost) || 0;
+    const insurance = Number((src as any).insurance_cost) || 0;
+    const duty = Number((src as any).duty_cost) || 0;
+    const custom = Number((src as any).custom_cost) || 0;
+    const boxing = Number((src as any).boxing_cost) || 0;
+    const shifting = Number((src as any).shifting_cost) || 0;
+    const extraSafe = Number((src as any).extra_safe_cost) || 0;
+    const landedCost = subtotal + delivery + installation + insurance + duty + custom + boxing + shifting + extraSafe;
+    const margin = Number((src as any).margin_percentage) || 0;
     const totalWithMargin = landedCost * (1 + margin / 100);
     return { subtotal, landedCost, totalWithMargin, margin };
   }, [item, editData, editMode]);
