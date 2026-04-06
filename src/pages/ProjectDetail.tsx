@@ -516,7 +516,7 @@ export default function ProjectDetail() {
           </TabsContent>
 
           {/* GANTT & TASKS TAB */}
-          <TabsContent value="gantt" className="space-y-6 -mx-4 sm:-mx-6 lg:-mx-10 px-1 sm:px-2">
+          <TabsContent value="gantt" className="space-y-6 -mx-[3%] sm:-mx-[4%] lg:-mx-[5%] xl:-mx-[6%] px-1 sm:px-2">
             {projectId && (
               <TaskGantt
                 projectId={projectId}

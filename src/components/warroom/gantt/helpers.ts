@@ -128,6 +128,12 @@ function computeItemPhases(
     // Forecast (adjusted for blocking tasks)
     let phaseEnd = addWorkingDays(cursor, duration);
     
+    // AUTO-EXTEND: if this is the active phase and its planned end is past, extend to today
+    const now = new Date();
+    if (i === activeIdx && !isCancelled && !isOnHold && isBefore(phaseEnd, now)) {
+      phaseEnd = now;
+    }
+    
     // Check if blocking tasks in this phase push the end date
     if (i === activeIdx) {
       const blockingTasks = itemTasks.filter(t => t.status !== 'done' && t.end_date);
@@ -308,8 +314,11 @@ export function computeTimelineRange(rows: GanttRow[], projectStartDate: string,
       if (p.end) { const d2 = parseISO(p.end); if (isAfter(d2, latest)) latest = d2; }
     });
   });
+  // Extend timeline if delays push past the project end
+  const now = new Date();
+  if (isAfter(now, latest)) latest = now;
   const start = addDays(earliest, -7);
-  const end = addDays(latest, 14);
+  const end = addDays(latest, 30); // generous buffer for delays
   return { timelineStart: start, timelineEnd: end, totalDays: differenceInDays(end, start) };
 }
 

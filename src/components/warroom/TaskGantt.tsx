@@ -394,6 +394,21 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
               <div className="flex border-b border-border/20">
                 <div className="sticky left-0 z-40 border-r border-border/30 bg-card/95 backdrop-blur-sm" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
                 <div className="flex-1 relative h-6 bg-muted/[0.01]">
+                  {/* Deadline zone overlay */}
+                  {(() => {
+                    const deadlineDay = differenceInDays(parseISO(projectEndDate), timelineStart);
+                    const deadlinePercent = dayToPercent(deadlineDay, totalDays);
+                    return (
+                      <>
+                        {/* Green zone: within deadline */}
+                        <div className="absolute top-0 h-full pointer-events-none" style={{ left: 0, width: `${Math.min(deadlinePercent, 100)}%`, background: 'hsla(142,40%,40%,0.04)' }} />
+                        {/* Red zone: past deadline */}
+                        {deadlinePercent < 100 && (
+                          <div className="absolute top-0 h-full pointer-events-none" style={{ left: `${deadlinePercent}%`, width: `${100 - deadlinePercent}%`, background: 'hsla(0,60%,50%,0.06)' }} />
+                        )}
+                      </>
+                    );
+                  })()}
                   {monthColumns.map((col, i) => (
                     <div
                       key={i}
@@ -413,6 +428,19 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
                   <span className="text-[8px] font-semibold text-muted-foreground/30 uppercase tracking-[0.08em] w-[65px] px-1">Dates</span>
                 </div>
                 <div className="flex-1 relative h-6">
+                  {/* Deadline zone overlay for day/week row */}
+                  {(() => {
+                    const deadlineDay = differenceInDays(parseISO(projectEndDate), timelineStart);
+                    const deadlinePercent = dayToPercent(deadlineDay, totalDays);
+                    return (
+                      <>
+                        <div className="absolute top-0 h-full pointer-events-none" style={{ left: 0, width: `${Math.min(deadlinePercent, 100)}%`, background: 'hsla(142,40%,40%,0.04)' }} />
+                        {deadlinePercent < 100 && (
+                          <div className="absolute top-0 h-full pointer-events-none" style={{ left: `${deadlinePercent}%`, width: `${100 - deadlinePercent}%`, background: 'hsla(0,60%,50%,0.06)' }} />
+                        )}
+                      </>
+                    );
+                  })()}
                   {columns.map((col, i) => (
                     <div
                       key={i}
