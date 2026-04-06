@@ -254,12 +254,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       for (const child of childOptions) {
         await updateItem.mutateAsync({
           id: child.id,
-          is_selected_option: child.id === option.id,
+          is_selected_option: child.id === option.id ? !option.is_selected_option : false,
         });
       }
-      toast.success(`Selected: ${option.description}`);
+      queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+      toast.success(option.is_selected_option ? 'Selection cleared' : `Selected: ${option.description}`);
     } catch {
-      toast.error('Failed to select option');
+      toast.error('Failed to update option');
     }
   };
 
