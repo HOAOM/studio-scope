@@ -775,50 +775,146 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             {/* OPTIONS TAB */}
             {childOptions.length > 0 && (
               <TabsContent value="options" className="space-y-4">
-                <h4 className="text-sm font-semibold text-foreground">Item Options ({childOptions.length})</h4>
-                <p className="text-xs text-muted-foreground">Select the option the client has chosen. Only the selected option will appear in the Gantt and advance through the workflow.</p>
-                <div className="grid gap-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-foreground">Design Options ({childOptions.length})</h4>
+                  <p className="text-xs text-muted-foreground">Compare options and select the client's choice</p>
+                </div>
+
+                {/* Selected option highlight */}
+                {(() => {
+                  const selected = childOptions.find(o => o.is_selected_option);
+                  if (selected) {
+                    return (
+                      <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-semibold text-primary">Client Selection</span>
+                          </div>
+                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleSelectOption({ ...selected, is_selected_option: false } as any)}>
+                            Change Selection
+                          </Button>
+                        </div>
+                        <p className="text-sm font-medium text-foreground">{selected.description}</p>
+                        <div className="flex flex-wrap gap-4 mt-1 text-xs text-muted-foreground">
+                          {selected.supplier && <span>Supplier: <strong className="text-foreground">{selected.supplier}</strong></span>}
+                          {selected.finish_material && <span>Material: <strong className="text-foreground">{selected.finish_material}</strong></span>}
+                          {canSeeCosts && selected.unit_cost != null && <span>Cost: <strong className="text-foreground font-mono">€{Number(selected.unit_cost).toFixed(2)}</strong></span>}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="rounded-lg border border-dashed border-status-at-risk bg-status-at-risk/5 p-3 text-center">
+                      <span className="text-sm text-status-at-risk font-medium">⚠ No option selected yet — awaiting client decision</span>
+                    </div>
+                  );
+                })()}
+
+                {/* Comparison grid */}
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {childOptions.map((opt, i) => (
                     <div
                       key={opt.id}
                       className={cn(
-                        'rounded-lg border p-4 transition-all',
+                        'rounded-lg border p-3 transition-all relative',
                         opt.is_selected_option
                           ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                          : 'border-border bg-card hover:border-muted-foreground/30'
+                          : 'border-border bg-card hover:border-muted-foreground/30 hover:shadow-sm'
                       )}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-foreground">Option {i + 1}</span>
-                            {opt.is_selected_option && (
-                              <Badge className="text-xs bg-primary/10 text-primary border-primary/20">
-                                <CheckCircle2 className="w-3 h-3 mr-1" /> Selected
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-foreground mt-1">{opt.description}</p>
-                          <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
-                            {opt.supplier && <span>Supplier: <strong className="text-foreground">{opt.supplier}</strong></span>}
-                            {opt.finish_material && <span>Material: <strong className="text-foreground">{opt.finish_material}</strong></span>}
-                            {opt.finish_color && <span>Color: <strong className="text-foreground">{opt.finish_color}</strong></span>}
-                            {opt.dimensions && <span>Size: <strong className="text-foreground">{opt.dimensions}</strong></span>}
-                            {canSeeCosts && opt.unit_cost != null && <span>Cost: <strong className="text-foreground font-mono">{opt.unit_cost.toFixed(2)}</strong></span>}
-                          </div>
-                          {opt.reference_image_url && (
-                            <img src={opt.reference_image_url} alt="Option" className="mt-2 h-20 w-auto object-cover rounded border border-border" />
-                          )}
-                        </div>
+                      {/* Option header */}
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant={opt.is_selected_option ? 'default' : 'outline'} className="text-xs">
+                          Option {String.fromCharCode(65 + i)}
+                        </Badge>
                         {!opt.is_selected_option && (
-                          <Button size="sm" variant="outline" onClick={() => handleSelectOption(opt)}>
+                          <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => handleSelectOption(opt)}>
                             Select
                           </Button>
+                        )}
+                      </div>
+
+                      {/* Image */}
+                      {opt.reference_image_url && (
+                        <img
+                          src={opt.reference_image_url}
+                          alt={`Option ${String.fromCharCode(65 + i)}`}
+                          className="w-full h-28 object-cover rounded-md border border-border mb-2"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
+
+                      {/* Details */}
+                      <p className="text-sm font-medium text-foreground mb-1 line-clamp-2">{opt.description}</p>
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        {opt.supplier && (
+                          <div className="flex justify-between">
+                            <span>Supplier</span>
+                            <span className="font-medium text-foreground">{opt.supplier}</span>
+                          </div>
+                        )}
+                        {opt.finish_material && (
+                          <div className="flex justify-between">
+                            <span>Material</span>
+                            <span className="font-medium text-foreground">{opt.finish_material}</span>
+                          </div>
+                        )}
+                        {opt.finish_color && (
+                          <div className="flex justify-between">
+                            <span>Color</span>
+                            <span className="font-medium text-foreground">{opt.finish_color}</span>
+                          </div>
+                        )}
+                        {opt.dimensions && (
+                          <div className="flex justify-between">
+                            <span>Size</span>
+                            <span className="font-medium text-foreground">{opt.dimensions}</span>
+                          </div>
+                        )}
+                        {opt.production_time && (
+                          <div className="flex justify-between">
+                            <span>Lead Time</span>
+                            <span className="font-medium text-foreground">{opt.production_time}</span>
+                          </div>
+                        )}
+                        {canSeeCosts && opt.unit_cost != null && (
+                          <div className="flex justify-between pt-1 border-t border-border mt-1">
+                            <span className="font-medium">Unit Cost</span>
+                            <span className="font-bold text-foreground font-mono">€{Number(opt.unit_cost).toFixed(2)}</span>
+                          </div>
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {/* Budget estimate (QS) */}
+                {canSeeCosts && (
+                  <div className="rounded-lg bg-muted/30 border border-border p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">QS Budget Estimate</span>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Manual reference budget set by QS before client selection</p>
+                      </div>
+                      <div className="text-right">
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            value={val('budget_estimate') ?? ''}
+                            onChange={e => setVal('budget_estimate', e.target.value ? parseFloat(e.target.value) : null)}
+                            className="w-32 h-8 text-sm font-mono text-right"
+                            placeholder="0.00"
+                          />
+                        ) : (
+                          <span className="text-lg font-bold font-mono text-foreground">
+                            €{Number((item as any).budget_estimate || 0).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             )}
 
