@@ -58,9 +58,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Eye,
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
@@ -157,8 +155,7 @@ export default function ProjectDetail() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const [clientViewMode, setClientViewMode] = useState(false);
-  const effectiveCanSeeCosts = canSeeCosts && !clientViewMode;
+  const effectiveCanSeeCosts = canSeeCosts;
   
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
