@@ -5,6 +5,7 @@ import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw, ChevronLeft, ChevronRight, Cal
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectTasks, useDeleteTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useTaskTemplate } from '@/hooks/useTaskTemplate';
 import { useAuth } from '@/hooks/useAuth';
 import { TaskFormDialog } from './TaskFormDialog';
@@ -16,7 +17,7 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { useProjectMilestones, ProjectMilestone } from '@/hooks/useMilestones';
 import { GanttRow as GanttRowType, DragState, ZoomLevel, QuickFilter } from './gantt/types';
-import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES } from './gantt/constants';
+import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES, ROLE_RESPONSIBILITY_STATUSES } from './gantt/constants';
 import { calcTaskProgress, itemsToRows, computeTimelineRange, computeColumns, computeMonthColumns, groupRows, dayToPercent } from './gantt/helpers';
 import { GanttGroupHeader } from './gantt/GanttGroupHeader';
 import { GanttRowComponent } from './gantt/GanttRow';
@@ -46,6 +47,7 @@ const QUICK_FILTERS: { key: QuickFilter; label: string }[] = [
 
 export function TaskGantt({ projectId, projectStartDate, projectEndDate, items = [], members = [], onItemClick }: TaskGanttProps) {
   const { user } = useAuth();
+  const { roles: userRoles } = useUserRole();
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const { data: milestones = [] } = useProjectMilestones(projectId);
   const deleteTask = useDeleteTask();
