@@ -242,36 +242,37 @@ export default function ProjectDetail() {
 
   return (
     <div className="min-h-screen bg-background war-room-grid">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-        <div className="container py-4">
+      {/* Header — compact on scroll */}
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border group/header transition-all duration-200 [&.compact]:py-0" id="project-header">
+        <div className="container py-3 group-[.compact]/header:py-1.5 transition-all duration-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <div className="flex items-center gap-3">
+              <Link to="/" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm">War Room</span>
+                <span className="text-sm hidden group-[.compact]/header:hidden sm:inline">War Room</span>
               </Link>
-              <div className="h-6 w-px bg-border" />
-              <div>
-                <span className="font-mono text-sm text-muted-foreground">{project.code}</span>
-                <h1 className="text-xl font-bold text-foreground">{project.name}</h1>
+              <div className="h-5 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-muted-foreground">{project.code}</span>
+                <span className="text-muted-foreground">·</span>
+                <h1 className="text-base font-bold text-foreground group-[.compact]/header:text-sm transition-all duration-200 truncate max-w-[300px]">{project.name}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {isAdmin && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border">
-                  <Eye className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Client View</span>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted/50 border border-border">
+                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Client</span>
                   <Switch checked={clientViewMode} onCheckedChange={setClientViewMode} className="scale-75" />
                 </div>
               )}
-              <Button variant="outline" onClick={() => setCsvDialogOpen(true)}>
-                <Upload className="w-4 h-4 mr-2" />
-                Import CSV
+              <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
+                <Upload className="w-3.5 h-3.5 mr-1.5" />
+                <span className="hidden sm:inline">Import</span>
               </Button>
-              <Button onClick={() => { setEditingItem(null); setItemDialogOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
+              <Button size="sm" onClick={() => { setEditingItem(null); setItemDialogOpen(true); }}>
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                <span className="hidden sm:inline">Add Item</span>
               </Button>
             </div>
           </div>
@@ -503,7 +504,7 @@ export default function ProjectDetail() {
           </TabsContent>
 
           {/* GANTT & TASKS TAB */}
-          <TabsContent value="gantt" className="space-y-6 -mx-[calc((100vw-100%)/2+1rem)] px-2 sm:px-4">
+          <TabsContent value="gantt" className="space-y-6 -mx-4 sm:-mx-6 lg:-mx-10 px-1 sm:px-2">
             {projectId && (
               <TaskGantt
                 projectId={projectId}
