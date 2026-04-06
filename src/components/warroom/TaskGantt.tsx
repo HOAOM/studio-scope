@@ -387,7 +387,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           onMouseLeave={() => { handlePanEnd(); if (dragging) handleDragEnd(); }}
           style={{ userSelect: isPanning ? 'none' : undefined }}
         >
-          <div style={{ minWidth: LEFT_PANEL_WIDTH + 900 }}>
+          <div style={{ minWidth: LEFT_PANEL_WIDTH + (zoom === 'day' ? Math.max(totalDays * 36, 1800) : zoom === 'week' ? Math.max(totalDays * 8, 900) : 900) }}>
             {/* Column headers */}
             <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border/40">
               {/* Month row */}
