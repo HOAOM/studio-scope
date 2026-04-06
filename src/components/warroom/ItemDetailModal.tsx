@@ -471,7 +471,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const openTasks = linkedTasks.filter(t => t.status !== 'done');
   const doneTasks = linkedTasks.filter(t => t.status === 'done');
-  const selectedOption = childOptions.find(o => o.is_selected_option);
+  const allOptions = item ? [item, ...childOptions.slice(0, 3)] : [];
+  const selectedOption = allOptions.find(o => o.is_selected_option);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
