@@ -151,6 +151,20 @@ function PhaseBar({
   const bsEnd = phase.baselineEnd ? dayToPercent(differenceInDays(parseISO(phase.baselineEnd), timelineStart), totalDays) : left + width;
   const bsWidth = Math.max(bsEnd - bsLeft, 0.3);
 
+  // Compute delay overlay: only the portion from baseline end to actual end
+  const delayOverlay = hasDelay && phase.baselineEnd && phase.end ? (() => {
+    const baseEnd = differenceInDays(parseISO(phase.baselineEnd), timelineStart);
+    const actualEnd = e;
+    const baseEndPct = dayToPercent(baseEnd, totalDays);
+    const delayLeftRelative = Math.max(baseEndPct - left, 0);
+    const delayWidthRelative = dayToPercent(actualEnd - baseEnd, totalDays);
+    if (delayWidthRelative <= 0) return null;
+    return {
+      left: `${(delayLeftRelative / Math.max(width, 0.3)) * 100}%`,
+      width: `${(delayWidthRelative / Math.max(width, 0.3)) * 100}%`,
+    };
+  })() : null;
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -175,7 +189,6 @@ function PhaseBar({
               className={cn(
                 'rounded-[3px] overflow-hidden transition-all relative',
                 isActive && !hasDelay && !hasAtRisk && 'ring-1 ring-white/15 shadow-sm',
-                hasDelay && 'ring-1 ring-destructive/50',
                 hasAtRisk && !hasDelay && 'ring-1 ring-[hsl(var(--status-at-risk))]/40',
               )}
               style={{ height }}
@@ -185,6 +198,19 @@ function PhaseBar({
                 className="absolute inset-0 rounded-[3px]"
                 style={{ background: style?.gradient || phase.color, opacity }}
               />
+
+              {/* Delay overlay — red tint only on the delayed portion */}
+              {delayOverlay && (
+                <div
+                  className="absolute top-0 bottom-0 rounded-r-[3px] pointer-events-none"
+                  style={{
+                    left: delayOverlay.left,
+                    width: delayOverlay.width,
+                    background: 'hsla(0, 70%, 50%, 0.25)',
+                    borderLeft: '1px solid hsla(0, 70%, 50%, 0.5)',
+                  }}
+                />
+              )}
               
               {/* Actual progress line (thin bar inside) */}
               {isActive && (
