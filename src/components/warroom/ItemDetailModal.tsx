@@ -266,14 +266,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     }
   };
 
-  // Add new option (child item)
+  // Add new option (child item) — max 3 children so total with parent = 4
   const handleAddOption = async () => {
-    if (!item || childOptions.length >= 4) {
-      toast.error('Maximum 4 options allowed');
+    if (!item || childOptions.length >= 3) {
+      toast.error('Maximum 4 options (including original)');
       return;
     }
     try {
-      const letter = String.fromCharCode(65 + childOptions.length);
+      const letter = String.fromCharCode(66 + childOptions.length); // B, C, D
       await createItem.mutateAsync({
         project_id: projectId,
         parent_item_id: item.id,
@@ -290,9 +290,40 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       } as any);
       queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
       queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
-      toast.success(`Option ${letter} added`);
+      toast.success(`Option ${letter} added — click the pencil to edit details`);
     } catch {
       toast.error('Failed to add option');
+    }
+  };
+
+  // Handle selecting an option (parent or child)
+  const handleSelectAnyOption = async (opt: ProjectItem) => {
+    if (!item) return;
+    try {
+      const isParent = opt.id === item.id;
+      // If clicking already-selected, deselect all
+      const isAlreadySelected = isParent ? !!item.is_selected_option : !!opt.is_selected_option;
+
+      // Update parent's is_selected_option
+      await updateItem.mutateAsync({
+        id: item.id,
+        is_selected_option: isParent ? !isAlreadySelected : false,
+      });
+
+      // Update all children
+      for (const child of childOptions) {
+        await updateItem.mutateAsync({
+          id: child.id,
+          is_selected_option: !isParent && child.id === opt.id ? !isAlreadySelected : false,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+      toast.success(isAlreadySelected ? 'Selection cleared' : `Selected: ${opt.description}`);
+    } catch {
+      toast.error('Failed to update selection');
     }
   };
 
