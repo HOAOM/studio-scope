@@ -212,6 +212,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       po_number: item.po_number,
       quotation_ref: item.quotation_ref,
       proforma_url: item.proforma_url,
+      budget_estimate: (item as any).budget_estimate,
     });
     setEditMode(true);
   };
@@ -221,7 +222,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     try {
       // Ensure numeric fields are properly typed
       const payload: Record<string, any> = { id: item.id };
-      const numericFields = ['quantity', 'unit_cost', 'selling_price', 'margin_percentage', 'delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost', 'boxing_cost', 'shifting_cost', 'extra_safe_cost'];
+      const numericFields = ['quantity', 'unit_cost', 'selling_price', 'margin_percentage', 'delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost', 'boxing_cost', 'shifting_cost', 'extra_safe_cost', 'budget_estimate'];
       
       for (const [key, value] of Object.entries(editData)) {
         if (numericFields.includes(key)) {
