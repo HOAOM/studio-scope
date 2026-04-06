@@ -673,7 +673,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </TabsContent>
             )}
 
-            {/* QUOTATIONS TAB — option pricing comparison + budget estimate + supplier quotations */}
+            {/* QUOTATIONS TAB — option cards with pricing + budget estimate + supplier quotations */}
             {canSeeProcurement && (
               <TabsContent value="quotations" className="space-y-5">
                 {/* QS Budget Estimate */}
@@ -703,70 +703,32 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   </div>
                 )}
 
-                {/* Option pricing comparison */}
-                {childOptions.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Option Pricing Comparison</h4>
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-muted/50 border-b border-border">
-                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Option</th>
-                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
-                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Supplier</th>
-                            {canSeeCosts && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Unit Cost</th>}
-                            {canSeeCosts && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Lead Time</th>}
-                            <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Preliminary</th>
-                            <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Selected</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {childOptions.slice(0, 4).map((opt, i) => (
-                            <tr
-                              key={opt.id}
-                              className={cn(
-                                'border-b border-border last:border-0 transition-colors',
-                                opt.is_selected_option ? 'bg-primary/5' : 'hover:bg-muted/20'
-                              )}
-                            >
-                              <td className="px-3 py-2">
-                                <Badge variant={opt.is_selected_option ? 'default' : 'outline'} className="text-xs">
-                                  {String.fromCharCode(65 + i)}
-                                </Badge>
-                              </td>
-                              <td className="px-3 py-2 text-foreground max-w-[200px] truncate">{opt.description}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{opt.supplier || '—'}</td>
-                              {canSeeCosts && (
-                                <td className="px-3 py-2 text-right font-mono font-medium text-foreground">
-                                  {opt.unit_cost != null ? `€${Number(opt.unit_cost).toFixed(2)}` : '—'}
-                                </td>
-                              )}
-                              {canSeeCosts && (
-                                <td className="px-3 py-2 text-right text-muted-foreground">
-                                  {opt.production_time || '—'}
-                                </td>
-                              )}
-                              <td className="px-3 py-2 text-center">
-                                <Badge variant="outline" className={cn('text-[10px]', opt.boq_included ? 'bg-primary/10 text-primary border-primary/30' : '')}>
-                                  {opt.boq_included ? 'Yes' : 'No'}
-                                </Badge>
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                {opt.is_selected_option ? (
-                                  <CheckCircle2 className="w-4 h-4 text-primary mx-auto" />
-                                ) : (
-                                  <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => handleSelectOption(opt)}>
-                                    Select
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                {/* Option cards in quotation mode */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-foreground">Option Pricing ({allOptions.length}/4)</h4>
+                    {childOptions.length < 3 && (
+                      <Button size="sm" variant="outline" onClick={handleAddOption} disabled={createItem.isPending} className="h-7 text-xs">
+                        <Plus className="w-3 h-3 mr-1" /> Add Option
+                      </Button>
+                    )}
                   </div>
-                )}
+                  <div className={cn('grid gap-3', allOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
+                    {allOptions.map((opt, i) => (
+                      <OptionCard
+                        key={opt.id}
+                        option={opt}
+                        letter={String.fromCharCode(65 + i)}
+                        isSelected={!!opt.is_selected_option}
+                        onSelect={() => handleSelectAnyOption(opt)}
+                        parentId={opt.id === item.id ? null : item.id}
+                        projectId={projectId}
+                        mode="quotation"
+                        canSeeCosts={canSeeCosts}
+                      />
+                    ))}
+                  </div>
+                </div>
 
                 <Separator />
 
