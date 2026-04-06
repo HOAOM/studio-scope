@@ -39,6 +39,7 @@ import {
   ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
+import { OptionCard } from './OptionCard';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -248,31 +249,15 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     setEditData({});
   };
 
-  const handleSelectOption = async (option: ProjectItem) => {
-    if (!item) return;
-    try {
-      for (const child of childOptions) {
-        await updateItem.mutateAsync({
-          id: child.id,
-          is_selected_option: child.id === option.id ? !option.is_selected_option : false,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
-      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
-      toast.success(option.is_selected_option ? 'Selection cleared' : `Selected: ${option.description}`);
-    } catch {
-      toast.error('Failed to update option');
-    }
-  };
 
-  // Add new option (child item)
+  // Add new option (child item) — max 3 children so total with parent = 4
   const handleAddOption = async () => {
-    if (!item || childOptions.length >= 4) {
-      toast.error('Maximum 4 options allowed');
+    if (!item || childOptions.length >= 3) {
+      toast.error('Maximum 4 options (including original)');
       return;
     }
     try {
-      const letter = String.fromCharCode(65 + childOptions.length);
+      const letter = String.fromCharCode(66 + childOptions.length); // B, C, D
       await createItem.mutateAsync({
         project_id: projectId,
         parent_item_id: item.id,
@@ -289,9 +274,40 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       } as any);
       queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
       queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
-      toast.success(`Option ${letter} added`);
+      toast.success(`Option ${letter} added — click the pencil to edit details`);
     } catch {
       toast.error('Failed to add option');
+    }
+  };
+
+  // Handle selecting an option (parent or child)
+  const handleSelectAnyOption = async (opt: ProjectItem) => {
+    if (!item) return;
+    try {
+      const isParent = opt.id === item.id;
+      // If clicking already-selected, deselect all
+      const isAlreadySelected = isParent ? !!item.is_selected_option : !!opt.is_selected_option;
+
+      // Update parent's is_selected_option
+      await updateItem.mutateAsync({
+        id: item.id,
+        is_selected_option: isParent ? !isAlreadySelected : false,
+      });
+
+      // Update all children
+      for (const child of childOptions) {
+        await updateItem.mutateAsync({
+          id: child.id,
+          is_selected_option: !isParent && child.id === opt.id ? !isAlreadySelected : false,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+      toast.success(isAlreadySelected ? 'Selection cleared' : `Selected: ${opt.description}`);
+    } catch {
+      toast.error('Failed to update selection');
     }
   };
 
@@ -439,7 +455,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const openTasks = linkedTasks.filter(t => t.status !== 'done');
   const doneTasks = linkedTasks.filter(t => t.status === 'done');
-  const selectedOption = childOptions.find(o => o.is_selected_option);
+  const allOptions = item ? [item, ...childOptions.slice(0, 3)] : [];
+  const selectedOption = allOptions.find(o => o.is_selected_option);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -571,154 +588,48 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </div>
             </TabsContent>
 
-            {/* DESIGN TAB — finishes + visual option cards */}
+            {/* DESIGN TAB — option cards with inline editing */}
             {canSeeDesign && (
               <TabsContent value="design" className="space-y-5">
-                {/* Finishes section */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Finishes</h4>
-                    {renderField('Material', 'finish_material')}
-                    {renderField('Color', 'finish_color')}
-                    {renderField('Finish Notes', 'finish_notes', { type: 'textarea' })}
-                    {renderField('Production Time', 'production_time')}
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">Design Options ({allOptions.length}/4)</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Hover a card and click the pencil to edit details. Click "Select" to flag client choice.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">References</h4>
-                    {renderLink('Reference Image', 'reference_image_url')}
-                    {renderLink('Technical Drawing', 'technical_drawing_url')}
-                    {renderLink('Company Product', 'company_product_url')}
-                    {!editMode && item.reference_image_url && (
-                      <div className="mt-2">
-                        <img src={item.reference_image_url} alt="Reference" className="w-full max-h-40 object-cover rounded-lg border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      </div>
-                    )}
-                  </div>
+                  {childOptions.length < 3 && (
+                    <Button size="sm" variant="outline" onClick={handleAddOption} disabled={createItem.isPending} className="h-7 text-xs">
+                      <Plus className="w-3 h-3 mr-1" /> Add Option
+                    </Button>
+                  )}
                 </div>
 
-                <Separator />
-
-                {/* Design Options section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground">Design Options</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">Add up to 4 options to present to the client</p>
+                {/* Client selection highlight */}
+                {selectedOption && (
+                  <div className="rounded-lg border-2 border-primary bg-primary/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary">Client Selection: {selectedOption.description}</span>
                     </div>
-                    {childOptions.length < 4 && (
-                      <Button size="sm" variant="outline" onClick={handleAddOption} disabled={createItem.isPending} className="h-7 text-xs">
-                        <Plus className="w-3 h-3 mr-1" /> Add Option
-                      </Button>
-                    )}
                   </div>
+                )}
 
-                  {/* Client selection highlight */}
-                  {selectedOption && (
-                    <div className="rounded-lg border-2 border-primary bg-primary/5 p-3 mb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-semibold text-primary">Client Selection: {selectedOption.description}</span>
-                        </div>
-                        <Button size="sm" variant="outline" className="text-xs h-6 px-2" onClick={() => handleSelectOption(selectedOption)}>
-                          Change
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {childOptions.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-muted-foreground/30 p-8 text-center">
-                      <Layers className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No design options yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Add options to compare designs for client presentation</p>
-                    </div>
-                  ) : (
-                    <div className={cn('grid gap-3', childOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-                      {childOptions.slice(0, 4).map((opt, i) => (
-                        <div
-                          key={opt.id}
-                          className={cn(
-                            'rounded-lg border transition-all cursor-pointer group',
-                            opt.is_selected_option
-                              ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
-                              : 'border-border bg-card hover:border-muted-foreground/40 hover:shadow-sm'
-                          )}
-                        >
-                          {/* Image area */}
-                          <div className="aspect-square relative bg-muted/30 rounded-t-lg overflow-hidden">
-                            {opt.reference_image_url ? (
-                              <img
-                                src={opt.reference_image_url}
-                                alt={`Option ${String.fromCharCode(65 + i)}`}
-                                className="w-full h-full object-cover"
-                                onError={e => { (e.target as HTMLImageElement).src = ''; (e.target as HTMLImageElement).classList.add('hidden'); }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40">
-                                <ImageIcon className="w-8 h-8 mb-1" />
-                                <span className="text-[10px]">No image</span>
-                              </div>
-                            )}
-                            {/* Option badge */}
-                            <Badge
-                              className={cn(
-                                'absolute top-2 left-2 text-xs',
-                                opt.is_selected_option ? 'bg-primary text-primary-foreground' : ''
-                              )}
-                              variant={opt.is_selected_option ? 'default' : 'secondary'}
-                            >
-                              {String.fromCharCode(65 + i)}
-                            </Badge>
-                            {opt.is_selected_option && (
-                              <CheckCircle2 className="absolute top-2 right-2 w-5 h-5 text-primary" />
-                            )}
-                          </div>
-
-                          {/* Details */}
-                          <div className="p-3 space-y-1.5">
-                            <p className="text-sm font-medium text-foreground line-clamp-2">{opt.description}</p>
-                            {opt.finish_material && (
-                              <p className="text-xs text-muted-foreground">
-                                <span className="font-medium text-foreground">{opt.finish_material}</span>
-                                {opt.finish_color && ` — ${opt.finish_color}`}
-                              </p>
-                            )}
-                            {opt.supplier && (
-                              <p className="text-xs text-muted-foreground">Supplier: <span className="font-medium text-foreground">{opt.supplier}</span></p>
-                            )}
-                            {opt.dimensions && (
-                              <p className="text-xs text-muted-foreground">Size: <span className="font-medium text-foreground">{opt.dimensions}</span></p>
-                            )}
-                            {/* Links */}
-                            <div className="flex gap-2 pt-1">
-                              {opt.reference_image_url && (
-                                <a href={opt.reference_image_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                                  <ExternalLink className="w-2.5 h-2.5" /> Image
-                                </a>
-                              )}
-                              {opt.company_product_url && (
-                                <a href={opt.company_product_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                                  <ExternalLink className="w-2.5 h-2.5" /> Product
-                                </a>
-                              )}
-                              {opt.technical_drawing_url && (
-                                <a href={opt.technical_drawing_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                                  <ExternalLink className="w-2.5 h-2.5" /> Drawing
-                                </a>
-                              )}
-                            </div>
-                            {/* Select button */}
-                            {!opt.is_selected_option && (
-                              <Button size="sm" variant="outline" className="w-full h-7 text-xs mt-2" onClick={() => handleSelectOption(opt)}>
-                                Select
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* Option cards grid */}
+                <div className={cn('grid gap-3', allOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
+                  {allOptions.map((opt, i) => (
+                    <OptionCard
+                      key={opt.id}
+                      option={opt}
+                      letter={String.fromCharCode(65 + i)}
+                      isSelected={!!opt.is_selected_option}
+                      onSelect={() => handleSelectAnyOption(opt)}
+                      parentId={opt.id === item.id ? null : item.id}
+                      projectId={projectId}
+                      mode="design"
+                    />
+                  ))}
                 </div>
               </TabsContent>
             )}
@@ -746,7 +657,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </TabsContent>
             )}
 
-            {/* QUOTATIONS TAB — option pricing comparison + budget estimate + supplier quotations */}
+            {/* QUOTATIONS TAB — option cards with pricing + budget estimate + supplier quotations */}
             {canSeeProcurement && (
               <TabsContent value="quotations" className="space-y-5">
                 {/* QS Budget Estimate */}
@@ -776,70 +687,32 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   </div>
                 )}
 
-                {/* Option pricing comparison */}
-                {childOptions.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Option Pricing Comparison</h4>
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-muted/50 border-b border-border">
-                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Option</th>
-                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
-                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Supplier</th>
-                            {canSeeCosts && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Unit Cost</th>}
-                            {canSeeCosts && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Lead Time</th>}
-                            <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Preliminary</th>
-                            <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Selected</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {childOptions.slice(0, 4).map((opt, i) => (
-                            <tr
-                              key={opt.id}
-                              className={cn(
-                                'border-b border-border last:border-0 transition-colors',
-                                opt.is_selected_option ? 'bg-primary/5' : 'hover:bg-muted/20'
-                              )}
-                            >
-                              <td className="px-3 py-2">
-                                <Badge variant={opt.is_selected_option ? 'default' : 'outline'} className="text-xs">
-                                  {String.fromCharCode(65 + i)}
-                                </Badge>
-                              </td>
-                              <td className="px-3 py-2 text-foreground max-w-[200px] truncate">{opt.description}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{opt.supplier || '—'}</td>
-                              {canSeeCosts && (
-                                <td className="px-3 py-2 text-right font-mono font-medium text-foreground">
-                                  {opt.unit_cost != null ? `€${Number(opt.unit_cost).toFixed(2)}` : '—'}
-                                </td>
-                              )}
-                              {canSeeCosts && (
-                                <td className="px-3 py-2 text-right text-muted-foreground">
-                                  {opt.production_time || '—'}
-                                </td>
-                              )}
-                              <td className="px-3 py-2 text-center">
-                                <Badge variant="outline" className={cn('text-[10px]', opt.boq_included ? 'bg-primary/10 text-primary border-primary/30' : '')}>
-                                  {opt.boq_included ? 'Yes' : 'No'}
-                                </Badge>
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                {opt.is_selected_option ? (
-                                  <CheckCircle2 className="w-4 h-4 text-primary mx-auto" />
-                                ) : (
-                                  <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => handleSelectOption(opt)}>
-                                    Select
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                {/* Option cards in quotation mode */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-foreground">Option Pricing ({allOptions.length}/4)</h4>
+                    {childOptions.length < 3 && (
+                      <Button size="sm" variant="outline" onClick={handleAddOption} disabled={createItem.isPending} className="h-7 text-xs">
+                        <Plus className="w-3 h-3 mr-1" /> Add Option
+                      </Button>
+                    )}
                   </div>
-                )}
+                  <div className={cn('grid gap-3', allOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
+                    {allOptions.map((opt, i) => (
+                      <OptionCard
+                        key={opt.id}
+                        option={opt}
+                        letter={String.fromCharCode(65 + i)}
+                        isSelected={!!opt.is_selected_option}
+                        onSelect={() => handleSelectAnyOption(opt)}
+                        parentId={opt.id === item.id ? null : item.id}
+                        projectId={projectId}
+                        mode="quotation"
+                        canSeeCosts={canSeeCosts}
+                      />
+                    ))}
+                  </div>
+                </div>
 
                 <Separator />
 
