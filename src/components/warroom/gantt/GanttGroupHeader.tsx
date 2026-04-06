@@ -24,7 +24,7 @@ export function GanttGroupHeader({ group, rows, isCollapsed, onToggle }: Props) 
       className="w-full flex items-center border-b border-border/15 transition-colors hover:bg-muted/[0.04]"
       style={{ height: GROUP_HEADER_HEIGHT }}
     >
-      <div className="flex items-center gap-2 px-3" style={{ width: LEFT_PANEL_WIDTH }}>
+      <div className="sticky left-0 z-10 flex items-center gap-2 px-3 bg-card" style={{ width: LEFT_PANEL_WIDTH }}>
         {isCollapsed
           ? <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
           : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/50" />
