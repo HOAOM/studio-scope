@@ -2,7 +2,7 @@ import { TaskMacroArea } from '@/lib/workflow';
 
 export const ROW_HEIGHT = 42;
 export const GROUP_HEADER_HEIGHT = 38;
-export const LEFT_PANEL_WIDTH = 380;
+export const LEFT_PANEL_WIDTH = 340;
 export const MIN_CHART_WIDTH = 700;
 
 /** Default working-day durations per macro-phase */

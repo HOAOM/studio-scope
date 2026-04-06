@@ -379,7 +379,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
         </div>
       ) : (
         <div
-          className={cn('overflow-x-auto', isPanning && 'cursor-grabbing', !isPanning && 'cursor-grab')}
+          className={cn('overflow-auto max-h-[calc(100vh-220px)]', isPanning && 'cursor-grabbing', !isPanning && 'cursor-grab')}
           ref={scrollRef}
           onMouseDown={handlePanStart}
           onMouseMove={(e) => { handlePanMove(e); if (dragging) handleDragMove(e); }}
@@ -388,11 +388,11 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           style={{ userSelect: isPanning ? 'none' : undefined }}
         >
           <div style={{ minWidth: LEFT_PANEL_WIDTH + (zoom === 'day' ? Math.max(totalDays * 36, 1800) : zoom === 'week' ? Math.max(totalDays * 8, 900) : 900) }}>
-            {/* Column headers */}
-            <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border/40">
+            {/* Column headers — sticky top */}
+            <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/40">
               {/* Month row */}
               <div className="flex border-b border-border/20">
-                <div className="border-r border-border/30 bg-muted/[0.03]" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
+                <div className="sticky left-0 z-40 border-r border-border/30 bg-card/95 backdrop-blur-sm" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }} />
                 <div className="flex-1 relative h-6 bg-muted/[0.01]">
                   {monthColumns.map((col, i) => (
                     <div
@@ -407,7 +407,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
               </div>
               {/* Day/Week row */}
               <div className="flex">
-                <div className="flex items-center border-r border-border/30 bg-muted/[0.03]" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
+                <div className="sticky left-0 z-40 flex items-center border-r border-border/30 bg-card/95 backdrop-blur-sm" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
                   <span className="text-[8px] font-semibold text-muted-foreground/30 uppercase tracking-[0.08em] pl-8 flex-1">Item</span>
                   <span className="text-[8px] font-semibold text-muted-foreground/30 uppercase tracking-[0.08em] w-[60px] px-1">Status</span>
                   <span className="text-[8px] font-semibold text-muted-foreground/30 uppercase tracking-[0.08em] w-[65px] px-1">Dates</span>
