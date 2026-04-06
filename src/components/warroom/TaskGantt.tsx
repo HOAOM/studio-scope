@@ -5,6 +5,7 @@ import { Plus, ZoomIn, ZoomOut, Wand2, RefreshCw, ChevronLeft, ChevronRight, Cal
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectTasks, useDeleteTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useTaskTemplate } from '@/hooks/useTaskTemplate';
 import { useAuth } from '@/hooks/useAuth';
 import { TaskFormDialog } from './TaskFormDialog';
@@ -16,7 +17,7 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { useProjectMilestones, ProjectMilestone } from '@/hooks/useMilestones';
 import { GanttRow as GanttRowType, DragState, ZoomLevel, QuickFilter } from './gantt/types';
-import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES } from './gantt/constants';
+import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES, ROLE_RESPONSIBILITY_STATUSES } from './gantt/constants';
 import { calcTaskProgress, itemsToRows, computeTimelineRange, computeColumns, computeMonthColumns, groupRows, dayToPercent } from './gantt/helpers';
 import { GanttGroupHeader } from './gantt/GanttGroupHeader';
 import { GanttRowComponent } from './gantt/GanttRow';
@@ -46,6 +47,7 @@ const QUICK_FILTERS: { key: QuickFilter; label: string }[] = [
 
 export function TaskGantt({ projectId, projectStartDate, projectEndDate, items = [], members = [], onItemClick }: TaskGanttProps) {
   const { user } = useAuth();
+  const { roles: userRoles } = useUserRole();
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const { data: milestones = [] } = useProjectMilestones(projectId);
   const deleteTask = useDeleteTask();
@@ -119,12 +121,12 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       // For sub-tasks, include if parent item matches
       if (row.isSubTask) {
         const parentRow = allRows.find(r => r.type === 'item' && r.itemId === row.parentItemId);
-        if (parentRow) return matchesFilter(parentRow, quickFilter, user?.id);
+        if (parentRow) return matchesFilter(parentRow, quickFilter, user?.id, userRoles);
         return false;
       }
-      return matchesFilter(row, quickFilter, user?.id);
+      return matchesFilter(row, quickFilter, user?.id, userRoles);
     });
-  }, [allRows, quickFilter, user?.id]);
+  }, [allRows, quickFilter, user?.id, userRoles]);
 
   const grouped = useMemo(() => groupRows(filteredRows), [filteredRows]);
 
@@ -385,7 +387,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
           onMouseLeave={() => { handlePanEnd(); if (dragging) handleDragEnd(); }}
           style={{ userSelect: isPanning ? 'none' : undefined }}
         >
-          <div style={{ minWidth: LEFT_PANEL_WIDTH + 900 }}>
+          <div style={{ minWidth: LEFT_PANEL_WIDTH + (zoom === 'day' ? Math.max(totalDays * 36, 1800) : zoom === 'week' ? Math.max(totalDays * 8, 900) : 900) }}>
             {/* Column headers */}
             <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border/40">
               {/* Month row */}
@@ -529,15 +531,28 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
 
 // ─── Filter matching ───
 
-function matchesFilter(row: GanttRowType, filter: QuickFilter, userId?: string): boolean {
+function matchesFilter(row: GanttRowType, filter: QuickFilter, userId?: string, userRoles?: string[]): boolean {
   switch (filter) {
     case 'all': return true;
-    case 'waiting_for_me':
-      if (row.type === 'item') {
-        // Item has open tasks assigned to current user
-        return false; // handled at task level
+    case 'waiting_for_me': {
+      // Tasks directly assigned to me
+      if (row.type === 'task' && row.assignee === userId && row.status !== 'done') return true;
+      
+      // Items in a status that belongs to my role's responsibility
+      if (row.type === 'item' && userRoles && userRoles.length > 0) {
+        const status = row.status;
+        // Admin/COO see everything
+        if (userRoles.includes('admin') || userRoles.includes('coo')) {
+          return row.openTaskCount ? row.openTaskCount > 0 : false;
+        }
+        // Check if item's current status is in any of the user's role responsibilities
+        return userRoles.some(role => {
+          const statuses = ROLE_RESPONSIBILITY_STATUSES[role];
+          return statuses && statuses.has(status);
+        });
       }
-      return row.assignee === userId && row.status !== 'done';
+      return false;
+    }
     case 'waiting_from_client':
       return row.waitingFor === 'client';
     case 'waiting_from_supplier':

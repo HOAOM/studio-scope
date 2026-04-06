@@ -56,17 +56,23 @@ function computeGatesForPhase(phaseKey: string, lifecycleStatus: string | null):
 
 // ─── At-Risk / Delayed ───
 
-function computePhaseRisk(phaseStart: string, phaseEnd: string | null, isActive: boolean): { atRisk: boolean; delayed: boolean } {
-  if (!isActive || !phaseEnd) return { atRisk: false, delayed: false };
+function computePhaseRisk(phaseStart: string, phaseEnd: string | null, isActive: boolean, isPast: boolean): { atRisk: boolean; delayed: boolean } {
+  if (!phaseEnd) return { atRisk: false, delayed: false };
   
   const now = new Date();
   const end = parseISO(phaseEnd);
   const start = parseISO(phaseStart);
-  const totalDuration = differenceInDays(end, start);
-  const elapsed = differenceInDays(now, start);
   
-  if (isAfter(now, end)) return { atRisk: false, delayed: true };
-  if (totalDuration > 0 && elapsed / totalDuration >= 0.9) return { atRisk: true, delayed: false };
+  // If phase should be past (based on baseline) but item is still active here → delayed
+  if (isPast) return { atRisk: false, delayed: false };
+  
+  if (isActive) {
+    const totalDuration = differenceInDays(end, start);
+    const elapsed = differenceInDays(now, start);
+    if (isAfter(now, end)) return { atRisk: false, delayed: true };
+    if (totalDuration > 0 && elapsed / totalDuration >= 0.9) return { atRisk: true, delayed: false };
+  }
+  
   return { atRisk: false, delayed: false };
 }
 
@@ -140,7 +146,11 @@ function computeItemPhases(
     const isPast = i < activeIdx;
     const isFuture = i > activeIdx;
     
-    const risk = computePhaseRisk(format(cursor, 'yyyy-MM-dd'), format(phaseEnd, 'yyyy-MM-dd'), isActive);
+    // Check if this phase's baseline end is past → item should have been beyond this phase
+    const baselinePast = isBefore(baselineEnd, new Date());
+    const isDelayedPhase = isActive && baselinePast; // active but baseline says should be done
+    
+    const risk = computePhaseRisk(format(cursor, 'yyyy-MM-dd'), format(phaseEnd, 'yyyy-MM-dd'), isActive, isPast);
     const actualProgress = computeActualProgress(phaseKey, item.lifecycle_status, i, activeIdx);
     const gates = computeGatesForPhase(phaseKey, item.lifecycle_status);
     
@@ -158,7 +168,7 @@ function computeItemPhases(
       actualProgress,
       gates: gates.length > 0 ? gates : undefined,
       atRisk: risk.atRisk,
-      delayed: risk.delayed,
+      delayed: risk.delayed || isDelayedPhase,
     });
     
     cursor = phaseEnd;

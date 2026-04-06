@@ -482,6 +482,7 @@ export type Database = {
           approval_status: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included: boolean
+          boxing_cost: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url: string | null
           created_at: string
@@ -492,6 +493,7 @@ export type Database = {
           description: string
           dimensions: string | null
           duty_cost: number | null
+          extra_safe_cost: number | null
           finish_color: string | null
           finish_material: string | null
           finish_notes: string | null
@@ -531,6 +533,7 @@ export type Database = {
           room_number: string | null
           selling_price: number | null
           sequence_number: number | null
+          shifting_cost: number | null
           site_movement_date: string | null
           subcategory_id: string | null
           supplier: string | null
@@ -543,6 +546,7 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included?: boolean
+          boxing_cost?: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
@@ -553,6 +557,7 @@ export type Database = {
           description: string
           dimensions?: string | null
           duty_cost?: number | null
+          extra_safe_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
           finish_notes?: string | null
@@ -592,6 +597,7 @@ export type Database = {
           room_number?: string | null
           selling_price?: number | null
           sequence_number?: number | null
+          shifting_cost?: number | null
           site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null
@@ -604,6 +610,7 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area?: string
           boq_included?: boolean
+          boxing_cost?: number | null
           category?: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
@@ -614,6 +621,7 @@ export type Database = {
           description?: string
           dimensions?: string | null
           duty_cost?: number | null
+          extra_safe_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
           finish_notes?: string | null
@@ -653,6 +661,7 @@ export type Database = {
           room_number?: string | null
           selling_price?: number | null
           sequence_number?: number | null
+          shifting_cost?: number | null
           site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null

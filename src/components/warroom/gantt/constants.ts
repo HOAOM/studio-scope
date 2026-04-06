@@ -127,3 +127,21 @@ export const WAITING_SUPPLIER_STATUSES = new Set([
   'in_delivery',
   'proforma_received',
 ]);
+
+/** Map each role to the lifecycle statuses that are "their responsibility" */
+export const ROLE_RESPONSIBILITY_STATUSES: Record<string, Set<string>> = {
+  designer: new Set(['concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer']),
+  head_of_design: new Set(['concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer', 'finishes_approved_hod']),
+  architectural_dept: new Set(['concept', 'in_design', 'design_ready']),
+  qs: new Set(['quotation_preparation', 'quotation_inserted', 'quotation_approved_ops', 'quotation_approved_high']),
+  procurement_manager: new Set(['quotation_preparation', 'quotation_inserted', 'quotation_approved_ops', 'quotation_approved_high', 'po_issued', 'proforma_received']),
+  head_of_payments: new Set(['payment_approval', 'payment_executed', 'proforma_received']),
+  accountant: new Set(['payment_approval', 'payment_executed']),
+  project_manager: new Set(['concept', 'in_design', 'design_ready', 'finishes_proposed', 'client_board_ready', 'client_board_waiting_signature', 'installation_planned', 'installed', 'snagging', 'closed']),
+  site_engineer: new Set(['delivered_to_site', 'installation_planned', 'installed', 'snagging']),
+  mep_engineer: new Set(['installation_planned', 'installed', 'snagging']),
+  client: new Set(['client_board_waiting_signature', 'finishes_proposed']),
+  ceo: new Set(['quotation_approved_high', 'payment_approval']),
+  coo: new Set(), // COO sees everything
+  admin: new Set(), // Admin sees everything
+};
