@@ -232,17 +232,38 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     return { totalItems: items.length, totalAmount, missingPrices, uniqueFloors };
   }, [items]);
 
-  // Filtered + sorted items
+  // Separate parent items from child options, build display list with indented children
   const displayItems = useMemo(() => {
-    let result = items.filter(item => {
+    // Identify child options (items with parent_item_id)
+    const childMap = new Map<string, ProjectItem[]>();
+    const parentItems: ProjectItem[] = [];
+
+    for (const item of items) {
+      if (item.parent_item_id) {
+        const children = childMap.get(item.parent_item_id) || [];
+        children.push(item);
+        childMap.set(item.parent_item_id, children);
+      } else {
+        parentItems.push(item);
+      }
+    }
+
+    // Filter parents by search
+    let result = parentItems.filter(item => {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
+      const children = childMap.get(item.id) || [];
+      const childMatch = children.some(c =>
+        c.description.toLowerCase().includes(q) ||
+        (c.supplier || '').toLowerCase().includes(q)
+      );
       return (
         (item.item_code || '').toLowerCase().includes(q) ||
         item.description.toLowerCase().includes(q) ||
         item.area.toLowerCase().includes(q) ||
         (item.supplier || '').toLowerCase().includes(q) ||
-        (item.notes || '').toLowerCase().includes(q)
+        (item.notes || '').toLowerCase().includes(q) ||
+        childMatch
       );
     });
 
@@ -265,7 +286,22 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       });
     }
 
-    return result;
+    // Interleave children after their parents
+    const final: (ProjectItem & { _isOption?: boolean; _optionIndex?: number; _optionSelected?: boolean })[] = [];
+    for (const parent of result) {
+      final.push(parent);
+      const children = childMap.get(parent.id) || [];
+      children.forEach((child, idx) => {
+        final.push({
+          ...child,
+          _isOption: true,
+          _optionIndex: idx + 1,
+          _optionSelected: child.is_selected_option || false,
+        } as any);
+      });
+    }
+
+    return final;
   }, [items, searchQuery, sortField, sortAsc]);
 
   const toggleSort = useCallback((field: SortField) => {
