@@ -291,9 +291,9 @@ export default function ProjectDetail() {
         </div>
       </header>
 
-      <main className="container py-8">
+      <main className="py-8 px-[3%] sm:px-[4%] lg:px-[5%] xl:px-[4%]">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex justify-end w-full">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
             <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
@@ -516,7 +516,7 @@ export default function ProjectDetail() {
           </TabsContent>
 
           {/* GANTT & TASKS TAB */}
-          <TabsContent value="gantt" className="space-y-6 -mx-[3%] sm:-mx-[4%] lg:-mx-[5%] xl:-mx-[6%] px-1 sm:px-2">
+          <TabsContent value="gantt" className="space-y-6">
             {projectId && (
               <TaskGantt
                 projectId={projectId}
