@@ -483,6 +483,7 @@ export type Database = {
           area: string
           boq_included: boolean
           boxing_cost: number | null
+          budget_estimate: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url: string | null
           created_at: string
@@ -547,6 +548,7 @@ export type Database = {
           area: string
           boq_included?: boolean
           boxing_cost?: number | null
+          budget_estimate?: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
@@ -611,6 +613,7 @@ export type Database = {
           area?: string
           boq_included?: boolean
           boxing_cost?: number | null
+          budget_estimate?: number | null
           category?: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
