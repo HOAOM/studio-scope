@@ -39,6 +39,7 @@ import {
   ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
+import { OptionCard } from './OptionCard';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
