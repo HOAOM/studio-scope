@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useProject, useProjectItems, useDeleteProjectItem } from '@/hooks/useProjects';
 import { StatusBadge } from '@/components/warroom/StatusBadge';
@@ -144,6 +144,18 @@ export default function ProjectDetail() {
   const urgentTasks = useMemo(() => {
     return projectTasks.filter(t => t.linked_item_id && t.status !== 'done');
   }, [projectTasks]);
+
+  // Compact header on scroll
+  useEffect(() => {
+    const header = document.getElementById('project-header');
+    if (!header) return;
+    const onScroll = () => {
+      if (window.scrollY > 60) header.classList.add('compact');
+      else header.classList.remove('compact');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const [clientViewMode, setClientViewMode] = useState(false);
   const effectiveCanSeeCosts = canSeeCosts && !clientViewMode;
