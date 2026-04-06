@@ -604,154 +604,48 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </div>
             </TabsContent>
 
-            {/* DESIGN TAB — finishes + visual option cards */}
+            {/* DESIGN TAB — option cards with inline editing */}
             {canSeeDesign && (
               <TabsContent value="design" className="space-y-5">
-                {/* Finishes section */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Finishes</h4>
-                    {renderField('Material', 'finish_material')}
-                    {renderField('Color', 'finish_color')}
-                    {renderField('Finish Notes', 'finish_notes', { type: 'textarea' })}
-                    {renderField('Production Time', 'production_time')}
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">Design Options ({allOptions.length}/4)</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Hover a card and click the pencil to edit details. Click "Select" to flag client choice.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">References</h4>
-                    {renderLink('Reference Image', 'reference_image_url')}
-                    {renderLink('Technical Drawing', 'technical_drawing_url')}
-                    {renderLink('Company Product', 'company_product_url')}
-                    {!editMode && item.reference_image_url && (
-                      <div className="mt-2">
-                        <img src={item.reference_image_url} alt="Reference" className="w-full max-h-40 object-cover rounded-lg border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      </div>
-                    )}
-                  </div>
+                  {childOptions.length < 3 && (
+                    <Button size="sm" variant="outline" onClick={handleAddOption} disabled={createItem.isPending} className="h-7 text-xs">
+                      <Plus className="w-3 h-3 mr-1" /> Add Option
+                    </Button>
+                  )}
                 </div>
 
-                <Separator />
-
-                {/* Design Options section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground">Design Options</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">Add up to 4 options to present to the client</p>
+                {/* Client selection highlight */}
+                {selectedOption && (
+                  <div className="rounded-lg border-2 border-primary bg-primary/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary">Client Selection: {selectedOption.description}</span>
                     </div>
-                    {childOptions.length < 4 && (
-                      <Button size="sm" variant="outline" onClick={handleAddOption} disabled={createItem.isPending} className="h-7 text-xs">
-                        <Plus className="w-3 h-3 mr-1" /> Add Option
-                      </Button>
-                    )}
                   </div>
+                )}
 
-                  {/* Client selection highlight */}
-                  {selectedOption && (
-                    <div className="rounded-lg border-2 border-primary bg-primary/5 p-3 mb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-semibold text-primary">Client Selection: {selectedOption.description}</span>
-                        </div>
-                        <Button size="sm" variant="outline" className="text-xs h-6 px-2" onClick={() => handleSelectOption(selectedOption)}>
-                          Change
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {childOptions.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-muted-foreground/30 p-8 text-center">
-                      <Layers className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No design options yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Add options to compare designs for client presentation</p>
-                    </div>
-                  ) : (
-                    <div className={cn('grid gap-3', childOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-                      {childOptions.slice(0, 4).map((opt, i) => (
-                        <div
-                          key={opt.id}
-                          className={cn(
-                            'rounded-lg border transition-all cursor-pointer group',
-                            opt.is_selected_option
-                              ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
-                              : 'border-border bg-card hover:border-muted-foreground/40 hover:shadow-sm'
-                          )}
-                        >
-                          {/* Image area */}
-                          <div className="aspect-square relative bg-muted/30 rounded-t-lg overflow-hidden">
-                            {opt.reference_image_url ? (
-                              <img
-                                src={opt.reference_image_url}
-                                alt={`Option ${String.fromCharCode(65 + i)}`}
-                                className="w-full h-full object-cover"
-                                onError={e => { (e.target as HTMLImageElement).src = ''; (e.target as HTMLImageElement).classList.add('hidden'); }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40">
-                                <ImageIcon className="w-8 h-8 mb-1" />
-                                <span className="text-[10px]">No image</span>
-                              </div>
-                            )}
-                            {/* Option badge */}
-                            <Badge
-                              className={cn(
-                                'absolute top-2 left-2 text-xs',
-                                opt.is_selected_option ? 'bg-primary text-primary-foreground' : ''
-                              )}
-                              variant={opt.is_selected_option ? 'default' : 'secondary'}
-                            >
-                              {String.fromCharCode(65 + i)}
-                            </Badge>
-                            {opt.is_selected_option && (
-                              <CheckCircle2 className="absolute top-2 right-2 w-5 h-5 text-primary" />
-                            )}
-                          </div>
-
-                          {/* Details */}
-                          <div className="p-3 space-y-1.5">
-                            <p className="text-sm font-medium text-foreground line-clamp-2">{opt.description}</p>
-                            {opt.finish_material && (
-                              <p className="text-xs text-muted-foreground">
-                                <span className="font-medium text-foreground">{opt.finish_material}</span>
-                                {opt.finish_color && ` — ${opt.finish_color}`}
-                              </p>
-                            )}
-                            {opt.supplier && (
-                              <p className="text-xs text-muted-foreground">Supplier: <span className="font-medium text-foreground">{opt.supplier}</span></p>
-                            )}
-                            {opt.dimensions && (
-                              <p className="text-xs text-muted-foreground">Size: <span className="font-medium text-foreground">{opt.dimensions}</span></p>
-                            )}
-                            {/* Links */}
-                            <div className="flex gap-2 pt-1">
-                              {opt.reference_image_url && (
-                                <a href={opt.reference_image_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                                  <ExternalLink className="w-2.5 h-2.5" /> Image
-                                </a>
-                              )}
-                              {opt.company_product_url && (
-                                <a href={opt.company_product_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                                  <ExternalLink className="w-2.5 h-2.5" /> Product
-                                </a>
-                              )}
-                              {opt.technical_drawing_url && (
-                                <a href={opt.technical_drawing_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                                  <ExternalLink className="w-2.5 h-2.5" /> Drawing
-                                </a>
-                              )}
-                            </div>
-                            {/* Select button */}
-                            {!opt.is_selected_option && (
-                              <Button size="sm" variant="outline" className="w-full h-7 text-xs mt-2" onClick={() => handleSelectOption(opt)}>
-                                Select
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* Option cards grid */}
+                <div className={cn('grid gap-3', allOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
+                  {allOptions.map((opt, i) => (
+                    <OptionCard
+                      key={opt.id}
+                      option={opt}
+                      letter={String.fromCharCode(65 + i)}
+                      isSelected={!!opt.is_selected_option}
+                      onSelect={() => handleSelectAnyOption(opt)}
+                      parentId={opt.id === item.id ? null : item.id}
+                      projectId={projectId}
+                      mode="design"
+                    />
+                  ))}
                 </div>
               </TabsContent>
             )}
