@@ -291,7 +291,7 @@ export default function ProjectDetail() {
         </div>
       </header>
 
-      <main className="container py-8 -mx-[3%] sm:-mx-[4%] lg:-mx-[5%] xl:-mx-[6%] px-[3%] sm:px-[4%] lg:px-[5%] xl:px-[6%]" style={{ width: 'calc(100% + 6%)' }}>
+      <main className="py-8 px-[3%] sm:px-[4%] lg:px-[5%] xl:px-[4%]">
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="flex justify-end w-full">
             <TabsTrigger value="overview">Overview</TabsTrigger>
