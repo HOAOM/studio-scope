@@ -58,9 +58,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Eye,
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
@@ -157,8 +155,7 @@ export default function ProjectDetail() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const [clientViewMode, setClientViewMode] = useState(false);
-  const effectiveCanSeeCosts = canSeeCosts && !clientViewMode;
+  const effectiveCanSeeCosts = canSeeCosts;
   
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
@@ -271,13 +268,6 @@ export default function ProjectDetail() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {isAdmin && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted/50 border border-border">
-                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground hidden sm:inline">Client</span>
-                  <Switch checked={clientViewMode} onCheckedChange={setClientViewMode} className="scale-75" />
-                </div>
-              )}
               <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
                 <Upload className="w-3.5 h-3.5 mr-1.5" />
                 <span className="hidden sm:inline">Import</span>
@@ -293,7 +283,7 @@ export default function ProjectDetail() {
 
       <main className="py-8 px-[3%] sm:px-[4%] lg:px-[5%] xl:px-[4%]">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="flex justify-end w-full">
+          <TabsList className="flex justify-start w-full">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
             <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
