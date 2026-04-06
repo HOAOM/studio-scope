@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
-import { useUpdateProjectItem } from '@/hooks/useProjects';
+import { useUpdateProjectItem, useCreateProjectItem } from '@/hooks/useProjects';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,6 +61,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const { user } = useAuth();
   const { roles, canSeeCosts } = useUserRole();
   const updateItem = useUpdateProjectItem();
+  const createItem = useCreateProjectItem();
   const queryClient = useQueryClient();
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Record<string, any>>({});
@@ -220,7 +221,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const handleSave = async () => {
     if (!item) return;
     try {
-      // Ensure numeric fields are properly typed
       const payload: Record<string, any> = { id: item.id };
       const numericFields = ['quantity', 'unit_cost', 'selling_price', 'margin_percentage', 'delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost', 'boxing_cost', 'shifting_cost', 'extra_safe_cost', 'budget_estimate'];
       
@@ -265,6 +265,36 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     }
   };
 
+  // Add new option (child item)
+  const handleAddOption = async () => {
+    if (!item || childOptions.length >= 4) {
+      toast.error('Maximum 4 options allowed');
+      return;
+    }
+    try {
+      const letter = String.fromCharCode(65 + childOptions.length);
+      await createItem.mutateAsync({
+        project_id: projectId,
+        parent_item_id: item.id,
+        category: item.category,
+        area: item.area,
+        description: `${item.description} — Option ${letter}`,
+        boq_included: false,
+        is_selected_option: false,
+        floor_id: item.floor_id,
+        room_id: item.room_id,
+        item_type_id: item.item_type_id,
+        subcategory_id: item.subcategory_id,
+        room_number: item.room_number,
+      } as any);
+      queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+      toast.success(`Option ${letter} added`);
+    } catch {
+      toast.error('Failed to add option');
+    }
+  };
+
   // Quick task creation
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const handleCreateQuickTask = async () => {
@@ -302,7 +332,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     } catch { toast.error('Failed to delete task'); }
   };
 
-  // Compute real total including all landed costs + margin (must be before early return)
+  // Compute real total including all landed costs + margin
   const computedTotal = useMemo(() => {
     if (!item) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
     const src = editMode ? { ...item, ...editData } : item;
@@ -409,6 +439,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const openTasks = linkedTasks.filter(t => t.status !== 'done');
   const doneTasks = linkedTasks.filter(t => t.status === 'done');
+  const selectedOption = childOptions.find(o => o.is_selected_option);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -443,7 +474,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 )}
               </div>
             </div>
-            {/* Edit / Save / Cancel buttons */}
             <div className="flex items-center gap-2">
               {editMode ? (
                 <>
@@ -462,7 +492,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             </div>
           </div>
 
-          {/* Action Buttons */}
           {!editMode && availableTransitions.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {availableTransitions
@@ -493,14 +522,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           <Tabs defaultValue="info" className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
-              {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design</TabsTrigger>}
+              {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design{childOptions.length > 0 ? ` (${childOptions.length})` : ''}</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="procurement"><Package className="w-3 h-3 mr-1" />Procurement</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="quotations"><ReceiptText className="w-3 h-3 mr-1" />Quotations</TabsTrigger>}
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
               {canSeeLogistics && <TabsTrigger value="logistics"><Truck className="w-3 h-3 mr-1" />Logistics</TabsTrigger>}
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
               <TabsTrigger value="tasks"><ListTodo className="w-3 h-3 mr-1" />Tasks{openTasks.length > 0 ? ` (${openTasks.length})` : ''}</TabsTrigger>
-              {childOptions.length > 0 && <TabsTrigger value="options"><Layers className="w-3 h-3 mr-1" />Options</TabsTrigger>}
               <TabsTrigger value="history"><History className="w-3 h-3 mr-1" />History</TabsTrigger>
             </TabsList>
 
@@ -543,9 +571,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </div>
             </TabsContent>
 
-            {/* DESIGN TAB */}
+            {/* DESIGN TAB — finishes + visual option cards */}
             {canSeeDesign && (
-              <TabsContent value="design" className="space-y-4">
+              <TabsContent value="design" className="space-y-5">
+                {/* Finishes section */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Finishes</h4>
@@ -565,6 +594,131 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                       </div>
                     )}
                   </div>
+                </div>
+
+                <Separator />
+
+                {/* Design Options section */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">Design Options</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Add up to 4 options to present to the client</p>
+                    </div>
+                    {childOptions.length < 4 && (
+                      <Button size="sm" variant="outline" onClick={handleAddOption} disabled={createItem.isPending} className="h-7 text-xs">
+                        <Plus className="w-3 h-3 mr-1" /> Add Option
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Client selection highlight */}
+                  {selectedOption && (
+                    <div className="rounded-lg border-2 border-primary bg-primary/5 p-3 mb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-semibold text-primary">Client Selection: {selectedOption.description}</span>
+                        </div>
+                        <Button size="sm" variant="outline" className="text-xs h-6 px-2" onClick={() => handleSelectOption(selectedOption)}>
+                          Change
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {childOptions.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-muted-foreground/30 p-8 text-center">
+                      <Layers className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No design options yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Add options to compare designs for client presentation</p>
+                    </div>
+                  ) : (
+                    <div className={cn('grid gap-3', childOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
+                      {childOptions.slice(0, 4).map((opt, i) => (
+                        <div
+                          key={opt.id}
+                          className={cn(
+                            'rounded-lg border transition-all cursor-pointer group',
+                            opt.is_selected_option
+                              ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                              : 'border-border bg-card hover:border-muted-foreground/40 hover:shadow-sm'
+                          )}
+                        >
+                          {/* Image area */}
+                          <div className="aspect-square relative bg-muted/30 rounded-t-lg overflow-hidden">
+                            {opt.reference_image_url ? (
+                              <img
+                                src={opt.reference_image_url}
+                                alt={`Option ${String.fromCharCode(65 + i)}`}
+                                className="w-full h-full object-cover"
+                                onError={e => { (e.target as HTMLImageElement).src = ''; (e.target as HTMLImageElement).classList.add('hidden'); }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40">
+                                <ImageIcon className="w-8 h-8 mb-1" />
+                                <span className="text-[10px]">No image</span>
+                              </div>
+                            )}
+                            {/* Option badge */}
+                            <Badge
+                              className={cn(
+                                'absolute top-2 left-2 text-xs',
+                                opt.is_selected_option ? 'bg-primary text-primary-foreground' : ''
+                              )}
+                              variant={opt.is_selected_option ? 'default' : 'secondary'}
+                            >
+                              {String.fromCharCode(65 + i)}
+                            </Badge>
+                            {opt.is_selected_option && (
+                              <CheckCircle2 className="absolute top-2 right-2 w-5 h-5 text-primary" />
+                            )}
+                          </div>
+
+                          {/* Details */}
+                          <div className="p-3 space-y-1.5">
+                            <p className="text-sm font-medium text-foreground line-clamp-2">{opt.description}</p>
+                            {opt.finish_material && (
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium text-foreground">{opt.finish_material}</span>
+                                {opt.finish_color && ` — ${opt.finish_color}`}
+                              </p>
+                            )}
+                            {opt.supplier && (
+                              <p className="text-xs text-muted-foreground">Supplier: <span className="font-medium text-foreground">{opt.supplier}</span></p>
+                            )}
+                            {opt.dimensions && (
+                              <p className="text-xs text-muted-foreground">Size: <span className="font-medium text-foreground">{opt.dimensions}</span></p>
+                            )}
+                            {/* Links */}
+                            <div className="flex gap-2 pt-1">
+                              {opt.reference_image_url && (
+                                <a href={opt.reference_image_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                                  <ExternalLink className="w-2.5 h-2.5" /> Image
+                                </a>
+                              )}
+                              {opt.company_product_url && (
+                                <a href={opt.company_product_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                                  <ExternalLink className="w-2.5 h-2.5" /> Product
+                                </a>
+                              )}
+                              {opt.technical_drawing_url && (
+                                <a href={opt.technical_drawing_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                                  <ExternalLink className="w-2.5 h-2.5" /> Drawing
+                                </a>
+                              )}
+                            </div>
+                            {/* Select button */}
+                            {!opt.is_selected_option && (
+                              <Button size="sm" variant="outline" className="w-full h-7 text-xs mt-2" onClick={() => handleSelectOption(opt)}>
+                                Select
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             )}
@@ -592,10 +746,108 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </TabsContent>
             )}
 
-            {/* QUOTATIONS TAB */}
+            {/* QUOTATIONS TAB — option pricing comparison + budget estimate + supplier quotations */}
             {canSeeProcurement && (
-              <TabsContent value="quotations" className="space-y-4">
-                <QuotationsTab itemId={item.id} canEdit={canSeeProcurement} />
+              <TabsContent value="quotations" className="space-y-5">
+                {/* QS Budget Estimate */}
+                {canSeeCosts && (
+                  <div className="rounded-lg bg-muted/30 border border-border p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">QS Budget Estimate</span>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Manual reference budget set by QS before client selection</p>
+                      </div>
+                      <div className="text-right">
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            value={val('budget_estimate') ?? ''}
+                            onChange={e => setVal('budget_estimate', e.target.value ? parseFloat(e.target.value) : null)}
+                            className="w-32 h-8 text-sm font-mono text-right"
+                            placeholder="0.00"
+                          />
+                        ) : (
+                          <span className="text-lg font-bold font-mono text-foreground">
+                            €{Number((item as any).budget_estimate || 0).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Option pricing comparison */}
+                {childOptions.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Option Pricing Comparison</h4>
+                    <div className="rounded-lg border border-border overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 border-b border-border">
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Option</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Supplier</th>
+                            {canSeeCosts && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Unit Cost</th>}
+                            {canSeeCosts && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Lead Time</th>}
+                            <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Preliminary</th>
+                            <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Selected</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {childOptions.slice(0, 4).map((opt, i) => (
+                            <tr
+                              key={opt.id}
+                              className={cn(
+                                'border-b border-border last:border-0 transition-colors',
+                                opt.is_selected_option ? 'bg-primary/5' : 'hover:bg-muted/20'
+                              )}
+                            >
+                              <td className="px-3 py-2">
+                                <Badge variant={opt.is_selected_option ? 'default' : 'outline'} className="text-xs">
+                                  {String.fromCharCode(65 + i)}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2 text-foreground max-w-[200px] truncate">{opt.description}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{opt.supplier || '—'}</td>
+                              {canSeeCosts && (
+                                <td className="px-3 py-2 text-right font-mono font-medium text-foreground">
+                                  {opt.unit_cost != null ? `€${Number(opt.unit_cost).toFixed(2)}` : '—'}
+                                </td>
+                              )}
+                              {canSeeCosts && (
+                                <td className="px-3 py-2 text-right text-muted-foreground">
+                                  {opt.production_time || '—'}
+                                </td>
+                              )}
+                              <td className="px-3 py-2 text-center">
+                                <Badge variant="outline" className={cn('text-[10px]', opt.boq_included ? 'bg-primary/10 text-primary border-primary/30' : '')}>
+                                  {opt.boq_included ? 'Yes' : 'No'}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                {opt.is_selected_option ? (
+                                  <CheckCircle2 className="w-4 h-4 text-primary mx-auto" />
+                                ) : (
+                                  <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => handleSelectOption(opt)}>
+                                    Select
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <Separator />
+
+                {/* Supplier Quotations */}
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3">Supplier Quotations</h4>
+                  <QuotationsTab itemId={item.id} canEdit={canSeeProcurement} />
+                </div>
               </TabsContent>
             )}
 
@@ -774,152 +1026,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 <p className="text-sm text-muted-foreground text-center py-6">No tasks linked to this item yet.</p>
               )}
             </TabsContent>
-
-            {/* OPTIONS TAB */}
-            {childOptions.length > 0 && (
-              <TabsContent value="options" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-foreground">Design Options ({childOptions.length})</h4>
-                  <p className="text-xs text-muted-foreground">Compare options and select the client's choice</p>
-                </div>
-
-                {/* Selected option highlight */}
-                {(() => {
-                  const selected = childOptions.find(o => o.is_selected_option);
-                  if (selected) {
-                    return (
-                      <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-semibold text-primary">Client Selection</span>
-                          </div>
-                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleSelectOption({ ...selected, is_selected_option: false } as any)}>
-                            Change Selection
-                          </Button>
-                        </div>
-                        <p className="text-sm font-medium text-foreground">{selected.description}</p>
-                        <div className="flex flex-wrap gap-4 mt-1 text-xs text-muted-foreground">
-                          {selected.supplier && <span>Supplier: <strong className="text-foreground">{selected.supplier}</strong></span>}
-                          {selected.finish_material && <span>Material: <strong className="text-foreground">{selected.finish_material}</strong></span>}
-                          {canSeeCosts && selected.unit_cost != null && <span>Cost: <strong className="text-foreground font-mono">€{Number(selected.unit_cost).toFixed(2)}</strong></span>}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="rounded-lg border border-dashed border-status-at-risk bg-status-at-risk/5 p-3 text-center">
-                      <span className="text-sm text-status-at-risk font-medium">⚠ No option selected yet — awaiting client decision</span>
-                    </div>
-                  );
-                })()}
-
-                {/* Comparison grid */}
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {childOptions.map((opt, i) => (
-                    <div
-                      key={opt.id}
-                      className={cn(
-                        'rounded-lg border p-3 transition-all relative',
-                        opt.is_selected_option
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                          : 'border-border bg-card hover:border-muted-foreground/30 hover:shadow-sm'
-                      )}
-                    >
-                      {/* Option header */}
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant={opt.is_selected_option ? 'default' : 'outline'} className="text-xs">
-                          Option {String.fromCharCode(65 + i)}
-                        </Badge>
-                        {!opt.is_selected_option && (
-                          <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => handleSelectOption(opt)}>
-                            Select
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Image */}
-                      {opt.reference_image_url && (
-                        <img
-                          src={opt.reference_image_url}
-                          alt={`Option ${String.fromCharCode(65 + i)}`}
-                          className="w-full h-28 object-cover rounded-md border border-border mb-2"
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      )}
-
-                      {/* Details */}
-                      <p className="text-sm font-medium text-foreground mb-1 line-clamp-2">{opt.description}</p>
-                      <div className="space-y-1 text-xs text-muted-foreground">
-                        {opt.supplier && (
-                          <div className="flex justify-between">
-                            <span>Supplier</span>
-                            <span className="font-medium text-foreground">{opt.supplier}</span>
-                          </div>
-                        )}
-                        {opt.finish_material && (
-                          <div className="flex justify-between">
-                            <span>Material</span>
-                            <span className="font-medium text-foreground">{opt.finish_material}</span>
-                          </div>
-                        )}
-                        {opt.finish_color && (
-                          <div className="flex justify-between">
-                            <span>Color</span>
-                            <span className="font-medium text-foreground">{opt.finish_color}</span>
-                          </div>
-                        )}
-                        {opt.dimensions && (
-                          <div className="flex justify-between">
-                            <span>Size</span>
-                            <span className="font-medium text-foreground">{opt.dimensions}</span>
-                          </div>
-                        )}
-                        {opt.production_time && (
-                          <div className="flex justify-between">
-                            <span>Lead Time</span>
-                            <span className="font-medium text-foreground">{opt.production_time}</span>
-                          </div>
-                        )}
-                        {canSeeCosts && opt.unit_cost != null && (
-                          <div className="flex justify-between pt-1 border-t border-border mt-1">
-                            <span className="font-medium">Unit Cost</span>
-                            <span className="font-bold text-foreground font-mono">€{Number(opt.unit_cost).toFixed(2)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Budget estimate (QS) */}
-                {canSeeCosts && (
-                  <div className="rounded-lg bg-muted/30 border border-border p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">QS Budget Estimate</span>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Manual reference budget set by QS before client selection</p>
-                      </div>
-                      <div className="text-right">
-                        {editMode ? (
-                          <Input
-                            type="number"
-                            value={val('budget_estimate') ?? ''}
-                            onChange={e => setVal('budget_estimate', e.target.value ? parseFloat(e.target.value) : null)}
-                            className="w-32 h-8 text-sm font-mono text-right"
-                            placeholder="0.00"
-                          />
-                        ) : (
-                          <span className="text-lg font-bold font-mono text-foreground">
-                            €{Number((item as any).budget_estimate || 0).toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-            )}
 
             {/* HISTORY TAB */}
             <TabsContent value="history" className="space-y-3">
