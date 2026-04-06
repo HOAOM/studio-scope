@@ -121,12 +121,12 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
       // For sub-tasks, include if parent item matches
       if (row.isSubTask) {
         const parentRow = allRows.find(r => r.type === 'item' && r.itemId === row.parentItemId);
-        if (parentRow) return matchesFilter(parentRow, quickFilter, user?.id);
+        if (parentRow) return matchesFilter(parentRow, quickFilter, user?.id, userRoles);
         return false;
       }
-      return matchesFilter(row, quickFilter, user?.id);
+      return matchesFilter(row, quickFilter, user?.id, userRoles);
     });
-  }, [allRows, quickFilter, user?.id]);
+  }, [allRows, quickFilter, user?.id, userRoles]);
 
   const grouped = useMemo(() => groupRows(filteredRows), [filteredRows]);
 
@@ -531,15 +531,28 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
 
 // ─── Filter matching ───
 
-function matchesFilter(row: GanttRowType, filter: QuickFilter, userId?: string): boolean {
+function matchesFilter(row: GanttRowType, filter: QuickFilter, userId?: string, userRoles?: string[]): boolean {
   switch (filter) {
     case 'all': return true;
-    case 'waiting_for_me':
-      if (row.type === 'item') {
-        // Item has open tasks assigned to current user
-        return false; // handled at task level
+    case 'waiting_for_me': {
+      // Tasks directly assigned to me
+      if (row.type === 'task' && row.assignee === userId && row.status !== 'done') return true;
+      
+      // Items in a status that belongs to my role's responsibility
+      if (row.type === 'item' && userRoles && userRoles.length > 0) {
+        const status = row.status;
+        // Admin/COO see everything
+        if (userRoles.includes('admin') || userRoles.includes('coo')) {
+          return row.openTaskCount ? row.openTaskCount > 0 : false;
+        }
+        // Check if item's current status is in any of the user's role responsibilities
+        return userRoles.some(role => {
+          const statuses = ROLE_RESPONSIBILITY_STATUSES[role];
+          return statuses && statuses.has(status);
+        });
       }
-      return row.assignee === userId && row.status !== 'done';
+      return false;
+    }
     case 'waiting_from_client':
       return row.waitingFor === 'client';
     case 'waiting_from_supplier':
