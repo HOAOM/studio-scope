@@ -232,17 +232,38 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     return { totalItems: items.length, totalAmount, missingPrices, uniqueFloors };
   }, [items]);
 
-  // Filtered + sorted items
+  // Separate parent items from child options, build display list with indented children
   const displayItems = useMemo(() => {
-    let result = items.filter(item => {
+    // Identify child options (items with parent_item_id)
+    const childMap = new Map<string, ProjectItem[]>();
+    const parentItems: ProjectItem[] = [];
+
+    for (const item of items) {
+      if (item.parent_item_id) {
+        const children = childMap.get(item.parent_item_id) || [];
+        children.push(item);
+        childMap.set(item.parent_item_id, children);
+      } else {
+        parentItems.push(item);
+      }
+    }
+
+    // Filter parents by search
+    let result = parentItems.filter(item => {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
+      const children = childMap.get(item.id) || [];
+      const childMatch = children.some(c =>
+        c.description.toLowerCase().includes(q) ||
+        (c.supplier || '').toLowerCase().includes(q)
+      );
       return (
         (item.item_code || '').toLowerCase().includes(q) ||
         item.description.toLowerCase().includes(q) ||
         item.area.toLowerCase().includes(q) ||
         (item.supplier || '').toLowerCase().includes(q) ||
-        (item.notes || '').toLowerCase().includes(q)
+        (item.notes || '').toLowerCase().includes(q) ||
+        childMatch
       );
     });
 
@@ -265,7 +286,22 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       });
     }
 
-    return result;
+    // Interleave children after their parents
+    const final: (ProjectItem & { _isOption?: boolean; _optionIndex?: number; _optionSelected?: boolean })[] = [];
+    for (const parent of result) {
+      final.push(parent);
+      const children = childMap.get(parent.id) || [];
+      children.forEach((child, idx) => {
+        final.push({
+          ...child,
+          _isOption: true,
+          _optionIndex: idx + 1,
+          _optionSelected: child.is_selected_option || false,
+        } as any);
+      });
+    }
+
+    return final;
   }, [items, searchQuery, sortField, sortAsc]);
 
   const toggleSort = useCallback((field: SortField) => {
@@ -786,43 +822,66 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                 </TableRow>
               ) : (
                 displayItems.map(item => {
+                  const isOption = (item as any)._isOption;
+                  const optionIndex = (item as any)._optionIndex;
+                  const optionSelected = (item as any)._optionSelected;
                   const floor = floorMap.get(item.floor_id || '');
                   const room = roomMap.get(item.room_id || '');
-                  const rowColor = getRoomColor(floor?.code || '', room?.code || '', item.room_number || '01');
+                  const rowColor = isOption ? undefined : getRoomColor(floor?.code || '', room?.code || '', item.room_number || '01');
                   const amount = (item.unit_cost || 0) * (item.quantity || 1);
                   const isMissingPrice = !item.unit_cost || item.unit_cost === 0;
                   const isCustom = item.item_code?.includes('-CF');
 
                   return (
-                    <TableRow key={item.id} style={{ backgroundColor: rowColor }} className="[&_td]:text-gray-900 [&_td]:px-1.5 [&_td]:py-1">
+                    <TableRow
+                      key={item.id}
+                      style={rowColor ? { backgroundColor: rowColor } : undefined}
+                      className={cn(
+                        '[&_td]:px-1.5 [&_td]:py-1',
+                        isOption
+                          ? optionSelected
+                            ? 'bg-primary/5 border-l-2 border-l-primary [&_td]:text-foreground'
+                            : 'bg-muted/30 border-l-2 border-l-border [&_td]:text-muted-foreground'
+                          : '[&_td]:text-gray-900'
+                      )}
+                    >
                       {isCol('image') && (
                         <TableCell>
                           {item.reference_image_url ? (
                             <img
                               src={item.reference_image_url}
                               alt=""
-                              className="w-10 h-10 object-cover rounded cursor-pointer border border-gray-300"
+                              className={cn('w-10 h-10 object-cover rounded cursor-pointer border', isOption ? 'w-8 h-8 border-border' : 'border-gray-300')}
                               onClick={() => window.open(item.reference_image_url!, '_blank')}
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded border border-gray-300 bg-white/50 flex items-center justify-center">
-                              <ImageIcon className="w-4 h-4 text-gray-400" />
+                            <div className={cn('rounded border bg-white/50 flex items-center justify-center', isOption ? 'w-8 h-8 border-border' : 'w-10 h-10 border-gray-300')}>
+                              <ImageIcon className="w-4 h-4 text-muted-foreground" />
                             </div>
                           )}
                         </TableCell>
                       )}
-                      <TableCell className={cn('font-mono text-xs font-bold', isCustom ? 'text-red-700' : 'text-gray-900')}>
-                        {item.item_code || '-'}
+                      <TableCell className={cn('font-mono text-xs font-bold', isOption ? 'pl-6' : '', isCustom ? 'text-red-700' : isOption ? '' : 'text-gray-900')}>
+                        {isOption ? (
+                          <span className="flex items-center gap-1">
+                            <span className="text-muted-foreground">↳</span>
+                            <Badge variant={optionSelected ? 'default' : 'outline'} className="text-[9px] h-4 px-1.5">
+                              Opt {optionIndex}{optionSelected ? ' ✓' : ''}
+                            </Badge>
+                          </span>
+                        ) : (
+                          item.item_code || '-'
+                        )}
                       </TableCell>
-                      <TableCell className="text-xs text-gray-800">{floor?.code || '-'}</TableCell>
-                      <TableCell className="text-xs text-gray-800">{room?.code || ''}{item.room_number || ''}</TableCell>
-                      {isCol('zone') && <TableCell className="text-xs text-gray-800">{item.area || '-'}</TableCell>}
-                      {isCol('area') && <TableCell className="text-xs text-gray-800">{item.area || '-'}</TableCell>}
-                      {isCol('brand') && <TableCell className="text-xs text-gray-800">{item.supplier || '-'}</TableCell>}
-                      <TableCell className="text-sm max-w-[200px] truncate text-gray-900 font-medium" title={item.description}>{item.description}</TableCell>
-                      {isCol('finishing') && <TableCell className="text-xs text-gray-800">{item.finish_material || '-'}</TableCell>}
-                      {isCol('size') && <TableCell className="text-xs text-gray-800">{item.dimensions || '-'}</TableCell>}
+                      <TableCell className="text-xs">{isOption ? '' : (floor?.code || '-')}</TableCell>
+                      <TableCell className="text-xs">{isOption ? '' : ((room?.code || '') + (item.room_number || ''))}</TableCell>
+                      {isCol('zone') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
+                      {isCol('area') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
+                      {isCol('brand') && <TableCell className="text-xs">{item.supplier || '-'}</TableCell>}
+                      <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-6 italic' : '')} title={item.description}>{item.description}</TableCell>
+                      {isCol('finishing') && <TableCell className="text-xs">{item.finish_material || '-'}</TableCell>}
+                      {isCol('size') && <TableCell className="text-xs">{item.dimensions || '-'}</TableCell>}
                       {isCol('tech') && <TableCell>{renderLinks(item.technical_drawing_url)}</TableCell>}
                       {isCol('refImg') && (
                         <TableCell>
@@ -836,20 +895,20 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                         </TableCell>
                       )}
                       {isCol('coLink') && <TableCell>{renderLinks(item.company_product_url)}</TableCell>}
-                      <TableCell className="text-xs font-mono text-gray-900">{item.quantity || 1}</TableCell>
-                      <TableCell className="text-xs text-gray-800">pcs</TableCell>
+                      <TableCell className="text-xs font-mono">{item.quantity || 1}</TableCell>
+                      <TableCell className="text-xs">pcs</TableCell>
                       {isCol('unitRate') && canSeeCosts && (
-                        <TableCell className={cn('text-xs font-mono text-right text-gray-900', isMissingPrice && 'bg-red-100 font-bold text-red-700')}>
+                        <TableCell className={cn('text-xs font-mono text-right', isMissingPrice && !isOption && 'bg-red-100 font-bold text-red-700')}>
                           {item.unit_cost ? `€${Number(item.unit_cost).toFixed(2)}` : '-'}
                         </TableCell>
                       )}
                       {isCol('amount') && canSeeCosts && (
-                        <TableCell className="text-xs font-mono text-right font-bold text-gray-900">
-                          €{amount.toFixed(2)}
+                        <TableCell className="text-xs font-mono text-right font-bold">
+                          {isOption && !optionSelected ? '-' : `€${amount.toFixed(2)}`}
                         </TableCell>
                       )}
-                      {isCol('prodTime') && <TableCell className="text-xs text-gray-800">{item.production_time || '-'}</TableCell>}
-                      {isCol('notes') && <TableCell className="text-xs max-w-[150px] truncate text-gray-700" title={item.notes || ''}>{item.notes || '-'}</TableCell>}
+                      {isCol('prodTime') && <TableCell className="text-xs">{item.production_time || '-'}</TableCell>}
+                      {isCol('notes') && <TableCell className="text-xs max-w-[150px] truncate" title={item.notes || ''}>{item.notes || '-'}</TableCell>}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
