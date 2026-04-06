@@ -249,22 +249,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     setEditData({});
   };
 
-  const handleSelectOption = async (option: ProjectItem) => {
-    if (!item) return;
-    try {
-      for (const child of childOptions) {
-        await updateItem.mutateAsync({
-          id: child.id,
-          is_selected_option: child.id === option.id ? !option.is_selected_option : false,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
-      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
-      toast.success(option.is_selected_option ? 'Selection cleared' : `Selected: ${option.description}`);
-    } catch {
-      toast.error('Failed to update option');
-    }
-  };
 
   // Add new option (child item) — max 3 children so total with parent = 4
   const handleAddOption = async () => {
