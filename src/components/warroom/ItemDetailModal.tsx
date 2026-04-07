@@ -903,6 +903,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               )}
             </TabsContent>
 
+            {/* MESSAGES TAB */}
+            <TabsContent value="messages">
+              <ItemMessages
+                itemId={item.id}
+                profiles={new Map(members.map((m: any) => [m.id, { display_name: m.display_name, email: m.email }]))}
+              />
+            </TabsContent>
+
             {/* HISTORY TAB */}
             <TabsContent value="history" className="space-y-3">
               <h4 className="text-sm font-semibold text-foreground">Activity Log</h4>
