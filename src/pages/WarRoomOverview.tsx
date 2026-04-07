@@ -90,7 +90,7 @@ export default function WarRoomOverview() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [excelImportOpen, setExcelImportOpen] = useState(false);
   
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { data: projects = [], isLoading } = useProjects();
   const deleteProject = useDeleteProject();
