@@ -181,12 +181,14 @@ export function useSendDirectMessage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ recipientIds, body, subject, projectId, itemId }: {
+    mutationFn: async ({ recipientIds, body, subject, projectId, itemId, attachmentUrl, attachmentName }: {
       recipientIds: string[];
       body: string;
       subject?: string;
       projectId?: string;
       itemId?: string;
+      attachmentUrl?: string;
+      attachmentName?: string;
     }) => {
       const rows = recipientIds.map(rid => ({
         sender_id: user?.id,
@@ -195,6 +197,8 @@ export function useSendDirectMessage() {
         subject: subject || null,
         project_id: projectId || null,
         item_id: itemId || null,
+        attachment_url: attachmentUrl || null,
+        attachment_name: attachmentName || null,
       }));
       const { error } = await (supabase as any)
         .from('direct_messages')
@@ -204,6 +208,7 @@ export function useSendDirectMessage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dm-conversations'] });
       qc.invalidateQueries({ queryKey: ['direct-messages'] });
+      qc.invalidateQueries({ queryKey: ['all-dms'] });
     },
   });
 }
