@@ -219,7 +219,7 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
 
     try {
       const buffer = await selectedFile.arrayBuffer();
-      const parsed = parseExcel(buffer);
+      const parsed = await parseExcel(buffer);
       setResult(parsed);
       
       if (parsed.projectName && !projectName) {
