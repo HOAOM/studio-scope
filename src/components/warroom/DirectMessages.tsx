@@ -306,7 +306,7 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
       <div className="border-t border-border p-2 space-y-1.5">
         {/* Context selectors */}
         <div className="flex gap-1.5">
-          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+          <Select value={selectedProjectId} onValueChange={v => setSelectedProjectId(v === 'none' ? '' : v)}>
             <SelectTrigger className="h-7 text-[10px] flex-1">
               <SelectValue placeholder="Project (optional)" />
             </SelectTrigger>
@@ -318,7 +318,7 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
             </SelectContent>
           </Select>
           {selectedProjectId && selectedProjectId !== 'none' && (
-            <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+            <Select value={selectedItemId} onValueChange={v => setSelectedItemId(v === 'none' ? '' : v)}>
               <SelectTrigger className="h-7 text-[10px] flex-1">
                 <SelectValue placeholder="Item (optional)" />
               </SelectTrigger>
