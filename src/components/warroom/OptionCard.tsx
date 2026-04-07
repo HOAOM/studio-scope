@@ -171,7 +171,7 @@ export function OptionCard({
           <Input value={form.dimensions} onChange={e => setForm(f => ({ ...f, dimensions: e.target.value }))} className="h-7 text-xs" placeholder="e.g. 120x80x45 cm" />
         </div>
 
-        {mode === 'quotation' && canSeeCosts && (
+        {canSeeCosts && (
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-[10px]">Unit Cost (€)</Label>

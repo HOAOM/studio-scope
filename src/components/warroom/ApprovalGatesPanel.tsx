@@ -34,13 +34,33 @@ export function ApprovalGatesPanel({ items, projectId, canApprove = true, onItem
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingItem, setRejectingItem] = useState<ProjectItem | null>(null);
 
+  // Filter: only show items that are either:
+  // 1. The selected option (is_selected_option = true)
+  // 2. Items without any options (no parent, and no children with is_selected_option)
+  // 3. Parent items that have NO children at all
+  const relevantItems = useMemo(() => {
+    const parentIds = new Set(items.filter(i => i.parent_item_id).map(i => i.parent_item_id));
+    return items.filter(i => {
+      // If this is a child option, only show if it's the selected one
+      if (i.parent_item_id) return !!i.is_selected_option;
+      // If this is a parent with children, only show if it's the selected one OR no option is selected yet
+      if (parentIds.has(i.id)) {
+        const hasSelectedChild = items.some(c => c.parent_item_id === i.id && c.is_selected_option);
+        if (hasSelectedChild) return false; // child is selected, skip parent
+        return !!i.is_selected_option || !items.some(c => c.parent_item_id === i.id);
+      }
+      // Standalone item (no children, no parent) — always show
+      return true;
+    });
+  }, [items]);
+
   const gates = useMemo<GateGroup[]>(() => {
-    const pending = items.filter(i => i.approval_status === 'pending');
-    const revision = items.filter(i => i.approval_status === 'revision');
-    const rejected = items.filter(i => i.approval_status === 'rejected');
-    const readyToOrder = items.filter(i => i.approval_status === 'approved' && !i.purchased);
-    const awaitingDelivery = items.filter(i => i.purchased && !i.received);
-    const readyToInstall = items.filter(i => i.received && !i.installed);
+    const pending = relevantItems.filter(i => i.approval_status === 'pending');
+    const revision = relevantItems.filter(i => i.approval_status === 'revision');
+    const rejected = relevantItems.filter(i => i.approval_status === 'rejected');
+    const readyToOrder = relevantItems.filter(i => i.approval_status === 'approved' && !i.purchased);
+    const awaitingDelivery = relevantItems.filter(i => i.purchased && !i.received);
+    const readyToInstall = relevantItems.filter(i => i.received && !i.installed);
 
     return [
       { key: 'pending', label: 'Pending Approval', icon: <Clock className="w-4 h-4" />, color: 'text-status-at-risk', bgColor: 'bg-status-at-risk-bg', borderColor: 'border-status-at-risk/20', items: pending, description: 'Items waiting for design/finish approval' },
@@ -50,7 +70,7 @@ export function ApprovalGatesPanel({ items, projectId, canApprove = true, onItem
       { key: 'awaiting_delivery', label: 'Awaiting Delivery', icon: <Package className="w-4 h-4" />, color: 'text-primary', bgColor: 'bg-primary/10', borderColor: 'border-primary/20', items: awaitingDelivery, description: 'Ordered — waiting for delivery' },
       { key: 'ready_install', label: 'Ready to Install', icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-status-safe', bgColor: 'bg-status-safe-bg', borderColor: 'border-status-safe/20', items: readyToInstall, description: 'Delivered — waiting for installation team' },
     ].filter(g => g.items.length > 0);
-  }, [items]);
+  }, [relevantItems]);
 
   const handleQuickApprove = async (item: ProjectItem) => {
     try {
