@@ -7,6 +7,7 @@ import { KPIBlock } from '@/components/warroom/KPIBlock';
 import { computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ProjectFormDialog } from '@/components/warroom/ProjectFormDialog';
 import { ExcelImportDialog } from '@/components/warroom/ExcelImportDialog';
+import { UserMenu } from '@/components/warroom/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { 
@@ -17,13 +18,11 @@ import {
   Activity,
   Clock,
   Plus,
-  LogOut,
   Loader2,
   Trash2,
   Edit,
   User,
   MapPin,
-  Shield,
   FileSpreadsheet
 } from 'lucide-react';
 import {
@@ -91,7 +90,7 @@ export default function WarRoomOverview() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [excelImportOpen, setExcelImportOpen] = useState(false);
   
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { data: projects = [], isLoading } = useProjects();
   const deleteProject = useDeleteProject();
@@ -120,10 +119,6 @@ export default function WarRoomOverview() {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast.success('Signed out successfully');
-  };
 
   const handleEditProject = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -201,13 +196,7 @@ export default function WarRoomOverview() {
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/admin')}>
-                <Shield className="w-4 h-4 mr-1" />
-                Admin
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4" />
-              </Button>
+              <UserMenu />
             </div>
           </div>
         </div>

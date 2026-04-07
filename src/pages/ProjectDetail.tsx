@@ -65,8 +65,8 @@ import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
-import { DirectMessagesPanel } from '@/components/warroom/DirectMessages';
-import { Image as ImageIcon, MessageSquare } from 'lucide-react';
+import { UserMenu } from '@/components/warroom/UserMenu';
+import { Image as ImageIcon } from 'lucide-react';
 
 import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 import { useProjectTasks } from '@/hooks/useTasks';
@@ -277,6 +277,7 @@ export default function ProjectDetail() {
                 <Plus className="w-3.5 h-3.5 mr-1.5" />
                 <span className="hidden sm:inline">Add Item</span>
               </Button>
+              <UserMenu />
             </div>
           </div>
         </div>
@@ -292,7 +293,6 @@ export default function ProjectDetail() {
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
-            <TabsTrigger value="messages"><MessageSquare className="w-3.5 h-3.5 mr-1" />Messages</TabsTrigger>
           </TabsList>
 
           {/* BOQ ANALYST TAB */}
@@ -779,12 +779,6 @@ export default function ProjectDetail() {
             )}
           </TabsContent>
 
-          {/* MESSAGES TAB */}
-          <TabsContent value="messages">
-            <div className="border border-border rounded-lg h-[600px]">
-              <DirectMessagesPanel />
-            </div>
-          </TabsContent>
         </Tabs>
       </main>
 
