@@ -57,9 +57,9 @@ type BOQCategory = Database['public']['Enums']['boq_category'];
 
 // ---- Color palette for room-based row coloring ----
 const COLOR_PALETTE = [
-  'hsl(0 70% 95%)', 'hsl(210 70% 95%)', 'hsl(30 70% 95%)', 'hsl(120 70% 95%)',
-  'hsl(300 70% 95%)', 'hsl(180 70% 95%)', 'hsl(60 70% 95%)', 'hsl(270 50% 95%)',
-  'hsl(150 50% 95%)', 'hsl(330 50% 95%)', 'hsl(240 50% 95%)', 'hsl(15 70% 95%)',
+  'hsl(0 40% 16%)', 'hsl(210 40% 16%)', 'hsl(30 40% 16%)', 'hsl(120 30% 14%)',
+  'hsl(300 30% 16%)', 'hsl(180 30% 14%)', 'hsl(60 30% 14%)', 'hsl(270 25% 16%)',
+  'hsl(150 25% 14%)', 'hsl(330 25% 16%)', 'hsl(240 25% 16%)', 'hsl(15 40% 16%)',
 ];
 
 function hashCode(str: string): number {
@@ -794,10 +794,10 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+      <div className="border border-border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+            <TableHeader className="sticky top-0 z-20 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
               <TableRow className="hover:bg-transparent [&_th]:px-1.5 [&_th]:py-2 [&_th]:text-[11px]">
                 {isCol('image') && <TableHead className="w-[36px] px-1">Img</TableHead>}
                 <SortHeader field="code" label="Code" className="px-1.5" />
@@ -873,7 +873,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                           )}
                         </TableCell>
                       )}
-                      <TableCell className={cn('font-mono text-xs font-bold', isOption ? 'pl-10' : '', isCustom ? 'text-destructive' : '')}>
+                      <TableCell className={cn('font-mono text-xs font-bold', isOption ? 'pl-20' : '', isCustom ? 'text-destructive' : '')}>
                         {isOption ? (
                           <span className="flex items-center gap-1">
                             <span className="text-muted-foreground">↳</span>
@@ -897,7 +897,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       {isCol('zone') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
                       {isCol('area') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
                       {isCol('brand') && <TableCell className="text-xs">{item.supplier || '-'}</TableCell>}
-                      <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-10 italic' : '')} title={item.description}>{item.description}</TableCell>
+                      <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-20 italic' : '')} title={item.description}>{item.description}</TableCell>
                       {isCol('finishing') && <TableCell className="text-xs">{item.finish_material || '-'}</TableCell>}
                       {isCol('size') && <TableCell className="text-xs">{item.dimensions || '-'}</TableCell>}
                       {isCol('tech') && <TableCell>{renderLinks(item.technical_drawing_url)}</TableCell>}
