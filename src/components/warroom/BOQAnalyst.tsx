@@ -286,16 +286,24 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       });
     }
 
-    // Interleave children after their parents
-    const final: (ProjectItem & { _isOption?: boolean; _optionIndex?: number; _optionSelected?: boolean })[] = [];
+    // Interleave children after their parents — parent = Option A, children = B, C, D
+    const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
+    const final: (ProjectItem & { _isOption?: boolean; _optionLetter?: string; _optionSelected?: boolean })[] = [];
     for (const parent of result) {
-      final.push(parent);
       const children = childMap.get(parent.id) || [];
+      const hasOptions = children.length > 0;
+      // Parent counts as Option A when it has children
+      final.push({
+        ...parent,
+        _isOption: false,
+        _optionLetter: hasOptions ? 'A' : undefined,
+        _optionSelected: hasOptions ? (parent.is_selected_option || false) : false,
+      } as any);
       children.forEach((child, idx) => {
         final.push({
           ...child,
           _isOption: true,
-          _optionIndex: idx + 1,
+          _optionLetter: OPTION_LETTERS[idx + 1] || `${idx + 2}`,
           _optionSelected: child.is_selected_option || false,
         } as any);
       });
