@@ -13,6 +13,7 @@ import { BOQAnalyst } from '@/components/warroom/BOQAnalyst';
 import { TeamManagement } from '@/components/warroom/TeamManagement';
 import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
 import { ClientBoardsTab } from '@/components/warroom/ClientBoardsTab';
+import { SupplierExportTab } from '@/components/warroom/SupplierExportTab';
 import { MilestonesPanel } from '@/components/warroom/MilestonesPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -292,6 +293,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="approval">Approval Gates</TabsTrigger>
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
+            <TabsTrigger value="supplier-docs">Supplier Docs</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
           </TabsList>
 
@@ -765,6 +767,18 @@ export default function ProjectDetail() {
           <TabsContent value="client-boards" className="space-y-6">
             {projectId && (
               <ClientBoardsTab projectId={projectId} items={items} projectName={project.name} />
+            )}
+          </TabsContent>
+
+          {/* SUPPLIER DOCS TAB */}
+          <TabsContent value="supplier-docs" className="space-y-6">
+            {projectId && (
+              <SupplierExportTab
+                projectId={projectId}
+                projectName={project.name}
+                projectCode={project.code}
+                items={items}
+              />
             )}
           </TabsContent>
 
