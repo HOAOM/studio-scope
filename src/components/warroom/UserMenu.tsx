@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useDirectConversations } from '@/hooks/useMessages';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,14 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { DirectMessagesPanel } from '@/components/warroom/DirectMessages';
-import { User, MessageSquare, LogOut, Shield, Settings } from 'lucide-react';
+import { User, MessageSquare, LogOut, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -46,7 +38,7 @@ export function UserMenu() {
   const navigate = useNavigate();
   const { data: profile } = useMyProfile();
   const { data: conversations = [] } = useDirectConversations();
-  const [messagesOpen, setMessagesOpen] = useState(false);
+  // removed sheet state - now navigates to /messages
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, c) => sum + c.unreadCount, 0),
@@ -87,7 +79,7 @@ export function UserMenu() {
             <p className="text-[11px] text-muted-foreground">{user?.email}</p>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setMessagesOpen(true)} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => navigate('/messages')} className="cursor-pointer">
             <MessageSquare className="w-4 h-4 mr-2" />
             Messages
             {totalUnread > 0 && (
@@ -112,18 +104,6 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Sheet open={messagesOpen} onOpenChange={setMessagesOpen}>
-        <SheetContent className="w-[420px] sm:w-[480px] p-0 flex flex-col">
-          <SheetHeader className="px-4 pt-4 pb-0">
-            <SheetTitle className="text-base flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" /> Messages
-            </SheetTitle>
-          </SheetHeader>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <DirectMessagesPanel />
-          </div>
-        </SheetContent>
-      </Sheet>
     </>
   );
 }
