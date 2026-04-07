@@ -17,8 +17,10 @@ import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, CheckCircle2, Clock, Pen, Trash2, Download, Eye } from 'lucide-react';
+import { Plus, FileText, CheckCircle2, Clock, Pen, Trash2, Download, Eye, FileDown } from 'lucide-react';
 import { getLifecycleIndex, LIFECYCLE_ORDER } from '@/lib/workflow';
+import { exportClientBoardPDF } from '@/lib/exportClientBoard';
+import { exportClientQuotationPDF } from '@/lib/exportClientQuotation';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -182,10 +184,37 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
             Generate boards for client signature • {eligibleItems.length} items eligible
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} disabled={eligibleItems.length === 0}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Board
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportClientQuotationPDF({
+                projectName,
+                projectCode: '',
+                clientName: '',
+                items: eligibleItems.map(i => ({
+                  item_code: i.item_code || '',
+                  description: i.description,
+                  area: i.area,
+                  category: i.category,
+                  dimensions: i.dimensions,
+                  finish_material: i.finish_material,
+                  finish_color: i.finish_color,
+                  selling_price: i.selling_price ? Number(i.selling_price) : null,
+                  quantity: i.quantity || 1,
+                }));
+                toast.success('Quotation PDF exported');
+              }}
+            disabled={eligibleItems.length === 0}
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            Client Quotation
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)} disabled={eligibleItems.length === 0}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Board
+          </Button>
+        </div>
       </div>
 
       {/* Boards Grid */}
@@ -237,6 +266,24 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
                         <CheckCircle2 className="w-3 h-3 mr-1" /> Mark Signed
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await exportClientBoardPDF({
+                            boardName: board.name,
+                            projectName,
+                            items: boardItems,
+                          });
+                          toast.success('PDF exported');
+                        } catch {
+                          toast.error('PDF export failed');
+                        }
+                      }}
+                    >
+                      <FileDown className="w-3 h-3 mr-1" /> PDF
+                    </Button>
                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteBoard.mutate(board.id)}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
