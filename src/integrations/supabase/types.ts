@@ -167,6 +167,8 @@ export type Database = {
       }
       direct_messages: {
         Row: {
+          attachment_name: string | null
+          attachment_url: string | null
           body: string
           created_at: string
           id: string
@@ -178,6 +180,8 @@ export type Database = {
           subject: string | null
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           body: string
           created_at?: string
           id?: string
@@ -189,6 +193,8 @@ export type Database = {
           subject?: string | null
         }
         Update: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           body?: string
           created_at?: string
           id?: string
