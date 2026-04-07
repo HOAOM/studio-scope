@@ -1,20 +1,24 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { useDirectConversations, useDirectMessages, useSendDirectMessage } from '@/hooks/useMessages';
+import { useDirectConversations, useDirectMessages, useSendDirectMessage, DirectMessage } from '@/hooks/useMessages';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, ArrowLeft, MessageSquare, Search } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Send, ArrowLeft, MessageSquare, Search, FolderOpen } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-
-interface DirectMessagesProps {
-  className?: string;
-}
+import { useProjects } from '@/hooks/useProjects';
 
 function useAllProfiles() {
   return useQuery({
@@ -29,19 +33,40 @@ function useAllProfiles() {
   });
 }
 
-export function DirectMessagesPanel({ className }: DirectMessagesProps) {
+function useProjectItemsForSelect(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ['project-items-select', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await (supabase as any)
+        .from('project_items')
+        .select('id, item_code, description, parent_item_id, is_selected_option')
+        .eq('project_id', projectId)
+        .order('item_code');
+      if (error) throw error;
+      // Only show parent items or selected options
+      return (data || []).filter((i: any) => !i.parent_item_id || i.is_selected_option) as {
+        id: string; item_code: string | null; description: string; parent_item_id: string | null; is_selected_option: boolean | null;
+      }[];
+    },
+    enabled: !!projectId,
+  });
+}
+
+export function DirectMessagesPanel({ className }: { className?: string }) {
   const { user } = useAuth();
   const { data: conversations = [] } = useDirectConversations();
   const { data: profiles = [] } = useAllProfiles();
+  const { data: projects = [] } = useProjects();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
 
   const profileMap = useMemo(() => new Map(profiles.map(p => [p.id, p])), [profiles]);
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
 
-  const getProfile = (id: string) => profileMap.get(id);
   const getName = (id: string) => {
-    const p = getProfile(id);
+    const p = profileMap.get(id);
     return p?.display_name || p?.email?.split('@')[0] || 'User';
   };
   const getInitials = (id: string) => getName(id).slice(0, 2).toUpperCase();
@@ -53,7 +78,6 @@ export function DirectMessagesPanel({ className }: DirectMessagesProps) {
     return format(date, 'dd/MM');
   };
 
-  // New chat user list
   const availableUsers = useMemo(() => {
     if (!user) return [];
     return profiles
@@ -71,6 +95,8 @@ export function DirectMessagesPanel({ className }: DirectMessagesProps) {
         partnerId={selectedPartnerId}
         partnerName={getName(selectedPartnerId)}
         partnerInitials={getInitials(selectedPartnerId)}
+        projects={projects}
+        projectMap={projectMap}
         onBack={() => setSelectedPartnerId(null)}
         className={className}
       />
@@ -118,7 +144,7 @@ export function DirectMessagesPanel({ className }: DirectMessagesProps) {
     <div className={cn('flex flex-col h-full', className)}>
       <div className="flex items-center justify-between p-3 border-b border-border">
         <span className="text-sm font-medium flex items-center gap-1.5">
-          <MessageSquare className="w-4 h-4" /> Messages
+          <MessageSquare className="w-4 h-4" /> Conversations
         </span>
         <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setShowNewChat(true)}>
           New
@@ -131,50 +157,109 @@ export function DirectMessagesPanel({ className }: DirectMessagesProps) {
             <p className="text-xs">No conversations yet</p>
           </div>
         )}
-        {conversations.map(conv => (
-          <button
-            key={conv.partnerId}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left border-b border-border/30"
-            onClick={() => setSelectedPartnerId(conv.partnerId)}
-          >
-            <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="text-[10px] bg-muted">{getInitials(conv.partnerId)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium truncate">{getName(conv.partnerId)}</span>
-                <span className="text-[9px] text-muted-foreground shrink-0">{formatDate(conv.lastMessage.created_at)}</span>
+        {conversations.map(conv => {
+          const projectName = conv.lastMessage.project_id ? projectMap.get(conv.lastMessage.project_id)?.name : null;
+          return (
+            <button
+              key={conv.partnerId}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left border-b border-border/30"
+              onClick={() => setSelectedPartnerId(conv.partnerId)}
+            >
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarFallback className="text-[10px] bg-muted">{getInitials(conv.partnerId)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium truncate">{getName(conv.partnerId)}</span>
+                  <span className="text-[9px] text-muted-foreground shrink-0">{formatDate(conv.lastMessage.created_at)}</span>
+                </div>
+                {(conv.lastMessage.subject || projectName) && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {projectName && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium truncate max-w-[120px]">
+                        {projectName}
+                      </span>
+                    )}
+                    {conv.lastMessage.subject && (
+                      <span className="text-[10px] text-muted-foreground font-medium truncate">
+                        {conv.lastMessage.subject}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground truncate mt-0.5">{conv.lastMessage.body}</p>
               </div>
-              <p className="text-[10px] text-muted-foreground truncate">{conv.lastMessage.body}</p>
-            </div>
-            {conv.unreadCount > 0 && (
-              <Badge className="h-4 min-w-[16px] text-[9px] px-1 shrink-0">{conv.unreadCount}</Badge>
-            )}
-          </button>
-        ))}
+              {conv.unreadCount > 0 && (
+                <Badge className="h-4 min-w-[16px] text-[9px] px-1 shrink-0">{conv.unreadCount}</Badge>
+              )}
+            </button>
+          );
+        })}
       </ScrollArea>
     </div>
   );
 }
 
-function ChatView({ partnerId, partnerName, partnerInitials, onBack, className }: {
-  partnerId: string; partnerName: string; partnerInitials: string; onBack: () => void; className?: string;
+function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMap, onBack, className }: {
+  partnerId: string;
+  partnerName: string;
+  partnerInitials: string;
+  projects: any[];
+  projectMap: Map<string, any>;
+  onBack: () => void;
+  className?: string;
 }) {
   const { user } = useAuth();
   const { data: messages = [] } = useDirectMessages(partnerId);
   const sendMessage = useSendDirectMessage();
   const [body, setBody] = useState('');
+  const [subject, setSubject] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedItemId, setSelectedItemId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { data: projectItems = [] } = useProjectItemsForSelect(selectedProjectId || undefined);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages.length]);
 
+  // Reset item when project changes
+  useEffect(() => {
+    setSelectedItemId('');
+  }, [selectedProjectId]);
+
   const handleSend = () => {
     const trimmed = body.trim();
     if (!trimmed) return;
-    sendMessage.mutate({ recipientId: partnerId, body: trimmed });
+    sendMessage.mutate({
+      recipientId: partnerId,
+      body: trimmed,
+      subject: subject.trim() || undefined,
+      projectId: selectedProjectId || undefined,
+      itemId: selectedItemId || undefined,
+    });
     setBody('');
+  };
+
+  // Group messages by context (project/subject)
+  const renderContextBadge = (msg: DirectMessage) => {
+    const projName = msg.project_id ? projectMap.get(msg.project_id)?.name : null;
+    if (!projName && !msg.subject) return null;
+    return (
+      <div className="flex items-center gap-1 mb-1">
+        {projName && (
+          <span className="text-[8px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+            {projName}
+          </span>
+        )}
+        {msg.subject && (
+          <span className="text-[9px] text-muted-foreground font-medium">
+            {msg.subject}
+          </span>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -198,7 +283,8 @@ function ChatView({ partnerId, partnerName, partnerInitials, onBack, className }
         {messages.map(msg => {
           const isOwn = msg.sender_id === user?.id;
           return (
-            <div key={msg.id} className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
+            <div key={msg.id} className={cn('flex flex-col', isOwn ? 'items-end' : 'items-start')}>
+              {renderContextBadge(msg)}
               <div className={cn(
                 'max-w-[75%] px-3 py-1.5 rounded-lg text-xs leading-relaxed',
                 isOwn ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
@@ -216,18 +302,55 @@ function ChatView({ partnerId, partnerName, partnerInitials, onBack, className }
         })}
       </div>
 
-      {/* Input */}
-      <div className="border-t border-border p-2 flex gap-2">
+      {/* Compose area */}
+      <div className="border-t border-border p-2 space-y-1.5">
+        {/* Context selectors */}
+        <div className="flex gap-1.5">
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="h-7 text-[10px] flex-1">
+              <SelectValue placeholder="Project (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none" className="text-[10px]">No project</SelectItem>
+              {projects.map(p => (
+                <SelectItem key={p.id} value={p.id} className="text-[10px]">{p.code} - {p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedProjectId && selectedProjectId !== 'none' && (
+            <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+              <SelectTrigger className="h-7 text-[10px] flex-1">
+                <SelectValue placeholder="Item (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" className="text-[10px]">No item</SelectItem>
+                {projectItems.map(i => (
+                  <SelectItem key={i.id} value={i.id} className="text-[10px]">
+                    {i.item_code || 'No code'} - {i.description.substring(0, 30)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <Input
-          value={body}
-          onChange={e => setBody(e.target.value)}
-          placeholder="Write a message..."
-          className="h-8 text-xs"
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+          value={subject}
+          onChange={e => setSubject(e.target.value)}
+          placeholder="Subject (optional)"
+          className="h-7 text-[10px]"
         />
-        <Button size="icon" className="h-8 w-8 shrink-0" onClick={handleSend} disabled={!body.trim() || sendMessage.isPending}>
-          <Send className="w-3.5 h-3.5" />
-        </Button>
+        <div className="flex gap-2">
+          <Input
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            placeholder="Write a message..."
+            className="h-8 text-xs"
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+          />
+          <Button size="icon" className="h-8 w-8 shrink-0" onClick={handleSend} disabled={!body.trim() || sendMessage.isPending}>
+            <Send className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
     </div>
   );
