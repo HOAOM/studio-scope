@@ -165,6 +165,33 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       item_costs: {
         Row: {
           amount: number | null
@@ -203,6 +230,38 @@ export type Database = {
           },
           {
             foreignKeyName: "item_costs_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          project_item_id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          project_item_id: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          project_item_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_messages_project_item_id_fkey"
             columns: ["project_item_id"]
             isOneToOne: false
             referencedRelation: "project_items"
