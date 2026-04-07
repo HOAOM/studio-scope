@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
+import { ItemDocuments } from './ItemDocuments';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -460,7 +461,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 bg-card">
+      <DialogContent className="max-w-6xl max-h-[92vh] p-0 gap-0 bg-card">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between">
@@ -535,7 +536,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           )}
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-200px)]">
+        <ScrollArea className="max-h-[calc(92vh-200px)]">
           <Tabs defaultValue="info" className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
@@ -716,10 +717,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
                 <Separator />
 
-                {/* Supplier Quotations */}
+                {/* Item Documents */}
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground mb-3">Supplier Quotations</h4>
-                  <QuotationsTab itemId={item.id} canEdit={canSeeProcurement} />
+                  <h4 className="text-sm font-semibold text-foreground mb-3">Item Documents</h4>
+                  <ItemDocuments itemId={item.id} projectId={projectId} canEdit={canSeeProcurement} />
                 </div>
               </TabsContent>
             )}

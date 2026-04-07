@@ -171,7 +171,7 @@ export function OptionCard({
           <Input value={form.dimensions} onChange={e => setForm(f => ({ ...f, dimensions: e.target.value }))} className="h-7 text-xs" placeholder="e.g. 120x80x45 cm" />
         </div>
 
-        {mode === 'quotation' && canSeeCosts && (
+        {canSeeCosts && (
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-[10px]">Unit Cost (€)</Label>
@@ -267,8 +267,8 @@ export function OptionCard({
           </p>
         )}
 
-        {/* Pricing (quotation mode) */}
-        {mode === 'quotation' && canSeeCosts && option.unit_cost != null && (
+        {/* Pricing (always visible if canSeeCosts) */}
+        {canSeeCosts && option.unit_cost != null && (
           <div className="pt-1 border-t border-border mt-2">
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Unit Cost</span>
