@@ -202,9 +202,10 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
                   finish_color: i.finish_color,
                   selling_price: i.selling_price ? Number(i.selling_price) : null,
                   quantity: i.quantity || 1,
-                }));
-                toast.success('Quotation PDF exported');
-              }}
+                })),
+              });
+              toast.success('Quotation PDF exported');
+            }}
             disabled={eligibleItems.length === 0}
           >
             <FileDown className="w-4 h-4 mr-2" />
