@@ -90,10 +90,22 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
   const bulkCreate = useBulkCreateProjectItems();
   const navigate = useNavigate();
 
-  const parseExcel = useCallback((data: ArrayBuffer): ImportResult => {
-    const workbook = XLSX.read(data, { type: 'array' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as any[][];
+  const parseExcel = useCallback(async (data: ArrayBuffer): Promise<ImportResult> => {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(data);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) return { rows: [], errors: ['No worksheet found'], projectName: '', projectDate: '', totalAmount: '' };
+
+    // Convert sheet to 2D array
+    const jsonData: any[][] = [];
+    sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      const values: any[] = [];
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        while (values.length < colNumber - 1) values.push('');
+        values.push(cell.value ?? '');
+      });
+      jsonData.push(values);
+    });
 
     const rows: ParsedRow[] = [];
     const errors: string[] = [];
@@ -102,13 +114,8 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
     let totalAmount = '';
 
     // Parse header info (rows 1-3)
-    if (jsonData.length > 0) {
-      // Row 1: "HOUSE OF AIDA - Bill of Quantities"
-      // Row 2: "Project: VILLA 9" | "Date: 21/01/2026" | "Total: €155603.00"
+    if (jsonData.length > 1) {
       const infoRow = jsonData[1] || [];
-      const infoStr = infoRow.join('|');
-      
-      // Try to extract project name from "Project: XXX"
       for (const cell of infoRow) {
         const cellStr = String(cell);
         if (cellStr.startsWith('Project:')) {
@@ -123,7 +130,7 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
       }
     }
 
-    // Find header row (row 4, index 3)
+    // Find header row
     let headerRowIdx = -1;
     for (let i = 0; i < Math.min(10, jsonData.length); i++) {
       const row = jsonData[i];
@@ -140,7 +147,6 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
 
     const headers = jsonData[headerRowIdx].map((h: any) => String(h).trim().toLowerCase());
 
-    // Map column indices
     const colMap: Record<string, number> = {};
     const colNames = ['code', 'floor', 'room', 'zone', 'area', 'brand', 'description', 
                       'finishing', 'size', 'ref image', 'tech drawings', 'company links',
@@ -152,7 +158,6 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
       if (idx !== -1) colMap[name] = idx;
     }
 
-    // Parse data rows
     for (let i = headerRowIdx + 1; i < jsonData.length; i++) {
       const row = jsonData[i];
       if (!row || row.every((c: any) => !c || String(c).trim() === '')) continue;
@@ -164,7 +169,6 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
 
       const floorCode = cleanValue(row[colMap['floor']]);
       const roomRaw = cleanValue(row[colMap['room']]);
-      // Extract room code (letters) and room number (digits)
       const roomMatch = roomRaw.match(/^([A-Za-z]+)(\d+)?$/);
       const roomCode = roomMatch ? roomMatch[1].toUpperCase() : roomRaw;
       const roomNumber = roomMatch ? (roomMatch[2] || '') : '';
