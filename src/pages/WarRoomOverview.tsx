@@ -7,6 +7,7 @@ import { KPIBlock } from '@/components/warroom/KPIBlock';
 import { computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ProjectFormDialog } from '@/components/warroom/ProjectFormDialog';
 import { ExcelImportDialog } from '@/components/warroom/ExcelImportDialog';
+import { UserMenu } from '@/components/warroom/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { 
