@@ -170,27 +170,51 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          item_id: string | null
+          project_id: string | null
           read_at: string | null
           recipient_id: string
           sender_id: string
+          subject: string | null
         }
         Insert: {
           body: string
           created_at?: string
           id?: string
+          item_id?: string | null
+          project_id?: string | null
           read_at?: string | null
           recipient_id: string
           sender_id: string
+          subject?: string | null
         }
         Update: {
           body?: string
           created_at?: string
           id?: string
+          item_id?: string | null
+          project_id?: string | null
           read_at?: string | null
           recipient_id?: string
           sender_id?: string
+          subject?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       item_costs: {
         Row: {
