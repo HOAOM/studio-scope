@@ -36,11 +36,12 @@ import {
   CheckCircle2, XCircle, Clock, ArrowRight, Lock, Pencil, Save, X,
   FileText, Package, CreditCard, Truck, Wrench, History,
   Image as ImageIcon, ExternalLink, ReceiptText, Layers,
-  ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
+  ListTodo, Plus, Trash2, Calendar as CalendarIcon, User, MessageSquare,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
+import { ItemMessages } from './ItemMessages';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -547,6 +548,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               {canSeeLogistics && <TabsTrigger value="logistics"><Truck className="w-3 h-3 mr-1" />Logistics</TabsTrigger>}
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
               <TabsTrigger value="tasks"><ListTodo className="w-3 h-3 mr-1" />Tasks{openTasks.length > 0 ? ` (${openTasks.length})` : ''}</TabsTrigger>
+              <TabsTrigger value="messages"><MessageSquare className="w-3 h-3 mr-1" />Messages</TabsTrigger>
               <TabsTrigger value="history"><History className="w-3 h-3 mr-1" />History</TabsTrigger>
             </TabsList>
 
