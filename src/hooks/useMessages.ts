@@ -16,6 +16,9 @@ export interface DirectMessage {
   sender_id: string;
   recipient_id: string;
   body: string;
+  subject: string | null;
+  project_id: string | null;
+  item_id: string | null;
   read_at: string | null;
   created_at: string;
 }
@@ -37,7 +40,6 @@ export function useItemMessages(itemId: string | undefined) {
     enabled: !!itemId,
   });
 
-  // Realtime subscription
   useEffect(() => {
     if (!itemId) return;
     const channel = supabase
@@ -82,7 +84,6 @@ export function useDirectConversations() {
     queryKey: ['dm-conversations', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      // Get all DMs involving current user, grouped by conversation partner
       const { data, error } = await (supabase as any)
         .from('direct_messages')
         .select('*')
@@ -90,7 +91,6 @@ export function useDirectConversations() {
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      // Group by conversation partner
       const convMap = new Map<string, DirectMessage[]>();
       for (const msg of (data || []) as DirectMessage[]) {
         const partnerId = msg.sender_id === user.id ? msg.recipient_id : msg.sender_id;
@@ -106,7 +106,6 @@ export function useDirectConversations() {
     enabled: !!user,
   });
 
-  // Realtime
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -182,10 +181,23 @@ export function useSendDirectMessage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ recipientId, body }: { recipientId: string; body: string }) => {
+    mutationFn: async ({ recipientId, body, subject, projectId, itemId }: {
+      recipientId: string;
+      body: string;
+      subject?: string;
+      projectId?: string;
+      itemId?: string;
+    }) => {
       const { error } = await (supabase as any)
         .from('direct_messages')
-        .insert({ sender_id: user?.id, recipient_id: recipientId, body });
+        .insert({
+          sender_id: user?.id,
+          recipient_id: recipientId,
+          body,
+          subject: subject || null,
+          project_id: projectId || null,
+          item_id: itemId || null,
+        });
       if (error) throw error;
     },
     onSuccess: () => {
