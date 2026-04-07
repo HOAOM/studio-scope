@@ -65,7 +65,8 @@ import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
-import { Image as ImageIcon } from 'lucide-react';
+import { DirectMessagesPanel } from '@/components/warroom/DirectMessages';
+import { Image as ImageIcon, MessageSquare } from 'lucide-react';
 
 import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 import { useProjectTasks } from '@/hooks/useTasks';
@@ -291,6 +292,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="items">Item Tracker</TabsTrigger>
             <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
+            <TabsTrigger value="messages"><MessageSquare className="w-3.5 h-3.5 mr-1" />Messages</TabsTrigger>
           </TabsList>
 
           {/* BOQ ANALYST TAB */}
