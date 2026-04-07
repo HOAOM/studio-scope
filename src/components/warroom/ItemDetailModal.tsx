@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
+import { ItemDocuments } from './ItemDocuments';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
