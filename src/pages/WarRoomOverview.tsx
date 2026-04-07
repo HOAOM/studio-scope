@@ -119,10 +119,6 @@ export default function WarRoomOverview() {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast.success('Signed out successfully');
-  };
 
   const handleEditProject = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
