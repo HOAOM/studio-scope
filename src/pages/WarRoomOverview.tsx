@@ -18,13 +18,11 @@ import {
   Activity,
   Clock,
   Plus,
-  LogOut,
   Loader2,
   Trash2,
   Edit,
   User,
   MapPin,
-  Shield,
   FileSpreadsheet
 } from 'lucide-react';
 import {
