@@ -778,6 +778,13 @@ export default function ProjectDetail() {
               />
             )}
           </TabsContent>
+
+          {/* MESSAGES TAB */}
+          <TabsContent value="messages">
+            <div className="border border-border rounded-lg h-[600px]">
+              <DirectMessagesPanel />
+            </div>
+          </TabsContent>
         </Tabs>
       </main>
 
