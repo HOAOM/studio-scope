@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectTasks, useDeleteTask, useUpdateTask, ProjectTask } from '@/hooks/useTasks';
 import { useUserRole } from '@/hooks/useUserRole';
-import { useTaskTemplate } from '@/hooks/useTaskTemplate';
+
 import { useAuth } from '@/hooks/useAuth';
 import { TaskFormDialog } from './TaskFormDialog';
 import {
@@ -52,9 +52,6 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const { data: milestones = [] } = useProjectMilestones(projectId);
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
-  const { missingTasks, syncSuggestions, generateTemplateTasks, syncTasks, hasTemplate, isGenerating, isSyncing } = useTaskTemplate(
-    projectId, items, projectStartDate, projectEndDate
-  );
 
   const [zoom, setZoom] = useState<ZoomLevel>('week');
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -311,29 +308,6 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
               </Button>
             </div>
 
-            {/* Template actions */}
-            {!hasTemplate && missingTasks.length > 0 && (
-              <Button size="sm" variant="outline" className="h-6 text-[10px] border-border/30" onClick={generateTemplateTasks} disabled={isGenerating}>
-                <Wand2 className="w-3 h-3 mr-1" /> Template
-              </Button>
-            )}
-            {hasTemplate && missingTasks.length > 0 && (
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={generateTemplateTasks} disabled={isGenerating}>
-                <Wand2 className="w-3 h-3 mr-1" /> +{missingTasks.length}
-              </Button>
-            )}
-            {syncSuggestions.length > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="sm" variant="secondary" className="h-5 text-[9px] gap-1 px-1.5" onClick={syncTasks} disabled={isSyncing}>
-                      <RefreshCw className={cn('w-2.5 h-2.5', isSyncing && 'animate-spin')} /> {syncSuggestions.length}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p className="text-xs">Sync tasks from item data</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
 
             <Button size="sm" className="h-6 text-[10px]" onClick={() => { setEditingTask(null); setTaskDialogOpen(true); }}>
               <Plus className="w-3 h-3 mr-1" /> Task
