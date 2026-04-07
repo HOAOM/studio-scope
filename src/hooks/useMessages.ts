@@ -181,23 +181,24 @@ export function useSendDirectMessage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ recipientId, body, subject, projectId, itemId }: {
-      recipientId: string;
+    mutationFn: async ({ recipientIds, body, subject, projectId, itemId }: {
+      recipientIds: string[];
       body: string;
       subject?: string;
       projectId?: string;
       itemId?: string;
     }) => {
+      const rows = recipientIds.map(rid => ({
+        sender_id: user?.id,
+        recipient_id: rid,
+        body,
+        subject: subject || null,
+        project_id: projectId || null,
+        item_id: itemId || null,
+      }));
       const { error } = await (supabase as any)
         .from('direct_messages')
-        .insert({
-          sender_id: user?.id,
-          recipient_id: recipientId,
-          body,
-          subject: subject || null,
-          project_id: projectId || null,
-          item_id: itemId || null,
-        });
+        .insert(rows);
       if (error) throw error;
     },
     onSuccess: () => {
