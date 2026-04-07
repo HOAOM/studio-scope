@@ -286,16 +286,24 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       });
     }
 
-    // Interleave children after their parents
-    const final: (ProjectItem & { _isOption?: boolean; _optionIndex?: number; _optionSelected?: boolean })[] = [];
+    // Interleave children after their parents — parent = Option A, children = B, C, D
+    const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
+    const final: (ProjectItem & { _isOption?: boolean; _optionLetter?: string; _optionSelected?: boolean })[] = [];
     for (const parent of result) {
-      final.push(parent);
       const children = childMap.get(parent.id) || [];
+      const hasOptions = children.length > 0;
+      // Parent counts as Option A when it has children
+      final.push({
+        ...parent,
+        _isOption: false,
+        _optionLetter: hasOptions ? 'A' : undefined,
+        _optionSelected: hasOptions ? (parent.is_selected_option || false) : false,
+      } as any);
       children.forEach((child, idx) => {
         final.push({
           ...child,
           _isOption: true,
-          _optionIndex: idx + 1,
+          _optionLetter: OPTION_LETTERS[idx + 1] || `${idx + 2}`,
           _optionSelected: child.is_selected_option || false,
         } as any);
       });
@@ -787,9 +795,9 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
       {/* Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow className="hover:bg-transparent [&_th]:px-1.5 [&_th]:py-2 [&_th]:text-[11px]">
                 {isCol('image') && <TableHead className="w-[36px] px-1">Img</TableHead>}
                 <SortHeader field="code" label="Code" className="px-1.5" />
@@ -823,8 +831,9 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
               ) : (
                 displayItems.map(item => {
                   const isOption = (item as any)._isOption;
-                  const optionIndex = (item as any)._optionIndex;
+                  const optionLetter = (item as any)._optionLetter;
                   const optionSelected = (item as any)._optionSelected;
+                  const hasOptions = !!optionLetter && !isOption; // parent with children
                   const floor = floorMap.get(item.floor_id || '');
                   const room = roomMap.get(item.room_id || '');
                   const rowColor = isOption ? undefined : getRoomColor(floor?.code || '', room?.code || '', item.room_number || '01');
@@ -840,9 +849,11 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                         '[&_td]:px-1.5 [&_td]:py-1',
                         isOption
                           ? optionSelected
-                            ? 'bg-primary/5 border-l-2 border-l-primary [&_td]:text-foreground'
-                            : 'bg-muted/30 border-l-2 border-l-border [&_td]:text-muted-foreground'
-                          : '[&_td]:text-gray-900'
+                            ? 'bg-primary/5 border-l-4 border-l-primary [&_td]:text-foreground'
+                            : 'bg-muted/30 border-l-4 border-l-border [&_td]:text-muted-foreground'
+                          : hasOptions && optionSelected
+                            ? 'border-l-4 border-l-primary [&_td]:text-foreground'
+                            : '[&_td]:text-foreground'
                       )}
                     >
                       {isCol('image') && (
@@ -851,27 +862,34 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                             <img
                               src={item.reference_image_url}
                               alt=""
-                              className={cn('w-10 h-10 object-cover rounded cursor-pointer border', isOption ? 'w-8 h-8 border-border' : 'border-gray-300')}
+                              className={cn('object-cover rounded cursor-pointer border border-border', isOption ? 'w-8 h-8' : 'w-10 h-10')}
                               onClick={() => window.open(item.reference_image_url!, '_blank')}
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : (
-                            <div className={cn('rounded border bg-white/50 flex items-center justify-center', isOption ? 'w-8 h-8 border-border' : 'w-10 h-10 border-gray-300')}>
+                            <div className={cn('rounded border border-border bg-muted/30 flex items-center justify-center', isOption ? 'w-8 h-8' : 'w-10 h-10')}>
                               <ImageIcon className="w-4 h-4 text-muted-foreground" />
                             </div>
                           )}
                         </TableCell>
                       )}
-                      <TableCell className={cn('font-mono text-xs font-bold', isOption ? 'pl-6' : '', isCustom ? 'text-red-700' : isOption ? '' : 'text-gray-900')}>
+                      <TableCell className={cn('font-mono text-xs font-bold', isOption ? 'pl-10' : '', isCustom ? 'text-destructive' : '')}>
                         {isOption ? (
                           <span className="flex items-center gap-1">
                             <span className="text-muted-foreground">↳</span>
                             <Badge variant={optionSelected ? 'default' : 'outline'} className="text-[9px] h-4 px-1.5">
-                              Opt {optionIndex}{optionSelected ? ' ✓' : ''}
+                              Opt {optionLetter}{optionSelected ? ' ✓' : ''}
                             </Badge>
                           </span>
                         ) : (
-                          item.item_code || '-'
+                          <span className="flex items-center gap-1">
+                            {item.item_code || '-'}
+                            {hasOptions && (
+                              <Badge variant={optionSelected ? 'default' : 'secondary'} className="text-[8px] h-3.5 px-1 ml-1">
+                                {optionSelected ? `✓ ${optionLetter}` : optionLetter}
+                              </Badge>
+                            )}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-xs">{isOption ? '' : (floor?.code || '-')}</TableCell>
@@ -879,7 +897,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       {isCol('zone') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
                       {isCol('area') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
                       {isCol('brand') && <TableCell className="text-xs">{item.supplier || '-'}</TableCell>}
-                      <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-6 italic' : '')} title={item.description}>{item.description}</TableCell>
+                      <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-10 italic' : '')} title={item.description}>{item.description}</TableCell>
                       {isCol('finishing') && <TableCell className="text-xs">{item.finish_material || '-'}</TableCell>}
                       {isCol('size') && <TableCell className="text-xs">{item.dimensions || '-'}</TableCell>}
                       {isCol('tech') && <TableCell>{renderLinks(item.technical_drawing_url)}</TableCell>}
@@ -898,13 +916,13 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       <TableCell className="text-xs font-mono">{item.quantity || 1}</TableCell>
                       <TableCell className="text-xs">pcs</TableCell>
                       {isCol('unitRate') && canSeeCosts && (
-                        <TableCell className={cn('text-xs font-mono text-right', isMissingPrice && !isOption && 'bg-red-100 font-bold text-red-700')}>
+                        <TableCell className={cn('text-xs font-mono text-right', isMissingPrice && !isOption && 'bg-destructive/10 font-bold text-destructive')}>
                           {item.unit_cost ? `€${Number(item.unit_cost).toFixed(2)}` : '-'}
                         </TableCell>
                       )}
                       {isCol('amount') && canSeeCosts && (
                         <TableCell className="text-xs font-mono text-right font-bold">
-                          {isOption && !optionSelected ? '-' : `€${amount.toFixed(2)}`}
+                          {amount > 0 ? `€${amount.toFixed(2)}` : '-'}
                         </TableCell>
                       )}
                       {isCol('prodTime') && <TableCell className="text-xs">{item.production_time || '-'}</TableCell>}
