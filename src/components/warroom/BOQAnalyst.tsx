@@ -795,9 +795,9 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
       {/* Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
               <TableRow className="hover:bg-transparent [&_th]:px-1.5 [&_th]:py-2 [&_th]:text-[11px]">
                 {isCol('image') && <TableHead className="w-[36px] px-1">Img</TableHead>}
                 <SortHeader field="code" label="Code" className="px-1.5" />
