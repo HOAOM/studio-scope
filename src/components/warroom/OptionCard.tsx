@@ -267,8 +267,8 @@ export function OptionCard({
           </p>
         )}
 
-        {/* Pricing (quotation mode) */}
-        {mode === 'quotation' && canSeeCosts && option.unit_cost != null && (
+        {/* Pricing (always visible if canSeeCosts) */}
+        {canSeeCosts && option.unit_cost != null && (
           <div className="pt-1 border-t border-border mt-2">
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Unit Cost</span>
