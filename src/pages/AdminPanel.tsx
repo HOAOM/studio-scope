@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCompanySettings, useUpdateCompanySettings } from '@/hooks/useCompanySettings';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -12,9 +13,13 @@ import {
 import { MasterDataTable } from '@/components/admin/MasterDataTable';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Shield, Loader2 } from 'lucide-react';
+import { ArrowLeft, Shield, Loader2, Building2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -90,6 +95,7 @@ export default function AdminPanel() {
             <TabsTrigger value="subcategories">Subcategories</TabsTrigger>
             <TabsTrigger value="costs">Cost Categories</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="company">Company Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="floors">
@@ -198,8 +204,86 @@ export default function AdminPanel() {
           <TabsContent value="users">
             <UserManagement />
           </TabsContent>
+
+          <TabsContent value="company">
+            <CompanySettingsForm />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function CompanySettingsForm() {
+  const { data: settings, isLoading } = useCompanySettings();
+  const updateSettings = useUpdateCompanySettings();
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(false);
+
+  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+
+  if (settings && !initialized) {
+    setForm({
+      company_name: settings.company_name || '',
+      company_address: settings.company_address || '',
+      phone: settings.phone || '',
+      email: settings.email || '',
+      website: settings.website || '',
+      vat_number: settings.vat_number || '',
+    });
+    setInitialized(true);
+  }
+
+  const handleSave = async () => {
+    try {
+      await updateSettings.mutateAsync(form);
+      toast.success('Company settings saved');
+    } catch {
+      toast.error('Failed to save');
+    }
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardContent className="pt-6 space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Building2 className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold text-foreground">Company Settings</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">These details appear in PDF headers and footers for all exported documents.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label>Company Name</Label>
+            <Input value={form.company_name || ''} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} className="mt-1" />
+          </div>
+          <div>
+            <Label>VAT Number</Label>
+            <Input value={form.vat_number || ''} onChange={e => setForm(f => ({ ...f, vat_number: e.target.value }))} className="mt-1" />
+          </div>
+          <div>
+            <Label>Phone</Label>
+            <Input value={form.phone || ''} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="mt-1" />
+          </div>
+          <div>
+            <Label>Email</Label>
+            <Input value={form.email || ''} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="mt-1" />
+          </div>
+          <div>
+            <Label>Website</Label>
+            <Input value={form.website || ''} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} className="mt-1" />
+          </div>
+        </div>
+        <div>
+          <Label>Company Address</Label>
+          <Textarea value={form.company_address || ''} onChange={e => setForm(f => ({ ...f, company_address: e.target.value }))} className="mt-1" rows={2} />
+        </div>
+
+        <Button onClick={handleSave} disabled={updateSettings.isPending}>
+          {updateSettings.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          Save Settings
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

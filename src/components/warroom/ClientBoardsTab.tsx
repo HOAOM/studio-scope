@@ -3,6 +3,7 @@
  * Generate boards per room, track signature status, export PDF
  */
 import { useState, useMemo } from 'react';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +56,7 @@ const BOARD_STATUS_COLORS: Record<string, { bg: string; text: string; label: str
 export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsTabProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: company } = useCompanySettings();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [boardName, setBoardName] = useState('');
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
@@ -203,6 +205,7 @@ export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsT
                   selling_price: i.selling_price ? Number(i.selling_price) : null,
                   quantity: i.quantity || 1,
                 })),
+                company: company || undefined,
               });
               toast.success('Quotation PDF exported');
             }}

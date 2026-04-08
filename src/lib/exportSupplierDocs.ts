@@ -21,6 +21,16 @@ export interface SupplierItem {
   delivery_date: string | null;
 }
 
+export interface CompanyInfo {
+  company_name: string;
+  company_address: string;
+  logo_url: string;
+  phone: string;
+  email: string;
+  website: string;
+  vat_number: string;
+}
+
 export interface SupplierDocOptions {
   projectName: string;
   projectCode: string;
@@ -32,6 +42,7 @@ export interface SupplierDocOptions {
   paymentTerms?: string;
   responseDeadline?: string;
   docNumber?: string;
+  company?: CompanyInfo;
 }
 
 const DOC_TITLES: Record<SupplierDocType, string> = {
@@ -51,184 +62,195 @@ const DOC_PREFIXES: Record<SupplierDocType, string> = {
 export function generateSupplierPDF(options: SupplierDocOptions): void {
   const {
     projectName, projectCode, supplier, documentType, items,
-    notes, deliveryAddress, paymentTerms, responseDeadline, docNumber,
+    notes, deliveryAddress, paymentTerms, responseDeadline, docNumber, company,
   } = options;
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = 210;
-  const margin = 15;
+  const margin = 12;
   const contentW = pageW - margin * 2;
   const today = new Date().toLocaleDateString('en-GB');
 
   const refNumber = docNumber || `${DOC_PREFIXES[documentType]}-${projectCode}-${Date.now().toString(36).toUpperCase()}`;
-
-  let y = margin;
-
-  // Header
-  pdf.setFillColor(24, 24, 27);
-  pdf.rect(0, 0, pageW, 40, 'F');
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(16);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text(DOC_TITLES[documentType], margin, 18);
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text(`Ref: ${refNumber}`, margin, 26);
-  pdf.text(`Date: ${today}`, margin, 32);
-  pdf.text(`Project: ${projectName} (${projectCode})`, pageW - margin, 26, { align: 'right' });
-  pdf.text(`Supplier: ${supplier}`, pageW - margin, 32, { align: 'right' });
-
-  y = 50;
-
-  // Table headers depend on doc type
   const isRFQ = documentType === 'rfq';
   const isPO = documentType === 'purchase_order';
 
-  // Column definitions
-  const colDefs = [
-    { label: '#', w: 8 },
-    { label: 'Item Code', w: 22 },
-    { label: 'Description', w: isRFQ ? 50 : 42 },
-    { label: 'Dimensions', w: 25 },
-    { label: 'Finishes', w: 25 },
-    { label: 'Qty', w: 10 },
-  ];
+  let y = margin;
 
-  if (isRFQ) {
-    colDefs.push({ label: 'Unit Price', w: 20 });
-    colDefs.push({ label: 'Total', w: 20 });
-  } else {
-    colDefs.push({ label: 'Unit Price', w: 20 });
-    colDefs.push({ label: 'Total', w: 20 });
+  // ── Company Header ──
+  const companyName = company?.company_name || '';
+  const companyAddr = company?.company_address || '';
+  const companyPhone = company?.phone || '';
+  const companyEmail = company?.email || '';
+  const companyVat = company?.vat_number || '';
+
+  // Header band
+  pdf.setFillColor(24, 24, 27);
+  pdf.rect(0, 0, pageW, 38, 'F');
+  pdf.setTextColor(255, 255, 255);
+
+  // Company name (left)
+  if (companyName) {
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(companyName, margin, 14);
   }
+
+  // Company details below name
+  pdf.setFontSize(7);
+  pdf.setFont('helvetica', 'normal');
+  let headerY = 20;
+  if (companyAddr) { pdf.text(companyAddr, margin, headerY); headerY += 4; }
+  const contactLine = [companyPhone, companyEmail].filter(Boolean).join(' | ');
+  if (contactLine) { pdf.text(contactLine, margin, headerY); headerY += 4; }
+  if (companyVat) { pdf.text(`VAT: ${companyVat}`, margin, headerY); }
+
+  // Doc title (right)
+  pdf.setFontSize(14);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text(DOC_TITLES[documentType], pageW - margin, 14, { align: 'right' });
+  pdf.setFontSize(8);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(`Date: ${today}`, pageW - margin, 22, { align: 'right' });
+
+  y = 44;
+
+  // ── Project & Supplier info ──
+  pdf.setTextColor(24, 24, 27);
+  pdf.setFontSize(8);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text(`Project: ${projectName} (${projectCode})`, margin, y);
+  pdf.text(`Supplier: ${supplier}`, pageW - margin, y, { align: 'right' });
+  y += 7;
+
+  // ── Column definitions ──
+  // # (5mm) | Item Code (20mm) | Description (flex) | Dimensions (22mm) | Finishes (22mm) | Qty (10mm) | Unit Price (20mm) | Total (20mm)
+  const colWidths = [5, 20, 0, 22, 22, 10, 20, 20]; // description is flex
+  colWidths[2] = contentW - colWidths.reduce((a, b) => a + b, 0); // remaining for description
+
+  const colLabels = ['#', 'Item Code', 'Description', 'Dimensions', 'Finishes', 'Qty',
+    isRFQ ? 'Unit Price' : 'Unit Price', isRFQ ? 'Total' : 'Total'];
 
   // Draw table header
   pdf.setFillColor(240, 240, 242);
-  pdf.rect(margin, y, contentW, 8, 'F');
-  pdf.setTextColor(60, 60, 60);
-  pdf.setFontSize(7);
+  pdf.rect(margin, y, contentW, 6, 'F');
+  pdf.setTextColor(80, 80, 80);
+  pdf.setFontSize(6);
   pdf.setFont('helvetica', 'bold');
 
-  let colX = margin + 1;
-  colDefs.forEach(col => {
-    pdf.text(col.label, colX, y + 5.5);
-    colX += col.w;
+  let colX = margin;
+  colLabels.forEach((label, i) => {
+    pdf.text(label, colX + 1, y + 4);
+    colX += colWidths[i];
   });
 
-  y += 10;
+  y += 7;
 
-  // Rows
+  // ── Rows ──
   let grandTotal = 0;
+  const rowH = 4.5; // compact row height
+
   items.forEach((item, idx) => {
+    // Calculate description height for multi-line
+    const descMaxW = colWidths[2] - 2;
+    const descLines = pdf.splitTextToSize(item.description, descMaxW);
+    const lineH = Math.max(rowH, descLines.length * 3 + 1.5);
+
     // Check page overflow
-    if (y > 260) {
+    if (y + lineH > 270) {
       pdf.addPage();
       y = margin;
     }
 
-    const rowH = 8;
+    // Alternating row background
     if (idx % 2 === 0) {
-      pdf.setFillColor(250, 250, 252);
-      pdf.rect(margin, y - 1, contentW, rowH, 'F');
+      pdf.setFillColor(248, 248, 250);
+      pdf.rect(margin, y - 0.5, contentW, lineH, 'F');
     }
 
     pdf.setTextColor(24, 24, 27);
-    pdf.setFontSize(7);
+    pdf.setFontSize(6.5);
     pdf.setFont('helvetica', 'normal');
 
-    colX = margin + 1;
-    pdf.text(`${idx + 1}`, colX, y + 4); colX += 8;
-    pdf.text(item.item_code || '—', colX, y + 4); colX += 22;
+    colX = margin;
 
-    const descLines = pdf.splitTextToSize(item.description, colDefs[2].w - 2);
-    pdf.text(descLines[0] || '', colX, y + 4); colX += colDefs[2].w;
+    // # — 2-digit max
+    pdf.text(`${idx + 1}`, colX + 1, y + 3); colX += colWidths[0];
 
-    pdf.text(item.dimensions || '—', colX, y + 4); colX += 25;
+    // Item Code
+    pdf.text(item.item_code || '—', colX + 1, y + 3); colX += colWidths[1];
 
+    // Description — multi-line
+    descLines.forEach((line: string, li: number) => {
+      pdf.text(line, colX + 1, y + 3 + li * 3);
+    });
+    colX += colWidths[2];
+
+    // Dimensions
+    pdf.text(item.dimensions || '—', colX + 1, y + 3); colX += colWidths[3];
+
+    // Finishes
     const finish = [item.finish_material, item.finish_color].filter(Boolean).join(' / ') || '—';
-    pdf.text(finish.substring(0, 30), colX, y + 4); colX += 25;
+    pdf.text(finish.substring(0, 28), colX + 1, y + 3); colX += colWidths[4];
 
-    pdf.text(`${item.quantity || 1}`, colX, y + 4); colX += 10;
+    // Qty
+    pdf.text(`${item.quantity || 1}`, colX + 1, y + 3); colX += colWidths[5];
 
     if (isRFQ) {
       // Empty cells for supplier to fill
       pdf.setDrawColor(200, 200, 200);
-      pdf.rect(colX, y - 1, 20, rowH);
-      colX += 20;
-      pdf.rect(colX, y - 1, 20, rowH);
+      pdf.rect(colX, y - 0.5, colWidths[6], lineH);
+      colX += colWidths[6];
+      pdf.rect(colX, y - 0.5, colWidths[7], lineH);
     } else {
       const unitPrice = item.unit_cost || 0;
       const total = unitPrice * (item.quantity || 1);
       grandTotal += total;
-      pdf.text(unitPrice ? unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—', colX, y + 4);
-      colX += 20;
-      pdf.text(total ? total.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—', colX, y + 4);
+      pdf.text(unitPrice ? unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—', colX + 1, y + 3);
+      colX += colWidths[6];
+      pdf.text(total ? total.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—', colX + 1, y + 3);
     }
 
-    y += rowH;
+    y += lineH;
   });
 
   // Total row (for PO and Proforma)
   if (!isRFQ) {
     y += 2;
     pdf.setFillColor(24, 24, 27);
-    pdf.rect(margin, y, contentW, 8, 'F');
+    pdf.rect(margin, y, contentW, 7, 'F');
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('TOTAL', margin + 1, y + 5.5);
+    pdf.text('TOTAL', margin + 1, y + 5);
     pdf.text(
       `AED ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      pageW - margin - 1, y + 5.5, { align: 'right' }
+      pageW - margin - 1, y + 5, { align: 'right' }
     );
-    y += 14;
+    y += 12;
   } else {
-    y += 8;
+    y += 6;
   }
 
   // Additional info sections
-  if (deliveryAddress) {
+  const addSection = (title: string, content: string) => {
+    if (y > 260) { pdf.addPage(); y = margin; }
     pdf.setTextColor(60, 60, 60);
-    pdf.setFontSize(8);
+    pdf.setFontSize(7.5);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Delivery Address:', margin, y);
-    y += 4;
+    pdf.text(title, margin, y);
+    y += 3.5;
     pdf.setFont('helvetica', 'normal');
-    const addrLines = pdf.splitTextToSize(deliveryAddress, contentW);
-    pdf.text(addrLines, margin, y);
-    y += addrLines.length * 3.5 + 4;
-  }
+    pdf.setFontSize(7);
+    const lines = pdf.splitTextToSize(content, contentW);
+    pdf.text(lines, margin, y);
+    y += lines.length * 3 + 4;
+  };
 
-  if (paymentTerms) {
-    pdf.setTextColor(60, 60, 60);
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Payment Terms:', margin, y);
-    y += 4;
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(paymentTerms, margin, y);
-    y += 8;
-  }
-
-  if (responseDeadline && isRFQ) {
-    pdf.setTextColor(60, 60, 60);
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(`Response Deadline: ${responseDeadline}`, margin, y);
-    y += 8;
-  }
-
-  if (notes) {
-    pdf.setTextColor(60, 60, 60);
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Notes:', margin, y);
-    y += 4;
-    pdf.setFont('helvetica', 'normal');
-    const noteLines = pdf.splitTextToSize(notes, contentW);
-    pdf.text(noteLines, margin, y);
-    y += noteLines.length * 3.5 + 4;
-  }
+  if (deliveryAddress) addSection('Delivery Address:', deliveryAddress);
+  if (paymentTerms) addSection('Payment Terms:', paymentTerms);
+  if (responseDeadline && isRFQ) addSection('Response Deadline:', responseDeadline);
+  if (notes) addSection('Notes:', notes);
 
   // Signature line (for PO)
   if (isPO) {
@@ -249,10 +271,11 @@ export function generateSupplierPDF(options: SupplierDocOptions): void {
     pdf.setPage(i);
     pdf.setTextColor(160, 160, 160);
     pdf.setFontSize(6);
-    pdf.text(`${DOC_TITLES[documentType]} — ${refNumber} — Page ${i}/${totalPages}`, pageW / 2, 290, { align: 'center' });
+    const footerText = [companyName, DOC_TITLES[documentType], `Page ${i}/${totalPages}`].filter(Boolean).join(' — ');
+    pdf.text(footerText, pageW / 2, 290, { align: 'center' });
   }
 
-  pdf.save(`${refNumber}.pdf`);
+  pdf.save(`${DOC_PREFIXES[documentType]}-${projectCode}-${supplier.replace(/\s+/g, '_')}.pdf`);
 }
 
 // ─── Excel Generation ───────────────────────────────────────
@@ -260,24 +283,27 @@ export function generateSupplierPDF(options: SupplierDocOptions): void {
 export async function generateSupplierExcel(options: SupplierDocOptions): Promise<void> {
   const {
     projectName, projectCode, supplier, documentType, items,
-    notes, deliveryAddress, paymentTerms, docNumber,
+    notes, deliveryAddress, paymentTerms, docNumber, company,
   } = options;
 
   const refNumber = docNumber || `${DOC_PREFIXES[documentType]}-${projectCode}-${Date.now().toString(36).toUpperCase()}`;
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'StudioScope';
+  wb.creator = company?.company_name || 'StudioScope';
   wb.created = new Date();
 
   const ws = wb.addWorksheet(DOC_TITLES[documentType]);
 
   // Header rows
-  ws.mergeCells('A1:H1');
+  ws.mergeCells('A1:I1');
   const titleCell = ws.getCell('A1');
   titleCell.value = DOC_TITLES[documentType];
   titleCell.font = { bold: true, size: 16 };
   titleCell.alignment = { horizontal: 'left' };
 
-  ws.getCell('A2').value = `Ref: ${refNumber}`;
+  if (company?.company_name) {
+    ws.getCell('A2').value = company.company_name;
+    ws.getCell('A2').font = { bold: true, size: 11 };
+  }
   ws.getCell('A3').value = `Project: ${projectName} (${projectCode})`;
   ws.getCell('A4').value = `Supplier: ${supplier}`;
   ws.getCell('A5').value = `Date: ${new Date().toLocaleDateString('en-GB')}`;
@@ -297,16 +323,15 @@ export async function generateSupplierExcel(options: SupplierDocOptions): Promis
   headers.forEach((h, i) => {
     const cell = hRow.getCell(i + 1);
     cell.value = h;
-    cell.font = { bold: true, size: 10 };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
     cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
     cell.alignment = { horizontal: 'center', vertical: 'middle' };
   });
 
   // Column widths
   ws.getColumn(1).width = 5;
   ws.getColumn(2).width = 18;
-  ws.getColumn(3).width = 35;
+  ws.getColumn(3).width = 40;
   ws.getColumn(4).width = 18;
   ws.getColumn(5).width = 18;
   ws.getColumn(6).width = 15;
@@ -323,16 +348,14 @@ export async function generateSupplierExcel(options: SupplierDocOptions): Promis
     row.getCell(1).value = idx + 1;
     row.getCell(2).value = item.item_code || '';
     row.getCell(3).value = item.description;
+    row.getCell(3).alignment = { wrapText: true };
     row.getCell(4).value = item.dimensions || '';
     row.getCell(5).value = item.finish_material || '';
     row.getCell(6).value = item.finish_color || '';
     row.getCell(7).value = item.quantity || 1;
 
     if (isRFQ) {
-      // Leave empty for supplier
       row.getCell(8).value = null;
-      row.getCell(9).value = null;
-      // Add formula for total = qty * unit price
       row.getCell(9).value = { formula: `G${rowNum}*H${rowNum}` };
     } else {
       const unitPrice = item.unit_cost || 0;
@@ -388,7 +411,7 @@ export async function generateSupplierExcel(options: SupplierDocOptions): Promis
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${refNumber}.xlsx`;
+  a.download = `${DOC_PREFIXES[documentType]}-${projectCode}-${supplier.replace(/\s+/g, '_')}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }
