@@ -36,7 +36,7 @@ import {
   CheckCircle2, XCircle, Clock, ArrowRight, Lock, Pencil, Save, X,
   FileText, Package, CreditCard, Truck, Wrench, History,
   Image as ImageIcon, ExternalLink, ReceiptText, Layers,
-  ListTodo, Plus, Trash2, Calendar as CalendarIcon, User, MessageSquare,
+  ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
