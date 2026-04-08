@@ -1,5 +1,6 @@
 /**
  * SupplierExportTab — Generate RFQ, PO, Proforma documents per supplier
+ * Full-width layout with clickable items and document history
  */
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
@@ -15,13 +16,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { toast } from 'sonner';
-import { FileDown, FileSpreadsheet, Loader2, Package } from 'lucide-react';
+import { FileDown, FileSpreadsheet, Loader2, ExternalLink } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   generateSupplierPDF,
@@ -37,6 +46,7 @@ interface SupplierExportTabProps {
   projectName: string;
   projectCode: string;
   items: ProjectItem[];
+  onOpenItem?: (item: ProjectItem) => void;
 }
 
 const DOC_TYPE_LABELS: Record<SupplierDocType, string> = {
@@ -45,9 +55,10 @@ const DOC_TYPE_LABELS: Record<SupplierDocType, string> = {
   proforma_request: 'Proforma Invoice Request',
 };
 
-export function SupplierExportTab({ projectId, projectName, projectCode, items }: SupplierExportTabProps) {
+export function SupplierExportTab({ projectId, projectName, projectCode, items, onOpenItem }: SupplierExportTabProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: company } = useCompanySettings();
 
   const [selectedSupplier, setSelectedSupplier] = useState<string>('');
   const [docType, setDocType] = useState<SupplierDocType>('rfq');
@@ -78,7 +89,7 @@ export function SupplierExportTab({ projectId, projectName, projectCode, items }
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
       if (error) throw error;
       return data || [];
     },
@@ -124,7 +135,7 @@ export function SupplierExportTab({ projectId, projectName, projectCode, items }
     if (!selectedSupplier || supplierItems.length === 0) return;
     setGenerating(true);
     try {
-      const docNumber = `${docType === 'rfq' ? 'RFQ' : docType === 'purchase_order' ? 'PO' : 'PR'}-${projectCode}-${Date.now().toString(36).toUpperCase()}`;
+      const docNumber = `${DOC_PREFIXES_MAP[docType]}-${projectCode}-${Date.now().toString(36).toUpperCase()}`;
       generateSupplierPDF({
         projectName,
         projectCode,
@@ -136,6 +147,7 @@ export function SupplierExportTab({ projectId, projectName, projectCode, items }
         paymentTerms,
         responseDeadline,
         docNumber,
+        company: company || undefined,
       });
       await saveToHistory.mutateAsync(docNumber);
       toast.success('PDF generated');
@@ -150,7 +162,7 @@ export function SupplierExportTab({ projectId, projectName, projectCode, items }
     if (!selectedSupplier || supplierItems.length === 0) return;
     setGenerating(true);
     try {
-      const docNumber = `${docType === 'rfq' ? 'RFQ' : docType === 'purchase_order' ? 'PO' : 'PR'}-${projectCode}-${Date.now().toString(36).toUpperCase()}`;
+      const docNumber = `${DOC_PREFIXES_MAP[docType]}-${projectCode}-${Date.now().toString(36).toUpperCase()}`;
       await generateSupplierExcel({
         projectName,
         projectCode,
@@ -161,6 +173,7 @@ export function SupplierExportTab({ projectId, projectName, projectCode, items }
         deliveryAddress,
         paymentTerms,
         docNumber,
+        company: company || undefined,
       });
       await saveToHistory.mutateAsync(docNumber);
       toast.success('Excel generated');
@@ -178,173 +191,216 @@ export function SupplierExportTab({ projectId, projectName, projectCode, items }
         <p className="text-sm text-muted-foreground">Generate RFQ, Purchase Orders, and Proforma Requests per supplier</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Configuration */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="bg-card border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Document Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm">Supplier</Label>
-                  <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select supplier..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map(s => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-sm">Document Type</Label>
-                  <Select value={docType} onValueChange={(v) => setDocType(v as SupplierDocType)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.entries(DOC_TYPE_LABELS) as [SupplierDocType, string][]).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {docType === 'rfq' && (
-                <div>
-                  <Label className="text-sm">Response Deadline</Label>
-                  <Input
-                    type="date"
-                    value={responseDeadline}
-                    onChange={e => setResponseDeadline(e.target.value)}
-                    className="mt-1 w-48"
-                  />
-                </div>
-              )}
-
+      {/* Config row — full width */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Document Configuration</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-sm">Supplier</Label>
+              <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select supplier..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm">Document Type</Label>
+              <Select value={docType} onValueChange={(v) => setDocType(v as SupplierDocType)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.entries(DOC_TYPE_LABELS) as [SupplierDocType, string][]).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm">Delivery Address</Label>
+              <Input
+                value={deliveryAddress}
+                onChange={e => setDeliveryAddress(e.target.value)}
+                placeholder="Site address..."
+                className="mt-1"
+              />
+            </div>
+            {docType === 'rfq' ? (
               <div>
-                <Label className="text-sm">Delivery Address</Label>
+                <Label className="text-sm">Response Deadline</Label>
                 <Input
-                  value={deliveryAddress}
-                  onChange={e => setDeliveryAddress(e.target.value)}
-                  placeholder="Site address..."
+                  type="date"
+                  value={responseDeadline}
+                  onChange={e => setResponseDeadline(e.target.value)}
                   className="mt-1"
                 />
               </div>
-
-              {(docType === 'purchase_order' || docType === 'proforma_request') && (
-                <div>
-                  <Label className="text-sm">Payment Terms</Label>
-                  <Input
-                    value={paymentTerms}
-                    onChange={e => setPaymentTerms(e.target.value)}
-                    placeholder="e.g. 50% advance, 50% on delivery"
-                    className="mt-1"
-                  />
-                </div>
-              )}
-
+            ) : (
               <div>
-                <Label className="text-sm">Notes</Label>
-                <Textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Additional notes for the supplier..."
+                <Label className="text-sm">Payment Terms</Label>
+                <Input
+                  value={paymentTerms}
+                  onChange={e => setPaymentTerms(e.target.value)}
+                  placeholder="e.g. 50% advance, 50% on delivery"
                   className="mt-1"
-                  rows={3}
                 />
               </div>
+            )}
+          </div>
 
-              {/* Items preview */}
-              {selectedSupplier && (
-                <div>
-                  <Label className="text-sm mb-2 block">
-                    Items ({supplierItems.length})
-                  </Label>
-                  <ScrollArea className="max-h-48 border border-border rounded-md">
-                    <div className="p-2 space-y-1">
-                      {supplierItems.map(item => (
-                        <div key={item.id} className="flex items-center justify-between text-xs py-1 px-2 rounded hover:bg-muted/50">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-muted-foreground">{item.item_code}</span>
-                            <span className="text-foreground truncate max-w-[200px]">{item.description}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">x{item.quantity || 1}</span>
-                            {item.unit_cost && (
-                              <span className="font-mono">AED {Number(item.unit_cost).toLocaleString()}</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      {supplierItems.length === 0 && (
-                        <p className="text-xs text-muted-foreground text-center py-4">No items for this supplier</p>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm">Notes</Label>
+              <Textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Additional notes for the supplier..."
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+            <div className="flex items-end gap-3">
+              <Button
+                onClick={handleGeneratePDF}
+                disabled={!selectedSupplier || supplierItems.length === 0 || generating}
+              >
+                {generating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileDown className="w-4 h-4 mr-2" />}
+                Download PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleGenerateExcel}
+                disabled={!selectedSupplier || supplierItems.length === 0 || generating}
+              >
+                {generating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+                Download Excel
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* Generate buttons */}
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={handleGeneratePDF}
-                  disabled={!selectedSupplier || supplierItems.length === 0 || generating}
-                >
-                  {generating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileDown className="w-4 h-4 mr-2" />}
-                  Download PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleGenerateExcel}
-                  disabled={!selectedSupplier || supplierItems.length === 0 || generating}
-                >
-                  {generating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
-                  Download Excel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Items table — full width, clickable */}
+      {selectedSupplier && supplierItems.length > 0 && (
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Items for {selectedSupplier} ({supplierItems.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8">#</TableHead>
+                    <TableHead className="w-24">Code</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-28">Dimensions</TableHead>
+                    <TableHead className="w-28">Finishes</TableHead>
+                    <TableHead className="w-12 text-center">Qty</TableHead>
+                    <TableHead className="w-24 text-right">Unit Cost</TableHead>
+                    <TableHead className="w-24 text-right">Total</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {supplierItems.map((item, idx) => {
+                    const unitCost = Number(item.unit_cost) || 0;
+                    const total = unitCost * (item.quantity || 1);
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => onOpenItem?.(item)}
+                      >
+                        <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.item_code || '—'}</TableCell>
+                        <TableCell className="text-sm max-w-[300px]">{item.description}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{item.dimensions || '—'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {[item.finish_material, item.finish_color].filter(Boolean).join(' / ') || '—'}
+                        </TableCell>
+                        <TableCell className="text-center text-xs">{item.quantity || 1}</TableCell>
+                        <TableCell className="text-right text-xs font-mono">
+                          {unitCost ? `AED ${unitCost.toLocaleString()}` : '—'}
+                        </TableCell>
+                        <TableCell className="text-right text-xs font-mono">
+                          {total ? `AED ${total.toLocaleString()}` : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* History */}
-        <div>
-          <Card className="bg-card border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Recent Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {history.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">No documents generated yet</p>
-              ) : (
-                <div className="space-y-2">
+      {/* Document History — full width table */}
+      {history.length > 0 && (
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Document History</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-28">Date</TableHead>
+                    <TableHead className="w-24">Type</TableHead>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead className="w-16 text-center">Items</TableHead>
+                    <TableHead className="w-20">Status</TableHead>
+                    <TableHead>Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {history.map((doc: any) => (
-                    <div key={doc.id} className="border border-border rounded-md p-2 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
+                    <TableRow key={doc.id}>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(doc.created_at).toLocaleDateString('en-GB')}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="outline" className="text-[10px]">
                           {doc.document_type === 'rfq' ? 'RFQ' : doc.document_type === 'purchase_order' ? 'PO' : 'Proforma'}
                         </Badge>
-                        <span className="text-muted-foreground">
-                          {new Date(doc.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="font-medium text-foreground">{doc.supplier}</p>
-                      <p className="text-muted-foreground">
-                        {Array.isArray(doc.items) ? doc.items.length : 0} items
-                      </p>
-                    </div>
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">{doc.supplier}</TableCell>
+                      <TableCell className="text-center text-xs">
+                        {Array.isArray(doc.items) ? doc.items.length : 0}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[10px]">{doc.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                        {doc.notes || '—'}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+
+const DOC_PREFIXES_MAP: Record<SupplierDocType, string> = {
+  rfq: 'RFQ',
+  purchase_order: 'PO',
+  proforma_request: 'PR',
+};
