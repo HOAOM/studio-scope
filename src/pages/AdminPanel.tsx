@@ -95,6 +95,7 @@ export default function AdminPanel() {
             <TabsTrigger value="subcategories">Subcategories</TabsTrigger>
             <TabsTrigger value="costs">Cost Categories</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="company">Company Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="floors">
@@ -202,6 +203,10 @@ export default function AdminPanel() {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="company">
+            <CompanySettingsForm />
           </TabsContent>
         </Tabs>
       </main>
