@@ -138,6 +138,45 @@ export type Database = {
           },
         ]
       }
+      company_settings: {
+        Row: {
+          company_address: string | null
+          company_name: string
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          updated_at: string
+          vat_number: string | null
+          website: string | null
+        }
+        Insert: {
+          company_address?: string | null
+          company_name?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Update: {
+          company_address?: string | null
+          company_name?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       cost_categories: {
         Row: {
           code: string
