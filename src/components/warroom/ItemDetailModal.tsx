@@ -36,12 +36,12 @@ import {
   CheckCircle2, XCircle, Clock, ArrowRight, Lock, Pencil, Save, X,
   FileText, Package, CreditCard, Truck, Wrench, History,
   Image as ImageIcon, ExternalLink, ReceiptText, Layers,
-  ListTodo, Plus, Trash2, Calendar as CalendarIcon, User, MessageSquare,
+  ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
-import { ItemMessages } from './ItemMessages';
+import { LifecycleChecklist } from './LifecycleChecklist';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -547,8 +547,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
               {canSeeLogistics && <TabsTrigger value="logistics"><Truck className="w-3 h-3 mr-1" />Logistics</TabsTrigger>}
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
+              <TabsTrigger value="lifecycle"><ArrowRight className="w-3 h-3 mr-1" />Lifecycle</TabsTrigger>
               <TabsTrigger value="tasks"><ListTodo className="w-3 h-3 mr-1" />Tasks{openTasks.length > 0 ? ` (${openTasks.length})` : ''}</TabsTrigger>
-              <TabsTrigger value="messages"><MessageSquare className="w-3 h-3 mr-1" />Messages</TabsTrigger>
               <TabsTrigger value="history"><History className="w-3 h-3 mr-1" />History</TabsTrigger>
             </TabsList>
 
@@ -903,11 +903,21 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               )}
             </TabsContent>
 
-            {/* MESSAGES TAB */}
-            <TabsContent value="messages">
-              <ItemMessages
-                itemId={item.id}
-                profiles={new Map(members.map((m: any) => [m.id, { display_name: m.display_name, email: m.email }]))}
+            {/* LIFECYCLE CHECKLIST TAB */}
+            <TabsContent value="lifecycle" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Item Lifecycle Progress</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Each step is approved by the responsible role. Green = done, highlighted = current, gray = upcoming.
+                  </p>
+                </div>
+              </div>
+              <LifecycleChecklist
+                currentStatus={item.lifecycle_status}
+                userRoles={typedRoles}
+                onTransition={handleTransition}
+                isPending={updateItem.isPending}
               />
             </TabsContent>
 
