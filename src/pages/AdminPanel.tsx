@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCompanySettings, useUpdateCompanySettings } from '@/hooks/useCompanySettings';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -12,9 +13,13 @@ import {
 import { MasterDataTable } from '@/components/admin/MasterDataTable';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Shield, Loader2 } from 'lucide-react';
+import { ArrowLeft, Shield, Loader2, Building2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
 
