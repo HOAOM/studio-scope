@@ -338,6 +338,11 @@ export default function ProjectDetail() {
             {/* KPIs */}
             <ProjectKPIs items={items} />
 
+            {/* Budget Overview */}
+            {canSeeCosts && (
+              <BudgetOverview items={items} totalBudget={null} canSeeCosts={canSeeCosts} />
+            )}
+
             {/* Project Summary + Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-card rounded-lg border border-border p-6">
