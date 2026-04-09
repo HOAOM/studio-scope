@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { ItemDetailModal } from './ItemDetailModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -164,6 +165,8 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
   const [showColumnToggle, setShowColumnToggle] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<ProjectItem | null>(null);
+  const [detailItem, setDetailItem] = useState<ProjectItem | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const createItem = useCreateProjectItem();
   const updateItem = useUpdateProjectItem();
@@ -287,17 +290,35 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     }
 
     // Interleave children after their parents — parent = Option A, children = B, C, D
+    // If a child is selected, merge its display data into the parent row
     const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
-    const final: (ProjectItem & { _isOption?: boolean; _optionLetter?: string; _optionSelected?: boolean })[] = [];
+    const final: (ProjectItem & { _isOption?: boolean; _optionLetter?: string; _optionSelected?: boolean; _selectedData?: ProjectItem | null; _selectedLetter?: string })[] = [];
     for (const parent of result) {
       const children = childMap.get(parent.id) || [];
       const hasOptions = children.length > 0;
-      // Parent counts as Option A when it has children
+      // Find the selected option (could be parent or a child)
+      const selectedChild = children.find(c => c.is_selected_option);
+      const parentIsSelected = parent.is_selected_option;
+      const selectedData = selectedChild || (parentIsSelected ? parent : null);
+      
+      // Compute selected letter
+      let selectedLetter: string | undefined;
+      if (selectedData) {
+        if (selectedData.id === parent.id) {
+          selectedLetter = 'A';
+        } else {
+          const idx = children.findIndex(c => c.id === selectedData.id);
+          selectedLetter = OPTION_LETTERS[idx + 1] || `${idx + 2}`;
+        }
+      }
+      
       final.push({
         ...parent,
         _isOption: false,
         _optionLetter: hasOptions ? 'A' : undefined,
-        _optionSelected: hasOptions ? (parent.is_selected_option || false) : false,
+        _optionSelected: hasOptions ? (parentIsSelected || false) : false,
+        _selectedData: hasOptions ? selectedData : null,
+        _selectedLetter: selectedLetter,
       } as any);
       children.forEach((child, idx) => {
         final.push({
@@ -833,12 +854,16 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                   const isOption = (item as any)._isOption;
                   const optionLetter = (item as any)._optionLetter;
                   const optionSelected = (item as any)._optionSelected;
+                  const selectedData: ProjectItem | null = (item as any)._selectedData;
                   const hasOptions = !!optionLetter && !isOption; // parent with children
                   const floor = floorMap.get(item.floor_id || '');
                   const room = roomMap.get(item.room_id || '');
                   const rowColor = isOption ? undefined : getRoomColor(floor?.code || '', room?.code || '', item.room_number || '01');
-                  const amount = (item.unit_cost || 0) * (item.quantity || 1);
-                  const isMissingPrice = !item.unit_cost || item.unit_cost === 0;
+                  
+                  // For parent rows with a selected option, show selected option's data
+                  const displayItem = (hasOptions && selectedData) ? selectedData : item;
+                  const amount = (displayItem.unit_cost || 0) * (displayItem.quantity || 1);
+                  const isMissingPrice = !displayItem.unit_cost || displayItem.unit_cost === 0;
                   const isCustom = item.item_code?.includes('-CF');
 
                   return (
@@ -846,47 +871,51 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       key={item.id}
                       style={rowColor ? { backgroundColor: rowColor } : undefined}
                       className={cn(
-                        '[&_td]:px-1.5 [&_td]:py-1',
+                        '[&_td]:px-1.5 [&_td]:py-1 cursor-pointer',
                         isOption
-                          ? optionSelected
-                            ? 'bg-primary/5 border-l-4 border-l-primary [&_td]:text-foreground'
-                            : 'bg-muted/30 border-l-4 border-l-border [&_td]:text-muted-foreground'
-                          : hasOptions && optionSelected
-                            ? 'border-l-4 border-l-primary [&_td]:text-foreground'
-                            : '[&_td]:text-foreground'
+                          ? 'bg-transparent [&_td]:text-muted-foreground'
+                          : '[&_td]:text-foreground'
                       )}
+                      onDoubleClick={() => {
+                        setDetailItem(item);
+                        setDetailOpen(true);
+                      }}
                     >
                       {isCol('image') && (
-                        <TableCell>
-                          {item.reference_image_url ? (
+                        <TableCell className={isOption ? 'pl-14' : ''}>
+                          {displayItem.reference_image_url ? (
                             <img
-                              src={item.reference_image_url}
+                              src={displayItem.reference_image_url}
                               alt=""
-                              className={cn('object-cover rounded cursor-pointer border border-border', isOption ? 'w-8 h-8' : 'w-10 h-10')}
-                              onClick={() => window.open(item.reference_image_url!, '_blank')}
+                              className={cn('object-cover rounded cursor-pointer border border-border', isOption ? 'w-7 h-7' : 'w-10 h-10')}
+                              onClick={() => window.open(displayItem.reference_image_url!, '_blank')}
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : (
-                            <div className={cn('rounded border border-border bg-muted/30 flex items-center justify-center', isOption ? 'w-8 h-8' : 'w-10 h-10')}>
+                            <div className={cn('rounded border border-border bg-muted/30 flex items-center justify-center', isOption ? 'w-7 h-7' : 'w-10 h-10')}>
                               <ImageIcon className="w-4 h-4 text-muted-foreground" />
                             </div>
                           )}
                         </TableCell>
                       )}
-                      <TableCell className={cn('font-mono text-xs font-bold', isOption ? 'pl-20' : '', isCustom ? 'text-destructive' : '')}>
+                      <TableCell className={cn('font-mono text-xs font-bold', isOption ? 'pl-14' : '', isCustom ? 'text-destructive' : '')}>
                         {isOption ? (
-                          <span className="flex items-center gap-1">
-                            <span className="text-muted-foreground">↳</span>
-                            <Badge variant={optionSelected ? 'default' : 'outline'} className="text-[9px] h-4 px-1.5">
-                              Opt {optionLetter}{optionSelected ? ' ✓' : ''}
+                          <span className="flex flex-col items-start gap-0.5">
+                            <Badge variant={optionSelected ? 'default' : 'outline'} className={cn('text-[9px] h-4 px-1.5', optionSelected ? 'bg-primary text-primary-foreground' : 'border-primary text-primary')}>
+                              OPTION {optionLetter}{optionSelected ? ' ✓' : ''}
                             </Badge>
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1">
-                            {item.item_code || '-'}
-                            {hasOptions && (
-                              <Badge variant={optionSelected ? 'default' : 'secondary'} className="text-[8px] h-3.5 px-1 ml-1">
-                                {optionSelected ? `✓ ${optionLetter}` : optionLetter}
+                          <span className="flex flex-col items-start gap-0.5">
+                            <span>{item.item_code || '-'}</span>
+                            {hasOptions && selectedData && (
+                              <Badge variant="default" className="text-[8px] h-3.5 px-1 bg-primary text-primary-foreground">
+                                OPTION {(item as any)._selectedLetter} ✓
+                              </Badge>
+                            )}
+                            {hasOptions && !selectedData && (
+                              <Badge variant="outline" className="text-[8px] h-3.5 px-1 border-primary text-primary">
+                                {optionLetter}
                               </Badge>
                             )}
                           </span>
@@ -896,15 +925,15 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       <TableCell className="text-xs">{isOption ? '' : ((room?.code || '') + (item.room_number || ''))}</TableCell>
                       {isCol('zone') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
                       {isCol('area') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
-                      {isCol('brand') && <TableCell className="text-xs">{item.supplier || '-'}</TableCell>}
-                      <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-20 italic' : '')} title={item.description}>{item.description}</TableCell>
-                      {isCol('finishing') && <TableCell className="text-xs">{item.finish_material || '-'}</TableCell>}
-                      {isCol('size') && <TableCell className="text-xs">{item.dimensions || '-'}</TableCell>}
-                      {isCol('tech') && <TableCell>{renderLinks(item.technical_drawing_url)}</TableCell>}
+                      {isCol('brand') && <TableCell className="text-xs">{displayItem.supplier || '-'}</TableCell>}
+                      <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-14' : '')} title={displayItem.description}>{displayItem.description}</TableCell>
+                      {isCol('finishing') && <TableCell className="text-xs">{displayItem.finish_material || '-'}</TableCell>}
+                      {isCol('size') && <TableCell className="text-xs">{displayItem.dimensions || '-'}</TableCell>}
+                      {isCol('tech') && <TableCell>{renderLinks(displayItem.technical_drawing_url)}</TableCell>}
                       {isCol('refImg') && (
                         <TableCell>
-                          {item.reference_image_url ? (
-                            <a href={item.reference_image_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
+                          {displayItem.reference_image_url ? (
+                            <a href={displayItem.reference_image_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
                               LINK
                             </a>
                           ) : (
@@ -912,12 +941,12 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                           )}
                         </TableCell>
                       )}
-                      {isCol('coLink') && <TableCell>{renderLinks(item.company_product_url)}</TableCell>}
-                      <TableCell className="text-xs font-mono">{item.quantity || 1}</TableCell>
+                      {isCol('coLink') && <TableCell>{renderLinks(displayItem.company_product_url)}</TableCell>}
+                      <TableCell className="text-xs font-mono">{displayItem.quantity || 1}</TableCell>
                       <TableCell className="text-xs">pcs</TableCell>
                       {isCol('unitRate') && canSeeCosts && (
                         <TableCell className={cn('text-xs font-mono text-right', isMissingPrice && !isOption && 'bg-destructive/10 font-bold text-destructive')}>
-                          {item.unit_cost ? `€${Number(item.unit_cost).toFixed(2)}` : '-'}
+                          {displayItem.unit_cost ? `€${Number(displayItem.unit_cost).toFixed(2)}` : '-'}
                         </TableCell>
                       )}
                       {isCol('amount') && canSeeCosts && (
@@ -925,8 +954,8 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                           {amount > 0 ? `€${amount.toFixed(2)}` : '-'}
                         </TableCell>
                       )}
-                      {isCol('prodTime') && <TableCell className="text-xs">{item.production_time || '-'}</TableCell>}
-                      {isCol('notes') && <TableCell className="text-xs max-w-[150px] truncate" title={item.notes || ''}>{item.notes || '-'}</TableCell>}
+                      {isCol('prodTime') && <TableCell className="text-xs">{displayItem.production_time || '-'}</TableCell>}
+                      {isCol('notes') && <TableCell className="text-xs max-w-[150px] truncate" title={displayItem.notes || ''}>{displayItem.notes || '-'}</TableCell>}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
@@ -968,6 +997,14 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Item Detail Modal */}
+      <ItemDetailModal
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        item={detailItem}
+        projectId={projectId}
+      />
     </div>
   );
 }

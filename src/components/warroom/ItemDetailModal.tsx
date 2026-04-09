@@ -42,6 +42,7 @@ import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
 import { LifecycleChecklist } from './LifecycleChecklist';
+import { FileOrUrlInput } from './FileOrUrlInput';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -436,15 +437,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     const value = val(field);
     if (editMode) {
       return (
-        <div className="flex flex-col gap-1 py-1.5">
-          <Label className="text-xs text-muted-foreground">{label}</Label>
-          <Input
-            value={value ?? ''}
-            onChange={e => setVal(field, e.target.value)}
-            placeholder="Paste URL or file path..."
-            className="text-sm h-8"
-          />
-        </div>
+        <FileOrUrlInput
+          label={label}
+          value={value ?? null}
+          onChange={v => setVal(field, v || '')}
+          storagePath={`${projectId}/${item.id}`}
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          className="py-1.5"
+        />
       );
     }
     if (!value) return null;
@@ -462,7 +462,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[92vh] p-0 gap-0 bg-card">
+      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 bg-card">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between">
@@ -513,14 +513,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
           {!editMode && availableTransitions.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
+              {/* Forward transitions */}
               {availableTransitions
                 .filter(t => t.to !== 'on_hold' && t.to !== 'cancelled')
-                .slice(0, 3)
                 .map(t => (
                 <Button
                   key={t.to}
                   size="sm"
-                  variant={t.to === 'cancelled' ? 'destructive' : 'default'}
+                  variant="default"
                   onClick={() => handleTransition(t.to)}
                   disabled={updateItem.isPending}
                 >
@@ -528,16 +528,26 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {t.label}
                 </Button>
               ))}
-              {availableTransitions.filter(t => t.to === 'on_hold' || t.to === 'cancelled').map(t => (
-                <Button key={t.to} size="sm" variant="outline" className={t.to === 'cancelled' ? 'text-destructive' : ''} onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
-                  {t.label}
+
+              <div className="flex-1" />
+
+              {/* On Hold */}
+              {availableTransitions.filter(t => t.to === 'on_hold').map(t => (
+                <Button key={t.to} size="sm" variant="outline" className="text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
+                  ⏸ {t.label}
+                </Button>
+              ))}
+              {/* Cancel */}
+              {availableTransitions.filter(t => t.to === 'cancelled').map(t => (
+                <Button key={t.to} size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
+                  ✕ {t.label}
                 </Button>
               ))}
             </div>
           )}
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(92vh-200px)]">
+        <ScrollArea className="max-h-[calc(95vh-200px)]">
           <Tabs defaultValue="info" className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>

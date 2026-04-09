@@ -279,6 +279,7 @@ export const STATE_TRANSITIONS: Record<string, TransitionDef[]> = {
   ],
   quotation_preparation: [
     { to: 'quotation_inserted', roles: ['admin', 'coo', 'qs', 'procurement_manager'], label: 'Insert Quotation' },
+    { to: 'finishes_approved_hod', roles: ['admin', 'coo', 'procurement_manager', 'qs', 'project_manager'], label: 'Send Back → Missing Specs' },
   ],
   quotation_inserted: [
     { to: 'quotation_approved_ops', roles: ['admin', 'coo', 'project_manager', 'qs'], label: 'Approve Quotation (Ops)' },
