@@ -292,7 +292,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
     // Interleave children after their parents — parent = Option A, children = B, C, D
     // If a child is selected, merge its display data into the parent row
     const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
-    const final: (ProjectItem & { _isOption?: boolean; _optionLetter?: string; _optionSelected?: boolean; _selectedData?: ProjectItem | null })[] = [];
+    const final: (ProjectItem & { _isOption?: boolean; _optionLetter?: string; _optionSelected?: boolean; _selectedData?: ProjectItem | null; _selectedLetter?: string })[] = [];
     for (const parent of result) {
       const children = childMap.get(parent.id) || [];
       const hasOptions = children.length > 0;
@@ -301,12 +301,24 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       const parentIsSelected = parent.is_selected_option;
       const selectedData = selectedChild || (parentIsSelected ? parent : null);
       
+      // Compute selected letter
+      let selectedLetter: string | undefined;
+      if (selectedData) {
+        if (selectedData.id === parent.id) {
+          selectedLetter = 'A';
+        } else {
+          const idx = children.findIndex(c => c.id === selectedData.id);
+          selectedLetter = OPTION_LETTERS[idx + 1] || `${idx + 2}`;
+        }
+      }
+      
       final.push({
         ...parent,
         _isOption: false,
         _optionLetter: hasOptions ? 'A' : undefined,
         _optionSelected: hasOptions ? (parentIsSelected || false) : false,
         _selectedData: hasOptions ? selectedData : null,
+        _selectedLetter: selectedLetter,
       } as any);
       children.forEach((child, idx) => {
         final.push({
