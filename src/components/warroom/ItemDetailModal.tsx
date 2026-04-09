@@ -858,9 +858,47 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
-                    {renderField('Purchased', 'purchased', { locked: true })}
-                    {renderField('Received', 'received', { locked: true })}
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Quick Status</h4>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Purchased</span>
+                      <Button
+                        size="sm"
+                        variant={item.purchased ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            await updateItem.mutateAsync({ id: item.id, purchased: !item.purchased });
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                          } catch { toast.error('Failed'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.purchased ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.purchased ? 'Yes' : 'No'}
+                      </Button>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Received</span>
+                      <Button
+                        size="sm"
+                        variant={item.received ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const updates: any = { id: item.id, received: !item.received };
+                            if (!item.received) updates.received_date = new Date().toISOString().split('T')[0];
+                            await updateItem.mutateAsync(updates);
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                          } catch { toast.error('Failed'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.received ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.received ? 'Yes' : 'No'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -873,8 +911,31 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Installation</h4>
                     {renderField('Installation Start', 'installation_start_date', { type: 'date' })}
-                    {renderField('Installed', 'installed', { locked: true })}
                     {renderField('Installed Date', 'installed_date', { type: 'date' })}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Installed</span>
+                      <Button
+                        size="sm"
+                        variant={item.installed ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const updates: any = { id: item.id, installed: !item.installed };
+                            if (!item.installed) updates.installed_date = new Date().toISOString().split('T')[0];
+                            await updateItem.mutateAsync(updates);
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                          } catch { toast.error('Failed'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.installed ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.installed ? 'Installed' : 'Not Installed'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
