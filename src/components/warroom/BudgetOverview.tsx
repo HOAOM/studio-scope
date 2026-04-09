@@ -84,6 +84,8 @@ export function BudgetOverview({ items, totalBudget, canSeeCosts }: BudgetOvervi
   const formatCurrency = (v: number) => `€${v.toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   if (!canSeeCosts) return null;
+
+  return (
     <Card className="border-border">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">Budget Overview</CardTitle>
