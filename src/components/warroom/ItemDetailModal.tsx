@@ -551,7 +551,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           <Tabs defaultValue="info" className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
-              {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design{childOptions.length > 0 ? ` (${childOptions.length})` : ''}</TabsTrigger>}
+              {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="procurement"><Package className="w-3 h-3 mr-1" />Procurement</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="quotations"><ReceiptText className="w-3 h-3 mr-1" />Quotations</TabsTrigger>}
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
@@ -571,15 +571,22 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {renderField('Category', 'category', { locked: true })}
                   {renderField('Area', 'area')}
                   {renderField('Description', 'description')}
+                  {selectedOption && selectedOption.id !== item.id && (
+                    <div className="flex justify-between items-start py-1.5">
+                      <span className="text-sm text-muted-foreground">Client Selection</span>
+                      <span className="text-sm font-medium text-primary text-right max-w-[60%] truncate">
+                        {selectedOption.description}
+                      </span>
+                    </div>
+                  )}
                   {renderField('Revision', 'revision_number', { locked: true })}
-                  {renderField('BOQ Included', 'boq_included', { locked: true })}
                   {renderField('Approval', 'approval_status', { locked: true })}
                 </div>
                 <div className="space-y-1">
                   <h4 className="text-sm font-semibold text-foreground mb-2">Location</h4>
                   {renderField('Apartment', 'apartment_number')}
                   {renderField('Room Number', 'room_number', { locked: true })}
-                  {renderField('Dimensions', 'dimensions')}
+                  {renderField('Dimensions', selectedOption ? 'dimensions' : 'dimensions')}
                   {renderField('Supplier', 'supplier')}
                   {renderField('Production Time', 'production_time')}
                   {canSeeCosts && renderField('Quantity', 'quantity', { type: 'number' })}
