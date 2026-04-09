@@ -997,6 +997,14 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Item Detail Modal */}
+      <ItemDetailModal
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        item={detailItem}
+        projectId={projectId}
+      />
     </div>
   );
 }

@@ -462,7 +462,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[92vh] p-0 gap-0 bg-card">
+      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 bg-card">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between">
