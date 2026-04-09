@@ -614,7 +614,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Design Options ({allOptions.length}/4)</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Design Options</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Hover a card and click the pencil to edit details. Click "Select" to flag client choice.
                     </p>
@@ -651,6 +651,39 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     />
                   ))}
                 </div>
+
+                {/* Always-visible finish summary for selected option */}
+                {selectedOption && (
+                  <div className="rounded-lg border border-border p-4 space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Selected Option Details</h4>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Description</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.description || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Supplier</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.supplier || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Material</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_material || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Color</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_color || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Dimensions</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.dimensions || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Finish Notes</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_notes || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             )}
 
