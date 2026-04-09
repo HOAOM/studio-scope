@@ -663,14 +663,60 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     {renderField('Supplier', 'supplier')}
                     {renderField('PO Number', 'po_number')}
                     {renderField('Quotation Ref', 'quotation_ref')}
+                    {renderField('Production Time', 'production_time')}
                     {renderLink('Proforma', 'proforma_url')}
                     {renderField('Production Due', 'production_due_date', { type: 'date' })}
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
-                    {renderField('Lifecycle', 'lifecycle_status', { locked: true })}
-                    {renderField('Purchased', 'purchased', { locked: true })}
-                    {renderField('Received', 'received', { locked: true })}
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Lifecycle</span>
+                      <Badge className={cn('text-xs', colors.bg, colors.text)}>{statusLabel}</Badge>
+                    </div>
+                    {/* 1-click toggle for Purchased */}
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Purchased</span>
+                      <Button
+                        size="sm"
+                        variant={item.purchased ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            await updateItem.mutateAsync({ id: item.id, purchased: !item.purchased });
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                            toast.success(item.purchased ? 'Marked as not purchased' : 'Marked as purchased');
+                          } catch { toast.error('Failed to update'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.purchased ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.purchased ? 'Purchased' : 'Not Purchased'}
+                      </Button>
+                    </div>
+                    {/* 1-click toggle for Received */}
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Received</span>
+                      <Button
+                        size="sm"
+                        variant={item.received ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const updates: any = { id: item.id, received: !item.received };
+                            if (!item.received) updates.received_date = new Date().toISOString().split('T')[0];
+                            await updateItem.mutateAsync(updates);
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                            toast.success(item.received ? 'Marked as not received' : 'Marked as received');
+                          } catch { toast.error('Failed to update'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.received ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.received ? 'Received' : 'Not Received'}
+                      </Button>
+                    </div>
                     {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                 </div>
