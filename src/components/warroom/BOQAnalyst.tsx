@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { ItemDetailModal } from './ItemDetailModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -164,6 +165,8 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
   const [showColumnToggle, setShowColumnToggle] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<ProjectItem | null>(null);
+  const [detailItem, setDetailItem] = useState<ProjectItem | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const createItem = useCreateProjectItem();
   const updateItem = useUpdateProjectItem();
