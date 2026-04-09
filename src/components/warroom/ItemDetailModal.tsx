@@ -547,7 +547,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           )}
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(92vh-200px)]">
+        <ScrollArea className="max-h-[calc(95vh-200px)]">
           <Tabs defaultValue="info" className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
