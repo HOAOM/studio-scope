@@ -15,6 +15,7 @@ import { ApprovalGatesPanel } from '@/components/warroom/ApprovalGatesPanel';
 import { ClientBoardsTab } from '@/components/warroom/ClientBoardsTab';
 import { SupplierExportTab } from '@/components/warroom/SupplierExportTab';
 import { MilestonesPanel } from '@/components/warroom/MilestonesPanel';
+import { BudgetOverview } from '@/components/warroom/BudgetOverview';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
