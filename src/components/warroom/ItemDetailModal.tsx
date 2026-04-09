@@ -42,6 +42,7 @@ import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
 import { LifecycleChecklist } from './LifecycleChecklist';
+import { FileOrUrlInput } from './FileOrUrlInput';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -436,15 +437,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     const value = val(field);
     if (editMode) {
       return (
-        <div className="flex flex-col gap-1 py-1.5">
-          <Label className="text-xs text-muted-foreground">{label}</Label>
-          <Input
-            value={value ?? ''}
-            onChange={e => setVal(field, e.target.value)}
-            placeholder="Paste URL or file path..."
-            className="text-sm h-8"
-          />
-        </div>
+        <FileOrUrlInput
+          label={label}
+          value={value ?? null}
+          onChange={v => setVal(field, v || '')}
+          storagePath={`${projectId}/${item.id}`}
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          className="py-1.5"
+        />
       );
     }
     if (!value) return null;
