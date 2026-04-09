@@ -39,8 +39,6 @@ interface BudgetOverviewProps {
 }
 
 export function BudgetOverview({ items, totalBudget, canSeeCosts }: BudgetOverviewProps) {
-  if (!canSeeCosts) return null;
-
   const data = useMemo(() => {
     // Only count active parent items or selected options
     const relevantItems = items.filter(i => {
