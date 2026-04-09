@@ -513,14 +513,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
           {!editMode && availableTransitions.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
+              {/* Forward transitions */}
               {availableTransitions
                 .filter(t => t.to !== 'on_hold' && t.to !== 'cancelled')
-                .slice(0, 3)
                 .map(t => (
                 <Button
                   key={t.to}
                   size="sm"
-                  variant={t.to === 'cancelled' ? 'destructive' : 'default'}
+                  variant="default"
                   onClick={() => handleTransition(t.to)}
                   disabled={updateItem.isPending}
                 >
@@ -528,9 +528,19 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {t.label}
                 </Button>
               ))}
-              {availableTransitions.filter(t => t.to === 'on_hold' || t.to === 'cancelled').map(t => (
-                <Button key={t.to} size="sm" variant="outline" className={t.to === 'cancelled' ? 'text-destructive' : ''} onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
-                  {t.label}
+
+              <div className="flex-1" />
+
+              {/* On Hold */}
+              {availableTransitions.filter(t => t.to === 'on_hold').map(t => (
+                <Button key={t.to} size="sm" variant="outline" className="text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
+                  ⏸ {t.label}
+                </Button>
+              ))}
+              {/* Cancel */}
+              {availableTransitions.filter(t => t.to === 'cancelled').map(t => (
+                <Button key={t.to} size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
+                  ✕ {t.label}
                 </Button>
               ))}
             </div>
