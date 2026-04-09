@@ -910,7 +910,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                             <span>{item.item_code || '-'}</span>
                             {hasOptions && selectedData && (
                               <Badge variant="default" className="text-[8px] h-3.5 px-1 bg-primary text-primary-foreground">
-                                OPTION {selectedData.id === item.id ? 'A' : String.fromCharCode(65 + (childMap.get(item.id)?.findIndex(c => c.id === selectedData.id) ?? 0) + 1)} ✓
+                                OPTION {(item as any)._selectedLetter} ✓
                               </Badge>
                             )}
                             {hasOptions && !selectedData && (
