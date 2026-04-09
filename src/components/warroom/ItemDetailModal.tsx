@@ -551,7 +551,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           <Tabs defaultValue="info" className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
-              {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design{childOptions.length > 0 ? ` (${childOptions.length})` : ''}</TabsTrigger>}
+              {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="procurement"><Package className="w-3 h-3 mr-1" />Procurement</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="quotations"><ReceiptText className="w-3 h-3 mr-1" />Quotations</TabsTrigger>}
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
@@ -571,15 +571,22 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {renderField('Category', 'category', { locked: true })}
                   {renderField('Area', 'area')}
                   {renderField('Description', 'description')}
+                  {selectedOption && selectedOption.id !== item.id && (
+                    <div className="flex justify-between items-start py-1.5">
+                      <span className="text-sm text-muted-foreground">Client Selection</span>
+                      <span className="text-sm font-medium text-primary text-right max-w-[60%] truncate">
+                        {selectedOption.description}
+                      </span>
+                    </div>
+                  )}
                   {renderField('Revision', 'revision_number', { locked: true })}
-                  {renderField('BOQ Included', 'boq_included', { locked: true })}
                   {renderField('Approval', 'approval_status', { locked: true })}
                 </div>
                 <div className="space-y-1">
                   <h4 className="text-sm font-semibold text-foreground mb-2">Location</h4>
                   {renderField('Apartment', 'apartment_number')}
                   {renderField('Room Number', 'room_number', { locked: true })}
-                  {renderField('Dimensions', 'dimensions')}
+                  {renderField('Dimensions', selectedOption ? 'dimensions' : 'dimensions')}
                   {renderField('Supplier', 'supplier')}
                   {renderField('Production Time', 'production_time')}
                   {canSeeCosts && renderField('Quantity', 'quantity', { type: 'number' })}
@@ -607,7 +614,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Design Options ({allOptions.length}/4)</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Design Options</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Hover a card and click the pencil to edit details. Click "Select" to flag client choice.
                     </p>
@@ -644,6 +651,39 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     />
                   ))}
                 </div>
+
+                {/* Always-visible finish summary for selected option */}
+                {selectedOption && (
+                  <div className="rounded-lg border border-border p-4 space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Selected Option Details</h4>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Description</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.description || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Supplier</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.supplier || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Material</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_material || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Color</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_color || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Dimensions</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.dimensions || '—'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-muted-foreground">Finish Notes</span>
+                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_notes || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             )}
 
@@ -656,14 +696,60 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     {renderField('Supplier', 'supplier')}
                     {renderField('PO Number', 'po_number')}
                     {renderField('Quotation Ref', 'quotation_ref')}
+                    {renderField('Production Time', 'production_time')}
                     {renderLink('Proforma', 'proforma_url')}
                     {renderField('Production Due', 'production_due_date', { type: 'date' })}
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
-                    {renderField('Lifecycle', 'lifecycle_status', { locked: true })}
-                    {renderField('Purchased', 'purchased', { locked: true })}
-                    {renderField('Received', 'received', { locked: true })}
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Lifecycle</span>
+                      <Badge className={cn('text-xs', colors.bg, colors.text)}>{statusLabel}</Badge>
+                    </div>
+                    {/* 1-click toggle for Purchased */}
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Purchased</span>
+                      <Button
+                        size="sm"
+                        variant={item.purchased ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            await updateItem.mutateAsync({ id: item.id, purchased: !item.purchased });
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                            toast.success(item.purchased ? 'Marked as not purchased' : 'Marked as purchased');
+                          } catch { toast.error('Failed to update'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.purchased ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.purchased ? 'Purchased' : 'Not Purchased'}
+                      </Button>
+                    </div>
+                    {/* 1-click toggle for Received */}
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Received</span>
+                      <Button
+                        size="sm"
+                        variant={item.received ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const updates: any = { id: item.id, received: !item.received };
+                            if (!item.received) updates.received_date = new Date().toISOString().split('T')[0];
+                            await updateItem.mutateAsync(updates);
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                            toast.success(item.received ? 'Marked as not received' : 'Marked as received');
+                          } catch { toast.error('Failed to update'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.received ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.received ? 'Received' : 'Not Received'}
+                      </Button>
+                    </div>
                     {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                 </div>
@@ -805,9 +891,47 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
-                    {renderField('Purchased', 'purchased', { locked: true })}
-                    {renderField('Received', 'received', { locked: true })}
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Quick Status</h4>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Purchased</span>
+                      <Button
+                        size="sm"
+                        variant={item.purchased ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            await updateItem.mutateAsync({ id: item.id, purchased: !item.purchased });
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                          } catch { toast.error('Failed'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.purchased ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.purchased ? 'Yes' : 'No'}
+                      </Button>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Received</span>
+                      <Button
+                        size="sm"
+                        variant={item.received ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const updates: any = { id: item.id, received: !item.received };
+                            if (!item.received) updates.received_date = new Date().toISOString().split('T')[0];
+                            await updateItem.mutateAsync(updates);
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                          } catch { toast.error('Failed'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.received ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.received ? 'Yes' : 'No'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -820,8 +944,31 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Installation</h4>
                     {renderField('Installation Start', 'installation_start_date', { type: 'date' })}
-                    {renderField('Installed', 'installed', { locked: true })}
                     {renderField('Installed Date', 'installed_date', { type: 'date' })}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-muted-foreground">Installed</span>
+                      <Button
+                        size="sm"
+                        variant={item.installed ? 'default' : 'outline'}
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const updates: any = { id: item.id, installed: !item.installed };
+                            if (!item.installed) updates.installed_date = new Date().toISOString().split('T')[0];
+                            await updateItem.mutateAsync(updates);
+                            queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                            queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                          } catch { toast.error('Failed'); }
+                        }}
+                        disabled={updateItem.isPending}
+                      >
+                        {item.installed ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                        {item.installed ? 'Installed' : 'Not Installed'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </TabsContent>

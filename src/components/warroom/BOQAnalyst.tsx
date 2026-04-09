@@ -291,6 +291,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
     // Interleave children after their parents — parent = Option A, children = B, C, D
     // If a child is selected, merge its display data into the parent row
+    // Show all NON-selected options below (including parent as Option A if a child is selected)
     const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
     const final: (ProjectItem & { _isOption?: boolean; _optionLetter?: string; _optionSelected?: boolean; _selectedData?: ProjectItem | null; _selectedLetter?: string })[] = [];
     for (const parent of result) {
@@ -301,16 +302,15 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       const parentIsSelected = parent.is_selected_option;
       const selectedData = selectedChild || (parentIsSelected ? parent : null);
       
+      // Build the full options list: parent=A, children=B,C,D
+      const allOptions: { item: ProjectItem; letter: string }[] = [
+        { item: parent, letter: 'A' },
+        ...children.map((child, idx) => ({ item: child, letter: OPTION_LETTERS[idx + 1] || `${idx + 2}` })),
+      ];
+      
       // Compute selected letter
-      let selectedLetter: string | undefined;
-      if (selectedData) {
-        if (selectedData.id === parent.id) {
-          selectedLetter = 'A';
-        } else {
-          const idx = children.findIndex(c => c.id === selectedData.id);
-          selectedLetter = OPTION_LETTERS[idx + 1] || `${idx + 2}`;
-        }
-      }
+      const selectedOption = allOptions.find(o => o.item.id === selectedData?.id);
+      const selectedLetter = selectedOption?.letter;
       
       final.push({
         ...parent,
@@ -320,14 +320,19 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
         _selectedData: hasOptions ? selectedData : null,
         _selectedLetter: selectedLetter,
       } as any);
-      children.forEach((child, idx) => {
-        final.push({
-          ...child,
-          _isOption: true,
-          _optionLetter: OPTION_LETTERS[idx + 1] || `${idx + 2}`,
-          _optionSelected: child.is_selected_option || false,
-        } as any);
-      });
+      
+      // Show all non-selected options as indented rows below
+      if (hasOptions) {
+        for (const opt of allOptions) {
+          if (selectedData && opt.item.id === selectedData.id) continue; // skip the selected one
+          final.push({
+            ...opt.item,
+            _isOption: true,
+            _optionLetter: opt.letter,
+            _optionSelected: false,
+          } as any);
+        }
+      }
     }
 
     return final;
@@ -882,7 +887,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       }}
                     >
                       {isCol('image') && (
-                        <TableCell className={isOption ? 'pl-14' : ''}>
+                        <TableCell className={isOption ? 'pl-[52px]' : ''}>
                           {displayItem.reference_image_url ? (
                             <img
                               src={displayItem.reference_image_url}
