@@ -887,7 +887,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       }}
                     >
                       {isCol('image') && (
-                        <TableCell className={isOption ? 'pl-14' : ''}>
+                        <TableCell className={isOption ? 'pl-[52px]' : ''}>
                           {displayItem.reference_image_url ? (
                             <img
                               src={displayItem.reference_image_url}
