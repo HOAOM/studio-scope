@@ -185,20 +185,24 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const handleEnterEdit = () => {
     if (!item) return;
+    // Merge selected option data for option-dependent fields
+    const allOpts = [item, ...childOptions.slice(0, 3)];
+    const selOpt = allOpts.find(o => o.is_selected_option);
+    const src = (selOpt && selOpt.id !== item.id) ? selOpt : item;
     setEditData({
-      description: item.description,
-      area: item.area,
-      supplier: item.supplier,
-      dimensions: item.dimensions,
-      finish_material: item.finish_material,
-      finish_color: item.finish_color,
-      finish_notes: item.finish_notes,
-      production_time: item.production_time,
-      notes: item.notes,
-      quantity: item.quantity,
-      unit_cost: item.unit_cost,
-      selling_price: item.selling_price,
-      margin_percentage: item.margin_percentage,
+      description: src.description,
+      area: src.area,
+      supplier: src.supplier,
+      dimensions: src.dimensions,
+      finish_material: src.finish_material,
+      finish_color: src.finish_color,
+      finish_notes: src.finish_notes,
+      production_time: src.production_time,
+      notes: src.notes,
+      quantity: src.quantity,
+      unit_cost: src.unit_cost,
+      selling_price: item.selling_price, // always from parent
+      margin_percentage: item.margin_percentage, // always from parent
       delivery_cost: item.delivery_cost,
       installation_cost: item.installation_cost,
       insurance_cost: item.insurance_cost,
@@ -207,9 +211,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       boxing_cost: (item as any).boxing_cost,
       shifting_cost: (item as any).shifting_cost,
       extra_safe_cost: (item as any).extra_safe_cost,
-      reference_image_url: item.reference_image_url,
-      technical_drawing_url: item.technical_drawing_url,
-      company_product_url: item.company_product_url,
+      reference_image_url: src.reference_image_url,
+      technical_drawing_url: src.technical_drawing_url,
+      company_product_url: src.company_product_url,
       production_due_date: item.production_due_date,
       delivery_date: item.delivery_date,
       site_movement_date: item.site_movement_date,
@@ -352,9 +356,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   };
 
   // Compute real total including all landed costs + margin
-  const computedTotal = useMemo(() => {
-    if (!item) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
-    const src = editMode ? { ...item, ...editData } : item;
+  // NOTE: uses effectiveItem (selected option data) - defined below after early return guard
+  const computedTotalFn = (srcItem: ProjectItem | null, isEditMode: boolean, ed: Record<string, any>) => {
+    if (!srcItem) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
+    const src = isEditMode ? { ...srcItem, ...ed } : srcItem;
     const unitCost = Number((src as any).unit_cost) || 0;
     const qty = Number((src as any).quantity) || 1;
     const subtotal = unitCost * qty;
@@ -370,7 +375,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     const margin = Number((src as any).margin_percentage) || 0;
     const totalWithMargin = landedCost * (1 + margin / 100);
     return { subtotal, landedCost, totalWithMargin, margin };
-  }, [item, editData, editMode]);
+  };
 
   if (!item) return null;
 
@@ -384,7 +389,27 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
 
   const isLocked = (field: string) => lockedFields.includes(field);
-  const val = (field: string) => editMode ? (editData as any)[field] : (item as any)[field];
+
+  // Option-dependent fields: show selected option's data when available
+  const OPTION_FIELDS_SET = new Set([
+    'description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
+    'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
+    'company_product_url', 'unit_cost', 'quantity', 'notes',
+  ]);
+  
+  const _allOpts = [item, ...childOptions.slice(0, 3)];
+  const _selOpt = _allOpts.find(o => o.is_selected_option);
+  const _optSource = (_selOpt && _selOpt.id !== item.id) ? _selOpt : null;
+
+  const val = (field: string) => {
+    if (editMode) return (editData as any)[field];
+    // For option-dependent fields, read from selected option if available
+    if (_optSource && OPTION_FIELDS_SET.has(field)) {
+      const optVal = (_optSource as any)[field];
+      if (optVal != null && optVal !== '') return optVal;
+    }
+    return (item as any)[field];
+  };
   const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
 
   const getMemberName = (id: string | null) => {
@@ -460,6 +485,21 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const allOptions = item ? [item, ...childOptions.slice(0, 3)] : [];
   const selectedOption = allOptions.find(o => o.is_selected_option);
 
+  // Effective item for computed totals (merges selected option data)
+  const effectiveItem = useMemo(() => {
+    if (!item || !selectedOption || selectedOption.id === item.id) return item;
+    const merged = { ...item };
+    for (const field of ['description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
+      'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
+      'company_product_url', 'unit_cost', 'quantity', 'notes']) {
+      const optVal = (selectedOption as any)[field];
+      if (optVal != null && optVal !== '') (merged as any)[field] = optVal;
+    }
+    return merged;
+  }, [item, selectedOption]);
+
+  const computedTotal = computedTotalFn(effectiveItem, editMode, editData);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 bg-card">
@@ -471,7 +511,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 {item.item_code && (
                   <span className="font-mono text-primary mr-3">{item.item_code}</span>
                 )}
-                {item.description}
+                {val('description')}
               </DialogTitle>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
                 <Badge className={cn('text-xs', colors.bg, colors.text)}>{statusLabel}</Badge>
@@ -574,9 +614,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {selectedOption && selectedOption.id !== item.id && (
                     <div className="flex justify-between items-start py-1.5">
                       <span className="text-sm text-muted-foreground">Client Selection</span>
-                      <span className="text-sm font-medium text-primary text-right max-w-[60%] truncate">
-                        {selectedOption.description}
-                      </span>
+                      <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                        Option {String.fromCharCode(65 + allOptions.findIndex(o => o.id === selectedOption.id))}
+                      </Badge>
                     </div>
                   )}
                   {renderField('Revision', 'revision_number', { locked: true })}
@@ -597,13 +637,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 <h4 className="text-sm font-semibold text-foreground mb-1">Notes</h4>
                 {editMode ? (
                   <Textarea
-                    value={editData.notes ?? item.notes ?? ''}
+                    value={val('notes') ?? ''}
                     onChange={e => setVal('notes', e.target.value)}
                     className="text-sm min-h-[60px]"
                     placeholder="Add notes..."
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.notes || '—'}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{val('notes') || '—'}</p>
                 )}
               </div>
             </TabsContent>
