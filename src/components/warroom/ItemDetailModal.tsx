@@ -614,9 +614,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {selectedOption && selectedOption.id !== item.id && (
                     <div className="flex justify-between items-start py-1.5">
                       <span className="text-sm text-muted-foreground">Client Selection</span>
-                      <span className="text-sm font-medium text-primary text-right max-w-[60%] truncate">
-                        {selectedOption.description}
-                      </span>
+                      <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                        Option {String.fromCharCode(65 + allOptions.findIndex(o => o.id === selectedOption.id))}
+                      </Badge>
                     </div>
                   )}
                   {renderField('Revision', 'revision_number', { locked: true })}
