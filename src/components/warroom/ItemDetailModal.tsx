@@ -185,20 +185,22 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const handleEnterEdit = () => {
     if (!item) return;
+    // Use effectiveItem (selected option merged) if available, fallback to item
+    const src = (effectiveItemRef.current as any) || item;
     setEditData({
-      description: item.description,
-      area: item.area,
-      supplier: item.supplier,
-      dimensions: item.dimensions,
-      finish_material: item.finish_material,
-      finish_color: item.finish_color,
-      finish_notes: item.finish_notes,
-      production_time: item.production_time,
-      notes: item.notes,
-      quantity: item.quantity,
-      unit_cost: item.unit_cost,
-      selling_price: item.selling_price,
-      margin_percentage: item.margin_percentage,
+      description: src.description,
+      area: src.area,
+      supplier: src.supplier,
+      dimensions: src.dimensions,
+      finish_material: src.finish_material,
+      finish_color: src.finish_color,
+      finish_notes: src.finish_notes,
+      production_time: src.production_time,
+      notes: src.notes,
+      quantity: src.quantity,
+      unit_cost: src.unit_cost,
+      selling_price: item.selling_price, // always from parent
+      margin_percentage: item.margin_percentage, // always from parent
       delivery_cost: item.delivery_cost,
       installation_cost: item.installation_cost,
       insurance_cost: item.insurance_cost,
@@ -207,9 +209,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       boxing_cost: (item as any).boxing_cost,
       shifting_cost: (item as any).shifting_cost,
       extra_safe_cost: (item as any).extra_safe_cost,
-      reference_image_url: item.reference_image_url,
-      technical_drawing_url: item.technical_drawing_url,
-      company_product_url: item.company_product_url,
+      reference_image_url: src.reference_image_url,
+      technical_drawing_url: src.technical_drawing_url,
+      company_product_url: src.company_product_url,
       production_due_date: item.production_due_date,
       delivery_date: item.delivery_date,
       site_movement_date: item.site_movement_date,
