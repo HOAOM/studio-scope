@@ -388,6 +388,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const canSeeLogistics = canSeeFieldGroup('logistics', typedRoles);
   const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
 
+  const isLocked = (field: string) => lockedFields.includes(field);
+
   // Option-dependent fields: show selected option's data when available
   const OPTION_FIELDS_SET = new Set([
     'description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
