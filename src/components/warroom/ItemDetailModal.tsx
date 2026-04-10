@@ -185,8 +185,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const handleEnterEdit = () => {
     if (!item) return;
-    // Use effectiveItem (selected option merged) if available, fallback to item
-    const src = (effectiveItemRef.current as any) || item;
+    // Merge selected option data for option-dependent fields
+    const allOpts = [item, ...childOptions.slice(0, 3)];
+    const selOpt = allOpts.find(o => o.is_selected_option);
+    const src = (selOpt && selOpt.id !== item.id) ? selOpt : item;
     setEditData({
       description: src.description,
       area: src.area,
