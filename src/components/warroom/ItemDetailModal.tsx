@@ -357,6 +357,31 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   // Compute real total including all landed costs + margin
   // NOTE: uses effectiveItem (selected option data) - defined below after early return guard
+  // Option-dependent fields: show selected option's data when available
+  const OPTION_FIELDS_SET = new Set([
+    'description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
+    'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
+    'company_product_url', 'unit_cost', 'quantity', 'notes',
+  ]);
+
+  const openTasks = linkedTasks.filter(t => t.status !== 'done');
+  const doneTasks = linkedTasks.filter(t => t.status === 'done');
+  const allOptions = item ? [item, ...childOptions.slice(0, 3)] : [];
+  const selectedOption = allOptions.find(o => o.is_selected_option);
+
+  // Effective item for computed totals (merges selected option data)
+  const effectiveItem = useMemo(() => {
+    if (!item || !selectedOption || selectedOption.id === item.id) return item;
+    const merged = { ...item };
+    for (const field of ['description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
+      'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
+      'company_product_url', 'unit_cost', 'quantity', 'notes']) {
+      const optVal = (selectedOption as any)[field];
+      if (optVal != null && optVal !== '') (merged as any)[field] = optVal;
+    }
+    return merged;
+  }, [item, selectedOption]);
+
   const computedTotalFn = (srcItem: ProjectItem | null, isEditMode: boolean, ed: Record<string, any>) => {
     if (!srcItem) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
     const src = isEditMode ? { ...srcItem, ...ed } : srcItem;
@@ -377,6 +402,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     return { subtotal, landedCost, totalWithMargin, margin };
   };
 
+  const computedTotal = computedTotalFn(effectiveItem, editMode, editData);
+
+  // --- Early return AFTER all hooks ---
   if (!item) return null;
 
   const colors = LIFECYCLE_COLORS[item.lifecycle_status || 'concept'] || LIFECYCLE_COLORS['concept'];
@@ -390,20 +418,12 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const isLocked = (field: string) => lockedFields.includes(field);
 
-  // Option-dependent fields: show selected option's data when available
-  const OPTION_FIELDS_SET = new Set([
-    'description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
-    'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
-    'company_product_url', 'unit_cost', 'quantity', 'notes',
-  ]);
-  
   const _allOpts = [item, ...childOptions.slice(0, 3)];
   const _selOpt = _allOpts.find(o => o.is_selected_option);
   const _optSource = (_selOpt && _selOpt.id !== item.id) ? _selOpt : null;
 
   const val = (field: string) => {
     if (editMode) return (editData as any)[field];
-    // For option-dependent fields, read from selected option if available
     if (_optSource && OPTION_FIELDS_SET.has(field)) {
       const optVal = (_optSource as any)[field];
       if (optVal != null && optVal !== '') return optVal;
@@ -479,26 +499,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       </a>
     );
   };
-
-  const openTasks = linkedTasks.filter(t => t.status !== 'done');
-  const doneTasks = linkedTasks.filter(t => t.status === 'done');
-  const allOptions = item ? [item, ...childOptions.slice(0, 3)] : [];
-  const selectedOption = allOptions.find(o => o.is_selected_option);
-
-  // Effective item for computed totals (merges selected option data)
-  const effectiveItem = useMemo(() => {
-    if (!item || !selectedOption || selectedOption.id === item.id) return item;
-    const merged = { ...item };
-    for (const field of ['description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
-      'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
-      'company_product_url', 'unit_cost', 'quantity', 'notes']) {
-      const optVal = (selectedOption as any)[field];
-      if (optVal != null && optVal !== '') (merged as any)[field] = optVal;
-    }
-    return merged;
-  }, [item, selectedOption]);
-
-  const computedTotal = computedTotalFn(effectiveItem, editMode, editData);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
