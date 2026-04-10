@@ -352,9 +352,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   };
 
   // Compute real total including all landed costs + margin
-  const computedTotal = useMemo(() => {
-    if (!item) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
-    const src = editMode ? { ...item, ...editData } : item;
+  // NOTE: uses effectiveItem (selected option data) - defined below after early return guard
+  const computedTotalFn = (srcItem: ProjectItem | null, isEditMode: boolean, ed: Record<string, any>) => {
+    if (!srcItem) return { subtotal: 0, landedCost: 0, totalWithMargin: 0, margin: 0 };
+    const src = isEditMode ? { ...srcItem, ...ed } : srcItem;
     const unitCost = Number((src as any).unit_cost) || 0;
     const qty = Number((src as any).quantity) || 1;
     const subtotal = unitCost * qty;
@@ -370,7 +371,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     const margin = Number((src as any).margin_percentage) || 0;
     const totalWithMargin = landedCost * (1 + margin / 100);
     return { subtotal, landedCost, totalWithMargin, margin };
-  }, [item, editData, editMode]);
+  };
 
   if (!item) return null;
 
