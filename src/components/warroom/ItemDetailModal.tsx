@@ -388,12 +388,27 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const canSeeLogistics = canSeeFieldGroup('logistics', typedRoles);
   const canSeeInstallation = canSeeFieldGroup('installation', typedRoles);
 
-  const isLocked = (field: string) => lockedFields.includes(field);
-  const val = (field: string) => editMode ? (editData as any)[field] : (item as any)[field];
-  const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
+  // Option-dependent fields: show selected option's data when available
+  const OPTION_FIELDS_SET = new Set([
+    'description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
+    'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
+    'company_product_url', 'unit_cost', 'quantity', 'notes',
+  ]);
+  
+  const _allOpts = [item, ...childOptions.slice(0, 3)];
+  const _selOpt = _allOpts.find(o => o.is_selected_option);
+  const _optSource = (_selOpt && _selOpt.id !== item.id) ? _selOpt : null;
 
-  const getMemberName = (id: string | null) => {
-    if (!id) return null;
+  const val = (field: string) => {
+    if (editMode) return (editData as any)[field];
+    // For option-dependent fields, read from selected option if available
+    if (_optSource && OPTION_FIELDS_SET.has(field)) {
+      const optVal = (_optSource as any)[field];
+      if (optVal != null && optVal !== '') return optVal;
+    }
+    return (item as any)[field];
+  };
+  const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
     const m = members.find((m: any) => m.id === id);
     return m?.display_name || m?.email?.split('@')[0] || null;
   };
