@@ -525,7 +525,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 {item.item_code && (
                   <span className="font-mono text-primary mr-3">{item.item_code}</span>
                 )}
-                {item.description}
+                {val('description')}
               </DialogTitle>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
                 <Badge className={cn('text-xs', colors.bg, colors.text)}>{statusLabel}</Badge>
