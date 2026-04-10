@@ -488,6 +488,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     return (effectiveItem as any)?.[field];
   };
 
+  const computedTotal = computedTotalFn(effectiveItem, editMode, editData);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 bg-card">
