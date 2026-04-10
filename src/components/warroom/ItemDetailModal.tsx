@@ -409,6 +409,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     return (item as any)[field];
   };
   const setVal = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
+
+  const getMemberName = (id: string | null) => {
+    if (!id) return null;
     const m = members.find((m: any) => m.id === id);
     return m?.display_name || m?.email?.split('@')[0] || null;
   };
