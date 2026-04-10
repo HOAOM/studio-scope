@@ -637,13 +637,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 <h4 className="text-sm font-semibold text-foreground mb-1">Notes</h4>
                 {editMode ? (
                   <Textarea
-                    value={editData.notes ?? item.notes ?? ''}
+                    value={val('notes') ?? ''}
                     onChange={e => setVal('notes', e.target.value)}
                     className="text-sm min-h-[60px]"
                     placeholder="Add notes..."
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.notes || '—'}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{val('notes') || '—'}</p>
                 )}
               </div>
             </TabsContent>
