@@ -485,32 +485,18 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const allOptions = item ? [item, ...childOptions.slice(0, 3)] : [];
   const selectedOption = allOptions.find(o => o.is_selected_option);
 
-  // Fields that should come from the selected option when one exists
-  const OPTION_FIELDS = [
-    'description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
-    'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
-    'company_product_url', 'unit_cost', 'quantity', 'notes',
-  ];
-
-  // Effective item: parent item with selected option's data merged in
+  // Effective item for computed totals (merges selected option data)
   const effectiveItem = useMemo(() => {
-    if (!item) return item;
-    if (!selectedOption || selectedOption.id === item.id) return item;
+    if (!item || !selectedOption || selectedOption.id === item.id) return item;
     const merged = { ...item };
-    for (const field of OPTION_FIELDS) {
+    for (const field of ['description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
+      'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
+      'company_product_url', 'unit_cost', 'quantity', 'notes']) {
       const optVal = (selectedOption as any)[field];
-      if (optVal != null && optVal !== '') {
-        (merged as any)[field] = optVal;
-      }
+      if (optVal != null && optVal !== '') (merged as any)[field] = optVal;
     }
     return merged;
   }, [item, selectedOption]);
-
-  // Override val() to read from effectiveItem for display, editData for edit mode
-  const valEff = (field: string) => {
-    if (editMode) return (editData as any)[field];
-    return (effectiveItem as any)?.[field];
-  };
 
   const computedTotal = computedTotalFn(effectiveItem, editMode, editData);
 
