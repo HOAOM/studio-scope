@@ -882,7 +882,12 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                           : '[&_td]:text-foreground'
                       )}
                       onDoubleClick={() => {
-                        setDetailItem(item);
+                        // For option rows, open the parent item; strip synthetic keys
+                        const parentId = isOption ? item.parent_item_id : item.id;
+                        const parentItem = items.find(i => i.id === parentId) || item;
+                        // Clone to strip _isOption etc.
+                        const { _isOption: _a, _optionLetter: _b, _optionSelected: _c, _selectedData: _d, _selectedLetter: _e, ...cleanItem } = parentItem as any;
+                        setDetailItem(cleanItem as ProjectItem);
                         setDetailOpen(true);
                       }}
                     >
