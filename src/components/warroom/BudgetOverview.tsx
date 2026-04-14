@@ -8,21 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
+import { CATEGORY_LABELS } from '@/lib/categories';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type BOQCategory = Database['public']['Enums']['boq_category'];
 
-const CATEGORY_LABELS: Record<BOQCategory, string> = {
-  'joinery': 'Joinery',
-  'loose-furniture': 'Loose Furniture',
-  'lighting': 'Lighting',
-  'finishes': 'Finishes',
-  'ffe': 'FF&E',
-  'accessories': 'Accessories',
-  'appliances': 'Appliances',
-};
-
-const CATEGORY_COLORS: Record<BOQCategory, string> = {
+const CATEGORY_COLORS: Record<string, string> = {
   'joinery': 'hsl(210, 70%, 50%)',
   'loose-furniture': 'hsl(160, 60%, 45%)',
   'lighting': 'hsl(45, 80%, 55%)',
@@ -30,6 +21,12 @@ const CATEGORY_COLORS: Record<BOQCategory, string> = {
   'ffe': 'hsl(340, 60%, 50%)',
   'accessories': 'hsl(30, 70%, 50%)',
   'appliances': 'hsl(200, 50%, 45%)',
+  'hvac': 'hsl(190, 60%, 50%)',
+  'electrical': 'hsl(50, 70%, 50%)',
+  'plumbing': 'hsl(220, 55%, 55%)',
+  'fire-protection': 'hsl(0, 65%, 50%)',
+  'low-voltage': 'hsl(270, 50%, 55%)',
+  'sanitary': 'hsl(170, 50%, 45%)',
 };
 
 interface BudgetOverviewProps {
