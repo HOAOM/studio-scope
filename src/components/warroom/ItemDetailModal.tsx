@@ -427,6 +427,44 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     return { subtotal, landedCost, totalWithMargin, margin };
   };
 
+  const DESIGN_APPROVAL_KEYS = ['dimensions', 'material', 'color_finish', 'client_selection'] as const;
+  type DesignApprovalKey = typeof DESIGN_APPROVAL_KEYS[number];
+
+  const { data: designApprovals = {} as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null> } = useQuery({
+    queryKey: ['design-approvals', item?.id],
+    queryFn: async () => {
+      if (!item) {
+        return {} as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null>;
+      }
+
+      const result: Record<string, any> = {};
+      for (const key of DESIGN_APPROVAL_KEYS) {
+        const { data } = await (supabase as any)
+          .from('audit_log')
+          .select('action, user_id, created_at')
+          .eq('entity_id', item.id)
+          .eq('entity_type', 'item')
+          .in('action', [`design_approve_${key}`, `design_revoke_${key}`])
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (data && data.length > 0 && data[0].action === `design_approve_${key}`) {
+          const member = members.find((m: any) => m.id === data[0].user_id);
+          result[key] = {
+            user_id: data[0].user_id,
+            display_name: member?.display_name || member?.email || 'Unknown',
+            created_at: data[0].created_at,
+          };
+        } else {
+          result[key] = null;
+        }
+      }
+
+      return result as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null>;
+    },
+    enabled: !!item && open && members.length > 0,
+  });
+
   const computedTotal = computedTotalFn(effectiveItem, editMode, editData);
 
   // --- Early return AFTER all hooks ---
@@ -528,36 +566,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     hasColor: !!(selectedOption?.finish_color || item.finish_color),
     hasSelection: !!selectedOption,
   };
-
-  // Design approval states from audit_log
-  const DESIGN_APPROVAL_KEYS = ['dimensions', 'material', 'color_finish', 'client_selection'] as const;
-  type DesignApprovalKey = typeof DESIGN_APPROVAL_KEYS[number];
-
-  const { data: designApprovals = {} as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null> } = useQuery({
-    queryKey: ['design-approvals', item.id],
-    queryFn: async () => {
-      const result: Record<string, any> = {};
-      for (const key of DESIGN_APPROVAL_KEYS) {
-        // Get the latest approve or revoke action for this key
-        const { data } = await (supabase as any)
-          .from('audit_log')
-          .select('action, user_id, created_at')
-          .eq('entity_id', item.id)
-          .eq('entity_type', 'item')
-          .in('action', [`design_approve_${key}`, `design_revoke_${key}`])
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (data && data.length > 0 && data[0].action === `design_approve_${key}`) {
-          const member = members.find((m: any) => m.id === data[0].user_id);
-          result[key] = { user_id: data[0].user_id, display_name: member?.display_name || member?.email || 'Unknown', created_at: data[0].created_at };
-        } else {
-          result[key] = null;
-        }
-      }
-      return result as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null>;
-    },
-    enabled: !!item && open && members.length > 0,
-  });
 
   const handleDesignApprove = async (key: DesignApprovalKey) => {
     if (!item || !user) return;
