@@ -819,7 +819,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                             <span className="text-[9px] uppercase font-medium text-muted-foreground">{check.label}</span>
                           </div>
                           {isApproved && (
-                            <p className="text-[7px] text-emerald-400 truncate leading-none mt-0.5">{approval.display_name}</p>
+                            <p className="text-[7px] text-emerald-400 truncate leading-none mt-0.5">Approved by {approval.display_name}</p>
                           )}
                         </div>
                       );
@@ -854,7 +854,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                       parentId={opt.id === item.id ? null : item.id}
                       projectId={projectId}
                       mode="design"
-                      canSeeCosts={canSeeCosts}
+                      canSeeCosts={false}
                     />
                   ))}
                 </div>
@@ -927,9 +927,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             {/* ═══ QUOTATIONS TAB — budget comparison + price approval ═══ */}
             {canSeeProcurement && (
               <TabsContent value="quotations" className="space-y-5">
-                {/* QS Budget Estimate */}
+                {/* QS Budget Estimate + inline budget comparison */}
                 {canSeeCosts && (
-                  <div className="rounded-lg bg-muted/30 border border-border p-4">
+                  <div className="rounded-lg bg-muted/30 border border-border p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">QS Budget Estimate</span>
@@ -951,44 +951,34 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                         )}
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Budget vs Selected comparison */}
-                {canSeeCosts && budgetDiff !== null && selectedOption && (
-                  <div className={cn(
-                    'rounded-lg border-2 p-4',
-                    budgetDiff > 0
-                      ? 'border-red-400 bg-red-50'
-                      : 'border-blue-400 bg-emerald-50'
-                  )}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    {/* Budget comparison inline */}
+                    {budgetDiff !== null && selectedOption && (
+                      <div className={cn(
+                        'flex items-center gap-2 rounded-md px-3 py-2 border',
+                        budgetDiff > 0
+                          ? 'border-red-400/50 bg-red-950/10'
+                          : 'border-emerald-400/50 bg-emerald-950/10'
+                      )}>
                         {budgetDiff > 0 ? (
-                          <>
-                            <AlertTriangle className="w-5 h-5 text-red-600" />
-                            <div>
-                              <p className="text-sm font-semibold text-red-700">Over Budget</p>
-                              <p className="text-xs text-red-600">Selected option exceeds QS estimate by €{budgetDiff.toFixed(2)}</p>
-                            </div>
-                          </>
+                          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
                         ) : (
-                          <>
-                            <TrendingUp className="w-5 h-5 text-emerald-600" />
-                            <div>
-                              <p className="text-sm font-semibold text-emerald-700">Under Budget — Higher Margin</p>
-                              <p className="text-xs text-emerald-600">Selected option saves €{Math.abs(budgetDiff).toFixed(2)} vs QS estimate</p>
-                            </div>
-                          </>
+                          <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" />
                         )}
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] text-muted-foreground">Budget: €{budgetEstimate.toFixed(2)}</div>
-                        <div className={cn('text-sm font-bold font-mono', budgetDiff > 0 ? 'text-red-700' : 'text-emerald-700')}>
-                          Selected: €{selectedTotal.toFixed(2)}
+                        <div className="flex-1 min-w-0">
+                          <span className={cn('text-xs font-semibold', budgetDiff > 0 ? 'text-red-500' : 'text-emerald-500')}>
+                            {budgetDiff > 0 ? 'Over Budget' : 'Under Budget — Higher Margin'}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground ml-2">
+                            {budgetDiff > 0
+                              ? `+€${budgetDiff.toFixed(2)} over estimate`
+                              : `€${Math.abs(budgetDiff).toFixed(2)} saved vs estimate`}
+                          </span>
                         </div>
+                        <span className={cn('text-xs font-mono font-bold', budgetDiff > 0 ? 'text-red-500' : 'text-emerald-500')}>
+                          €{selectedTotal.toFixed(2)}
+                        </span>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
