@@ -538,16 +538,16 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     queryFn: async () => {
       const result: Record<string, any> = {};
       for (const key of DESIGN_APPROVAL_KEYS) {
+        // Get the latest approve or revoke action for this key
         const { data } = await (supabase as any)
           .from('audit_log')
-          .select('user_id, created_at')
+          .select('action, user_id, created_at')
           .eq('entity_id', item.id)
           .eq('entity_type', 'item')
-          .eq('action', `design_approve_${key}`)
+          .in('action', [`design_approve_${key}`, `design_revoke_${key}`])
           .order('created_at', { ascending: false })
           .limit(1);
-        if (data && data.length > 0) {
-          // Find display name from members
+        if (data && data.length > 0 && data[0].action === `design_approve_${key}`) {
           const member = members.find((m: any) => m.id === data[0].user_id);
           result[key] = { user_id: data[0].user_id, display_name: member?.display_name || member?.email || 'Unknown', created_at: data[0].created_at };
         } else {
@@ -578,7 +578,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       const allApproved = DESIGN_APPROVAL_KEYS.every(k => updatedApprovals[k] != null);
       const allDataPresent = designChecks.hasDimensions && designChecks.hasMaterial && designChecks.hasColor && designChecks.hasSelection;
       if (allApproved && allDataPresent) {
-        // Auto-advance to next design step if still in early design phase
         const designStatuses = ['concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer'];
         if (designStatuses.includes(item.lifecycle_status || '')) {
           await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'finishes_approved_hod' as any, approval_status: 'approved' as any });
@@ -593,11 +592,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const handleDesignRevoke = async (key: DesignApprovalKey) => {
     if (!item || !user) return;
     try {
-      // Delete the approval entry
-      await (supabase as any).from('audit_log').delete()
-        .eq('entity_id', item.id)
-        .eq('entity_type', 'item')
-        .eq('action', `design_approve_${key}`);
+      await (supabase as any).from('audit_log').insert({
+        entity_type: 'item',
+        entity_id: item.id,
+        action: `design_revoke_${key}`,
+        user_id: user.id,
+        summary: `Design approval revoked: ${key} for ${item.item_code || item.description}`,
+      });
       queryClient.invalidateQueries({ queryKey: ['design-approvals', item.id] });
       queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
       toast.info(`${key.replace(/_/g, ' ')} approval revoked`);
