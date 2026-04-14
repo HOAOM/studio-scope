@@ -1,6 +1,6 @@
 /**
  * OptionCard — Reusable card for item options (Design + Quotations views)
- * Shows image, finishes, supplier, links, pricing with inline edit support.
+ * Shows ALL fields in view mode (read-only), editable on Edit click.
  */
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +26,7 @@ interface OptionCardProps {
   letter: string;
   isSelected: boolean;
   onSelect: () => void;
-  parentId: string | null; // null if this IS the parent
+  parentId: string | null;
   projectId: string;
   mode: 'design' | 'quotation';
   canSeeCosts?: boolean;
@@ -100,6 +100,15 @@ export function OptionCard({
   };
 
   const imgUrl = editing ? form.reference_image_url : option.reference_image_url;
+
+  const renderViewField = (label: string, value: any, opts?: { mono?: boolean }) => (
+    <div className="flex justify-between items-start py-0.5">
+      <span className="text-[10px] text-muted-foreground shrink-0">{label}</span>
+      <span className={cn('text-[11px] font-medium text-foreground text-right max-w-[65%] truncate', opts?.mono && 'font-mono')}>
+        {value != null && value !== '' && value !== 0 ? String(value) : '—'}
+      </span>
+    </div>
+  );
 
   // ─── EDIT MODE ───
   if (editing) {
@@ -201,13 +210,13 @@ export function OptionCard({
     );
   }
 
-  // ─── VIEW MODE ───
+  // ─── VIEW MODE — all fields visible, read-only ───
   return (
     <div
       className={cn(
-        'rounded-lg border transition-all group',
+        'rounded-lg border-2 transition-all group',
         isSelected
-          ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+          ? 'border-primary ring-2 ring-primary/30 bg-primary/5 shadow-md'
           : 'border-border bg-card hover:border-muted-foreground/40 hover:shadow-sm'
       )}
     >
@@ -227,90 +236,69 @@ export function OptionCard({
         >
           {letter}
         </Badge>
-        {isSelected && <CheckCircle2 className="absolute top-2 right-2 w-5 h-5 text-primary" />}
+        {isSelected && <CheckCircle2 className="absolute top-2 right-2 w-5 h-5 text-primary drop-shadow" />}
         {/* Edit pencil on hover */}
         <button
           onClick={startEdit}
-          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur rounded-md p-1 border border-border"
+          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur rounded-md p-1.5 border border-border hover:bg-background"
         >
-          <Pencil className="w-3 h-3 text-foreground" />
+          <Pencil className="w-3.5 h-3.5 text-foreground" />
         </button>
       </div>
 
-      {/* Details */}
-      <div className="p-3 space-y-1.5">
-        <p className="text-sm font-medium text-foreground line-clamp-2">{option.description}</p>
+      {/* All details — always visible */}
+      <div className="p-3 space-y-1">
+        <p className="text-sm font-medium text-foreground line-clamp-2 mb-1">{option.description}</p>
 
-        {(option.finish_material || option.finish_color) && (
-          <div className="text-xs text-muted-foreground">
-            {option.finish_material && <span className="font-medium text-foreground">{option.finish_material}</span>}
-            {option.finish_material && option.finish_color && ' — '}
-            {option.finish_color && <span>{option.finish_color}</span>}
-          </div>
-        )}
-        {option.finish_notes && (
-          <p className="text-[10px] text-muted-foreground line-clamp-2">{option.finish_notes}</p>
-        )}
-        {option.supplier && (
-          <p className="text-xs text-muted-foreground">
-            Supplier: <span className="font-medium text-foreground">{option.supplier}</span>
-          </p>
-        )}
-        {option.dimensions && (
-          <p className="text-xs text-muted-foreground">
-            Size: <span className="font-medium text-foreground">{option.dimensions}</span>
-          </p>
-        )}
-        {option.production_time && (
-          <p className="text-xs text-muted-foreground">
-            Lead: <span className="font-medium text-foreground">{option.production_time}</span>
-          </p>
-        )}
+        {renderViewField('Material', option.finish_material)}
+        {renderViewField('Color', option.finish_color)}
+        {renderViewField('Finish Notes', option.finish_notes)}
+        {renderViewField('Supplier', option.supplier)}
+        {renderViewField('Dimensions', option.dimensions)}
+        {renderViewField('Production Time', option.production_time)}
 
-        {/* Pricing (always visible if canSeeCosts) */}
-        {canSeeCosts && option.unit_cost != null && (
-          <div className="pt-1 border-t border-border mt-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Unit Cost</span>
-              <span className="font-mono font-medium text-foreground">€{Number(option.unit_cost).toFixed(2)}</span>
-            </div>
-            {option.quantity && option.quantity > 1 && (
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Qty × {option.quantity}</span>
-                <span className="font-mono font-medium text-foreground">€{(Number(option.unit_cost) * option.quantity).toFixed(2)}</span>
-              </div>
+        {/* Pricing */}
+        {canSeeCosts && (
+          <div className="pt-1 mt-1 border-t border-border space-y-0.5">
+            {renderViewField('Unit Cost', option.unit_cost != null ? `€${Number(option.unit_cost).toFixed(2)}` : null, { mono: true })}
+            {renderViewField('Quantity', option.quantity)}
+            {option.unit_cost != null && option.quantity && option.quantity > 1 && (
+              renderViewField('Total', `€${(Number(option.unit_cost) * option.quantity).toFixed(2)}`, { mono: true })
             )}
           </div>
         )}
 
         {/* Links */}
-        <div className="flex flex-wrap gap-2 pt-1">
-          {option.reference_image_url && (
+        <div className="flex flex-wrap gap-2 pt-1.5 mt-1 border-t border-border">
+          {option.reference_image_url ? (
             <a href={option.reference_image_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
               <ExternalLink className="w-2.5 h-2.5" /> Image
             </a>
-          )}
-          {option.company_product_url && (
-            <a href={option.company_product_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-              <ExternalLink className="w-2.5 h-2.5" /> Product
-            </a>
-          )}
-          {option.technical_drawing_url && (
+          ) : <span className="text-[10px] text-muted-foreground/40">No image link</span>}
+          {option.technical_drawing_url ? (
             <a href={option.technical_drawing_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
               <ExternalLink className="w-2.5 h-2.5" /> Drawing
             </a>
-          )}
+          ) : <span className="text-[10px] text-muted-foreground/40">No drawing</span>}
+          {option.company_product_url ? (
+            <a href={option.company_product_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+              <ExternalLink className="w-2.5 h-2.5" /> Product
+            </a>
+          ) : <span className="text-[10px] text-muted-foreground/40">No product link</span>}
         </div>
+
+        {/* Notes */}
+        {renderViewField('Notes', option.notes)}
 
         {/* Select button */}
         {!isSelected ? (
           <Button size="sm" variant="outline" className="w-full h-7 text-xs mt-2" onClick={onSelect}>
-            Select as Client Choice
+            Select
           </Button>
         ) : (
-          <Button size="sm" variant="ghost" className="w-full h-7 text-xs mt-2 text-primary" onClick={onSelect}>
-            <CheckCircle2 className="w-3 h-3 mr-1" /> Selected — Click to change
-          </Button>
+          <div className="w-full h-7 flex items-center justify-center text-xs mt-2 text-primary font-semibold">
+            <CheckCircle2 className="w-3 h-3 mr-1" /> Selected
+          </div>
         )}
       </div>
     </div>
