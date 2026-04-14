@@ -627,7 +627,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 bg-card">
+      <DialogContent className="max-w-[95vw] h-[95vh] p-0 gap-0 bg-card flex flex-col">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between">
@@ -726,7 +726,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           )}
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(95vh-200px)]">
+        <ScrollArea className="flex-1 min-h-0">
           <Tabs defaultValue="info" className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
@@ -782,12 +782,12 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                     <Shield className="w-3 h-3" /> Design Approvals
                   </h4>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-1">
                     {([
-                      { key: 'dimensions' as DesignApprovalKey, label: 'Dimensions', present: designChecks.hasDimensions },
-                      { key: 'material' as DesignApprovalKey, label: 'Material', present: designChecks.hasMaterial },
-                      { key: 'color_finish' as DesignApprovalKey, label: 'Color / Finish', present: designChecks.hasColor },
-                      { key: 'client_selection' as DesignApprovalKey, label: 'Client Selection', present: designChecks.hasSelection },
+                      { key: 'dimensions' as DesignApprovalKey, label: 'Dim', present: designChecks.hasDimensions },
+                      { key: 'material' as DesignApprovalKey, label: 'Mat', present: designChecks.hasMaterial },
+                      { key: 'color_finish' as DesignApprovalKey, label: 'Color', present: designChecks.hasColor },
+                      { key: 'client_selection' as DesignApprovalKey, label: 'Select', present: designChecks.hasSelection },
                     ] as const).map(check => {
                       const approval = designApprovals[check.key];
                       const isApproved = !!approval;
@@ -797,39 +797,29 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                         <div
                           key={check.key}
                           className={cn(
-                            'rounded border px-2 py-1.5 text-center transition-all select-none',
+                            'rounded border px-1 py-0.5 text-center transition-all select-none',
                             isApproved
-                              ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 cursor-default'
+                              ? 'border-emerald-400 bg-emerald-950/30 cursor-default'
                               : check.present
-                                ? 'border-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer hover:ring-1 hover:ring-emerald-400'
-                                : 'border-amber-300 bg-amber-50 dark:bg-amber-950/20'
+                                ? 'border-emerald-300/50 bg-emerald-950/10 cursor-pointer hover:ring-1 hover:ring-emerald-400'
+                                : 'border-amber-400/50 bg-amber-950/10'
                           )}
-                          onClick={() => {
-                            if (canApprove) handleDesignApprove(check.key);
-                          }}
-                          onDoubleClick={() => {
-                            if (isApproved) handleDesignRevoke(check.key);
-                          }}
-                          title={isApproved ? 'Double-click to revoke approval' : canApprove ? 'Click to approve' : 'Data missing'}
+                          onClick={() => { if (canApprove) handleDesignApprove(check.key); }}
+                          onDoubleClick={() => { if (isApproved) handleDesignRevoke(check.key); }}
+                          title={isApproved ? 'Double-click to revoke' : canApprove ? 'Click to approve' : 'Data missing'}
                         >
-                          <div className="text-[9px] text-muted-foreground uppercase mb-0.5">{check.label}</div>
-                          {isApproved ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-600" />
-                              <p className="text-[8px] mt-0.5 text-emerald-700 dark:text-emerald-400 truncate">
-                                Approved by {approval.display_name}
-                              </p>
-                            </>
-                          ) : check.present ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-500/60" />
-                              <p className="text-[8px] mt-0.5 font-medium text-emerald-600">Click to approve</p>
-                            </>
-                          ) : (
-                            <>
-                              <AlertTriangle className="w-4 h-4 mx-auto text-amber-600" />
-                              <p className="text-[8px] mt-0.5 font-medium text-amber-700">Missing</p>
-                            </>
+                          <div className="flex items-center justify-center gap-0.5">
+                            {isApproved ? (
+                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                            ) : check.present ? (
+                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500/50" />
+                            ) : (
+                              <AlertTriangle className="w-2.5 h-2.5 text-amber-500" />
+                            )}
+                            <span className="text-[7px] uppercase font-medium text-muted-foreground">{check.label}</span>
+                          </div>
+                          {isApproved && (
+                            <p className="text-[6px] text-emerald-400 truncate leading-none">{approval.display_name}</p>
                           )}
                         </div>
                       );
