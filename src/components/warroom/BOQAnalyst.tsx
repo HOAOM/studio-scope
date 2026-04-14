@@ -77,19 +77,8 @@ function getRoomColor(floorCode: string, roomCode: string, roomNum: string): str
 }
 
 // ---- Item type to BOQ category mapping ----
-function itemTypeToCategory(typeCode: string): BOQCategory {
-  const map: Record<string, BOQCategory> = {
-    'LF': 'loose-furniture',
-    'CF': 'joinery',
-    'LG': 'lighting',
-    'FL': 'finishes',
-    'DR': 'joinery',
-    'CL': 'finishes',
-    'CT': 'ffe',
-    'FX': 'accessories',
-  };
-  return map[typeCode] || 'ffe';
-}
+import { itemTypeToCategory as _itemTypeToCategory } from '@/lib/categories';
+const itemTypeToCategoryFn = _itemTypeToCategory;
 
 // ---- Column visibility type ----
 type ColumnKey = 'image' | 'zone' | 'area' | 'brand' | 'finishing' | 'size' | 'tech' | 'refImg' | 'coLink' | 'unitRate' | 'amount' | 'prodTime' | 'notes';
