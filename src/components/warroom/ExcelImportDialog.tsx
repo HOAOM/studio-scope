@@ -56,20 +56,7 @@ interface ImportResult {
   totalAmount: string;
 }
 
-// Map item type codes to boq_category enum
-function itemTypeToCategory(typeCode: string): BOQCategory {
-  const map: Record<string, BOQCategory> = {
-    'LF': 'loose-furniture',
-    'CF': 'joinery',      // Custom Furniture → joinery
-    'CL': 'finishes',     // Ceiling → finishes
-    'CT': 'accessories',  // Curtains → accessories
-    'DR': 'joinery',      // Doors → joinery
-    'FL': 'finishes',     // Flooring → finishes
-    'FX': 'appliances',   // Fixtures → appliances
-    'LT': 'lighting',     // Lighting → lighting
-  };
-  return map[typeCode] || 'ffe';
-}
+import { itemTypeToCategory } from '@/lib/categories';
 
 function cleanValue(val: any): string {
   if (val === undefined || val === null) return '';

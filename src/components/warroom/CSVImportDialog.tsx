@@ -33,7 +33,8 @@ interface ParsedItem {
   quantity?: number;
 }
 
-const VALID_CATEGORIES: BOQCategory[] = ['joinery', 'loose-furniture', 'lighting', 'finishes', 'ffe', 'accessories', 'appliances'];
+import { ALL_CATEGORIES } from '@/lib/categories';
+const VALID_CATEGORIES = ALL_CATEGORIES as string[];
 const VALID_STATUSES: ApprovalStatus[] = ['pending', 'approved', 'rejected', 'revision'];
 
 export function CSVImportDialog({ open, onOpenChange, projectId }: CSVImportDialogProps) {
