@@ -731,8 +731,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
               {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design</TabsTrigger>}
-              {canSeeProcurement && <TabsTrigger value="procurement"><Package className="w-3 h-3 mr-1" />Procurement</TabsTrigger>}
               {canSeeProcurement && <TabsTrigger value="quotations"><ReceiptText className="w-3 h-3 mr-1" />Quotations</TabsTrigger>}
+              {canSeeProcurement && <TabsTrigger value="procurement"><Package className="w-3 h-3 mr-1" />Procurement</TabsTrigger>}
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
               {canSeeLogistics && <TabsTrigger value="logistics"><Truck className="w-3 h-3 mr-1" />Logistics</TabsTrigger>}
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
