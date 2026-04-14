@@ -797,7 +797,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                         <div
                           key={check.key}
                           className={cn(
-                            'rounded border px-1 py-0.5 text-center transition-all select-none',
+                            'rounded border px-2 py-1.5 text-center transition-all select-none h-8 flex flex-col items-center justify-center',
                             isApproved
                               ? 'border-emerald-400 bg-emerald-950/30 cursor-default'
                               : check.present
@@ -808,18 +808,18 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                           onDoubleClick={() => { if (isApproved) handleDesignRevoke(check.key); }}
                           title={isApproved ? 'Double-click to revoke' : canApprove ? 'Click to approve' : 'Data missing'}
                         >
-                          <div className="flex items-center justify-center gap-0.5">
+                          <div className="flex items-center justify-center gap-1">
                             {isApproved ? (
-                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                             ) : check.present ? (
-                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500/50" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/50" />
                             ) : (
-                              <AlertTriangle className="w-2.5 h-2.5 text-amber-500" />
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                             )}
-                            <span className="text-[7px] uppercase font-medium text-muted-foreground">{check.label}</span>
+                            <span className="text-[9px] uppercase font-medium text-muted-foreground">{check.label}</span>
                           </div>
                           {isApproved && (
-                            <p className="text-[6px] text-emerald-400 truncate leading-none">{approval.display_name}</p>
+                            <p className="text-[7px] text-emerald-400 truncate leading-none mt-0.5">{approval.display_name}</p>
                           )}
                         </div>
                       );
