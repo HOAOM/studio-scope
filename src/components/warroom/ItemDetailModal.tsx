@@ -29,6 +29,7 @@ import {
   getAvailableTransitions,
   getLockedFields,
   canSeeFieldGroup,
+  getMacroPhase,
   type AppRole,
   type ItemLifecycleStatus,
 } from '@/lib/workflow';
@@ -37,6 +38,7 @@ import {
   FileText, Package, CreditCard, Truck, Wrench, History,
   Image as ImageIcon, ExternalLink, ReceiptText, Layers,
   ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
+  AlertTriangle, Shield, ArrowLeft, TrendingUp,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
@@ -61,6 +63,25 @@ interface AuditEntry {
   user_id: string | null;
 }
 
+// Color mapping for transition buttons based on target status macro-phase
+function getTransitionButtonStyle(toStatus: string): string {
+  const phase = getMacroPhase(toStatus as ItemLifecycleStatus);
+  switch (phase) {
+    case 'design_validation': return 'bg-blue-600 hover:bg-blue-700 text-white';
+    case 'procurement': return 'bg-orange-600 hover:bg-orange-700 text-white';
+    case 'production': return 'bg-cyan-600 hover:bg-cyan-700 text-white';
+    case 'delivery': return 'bg-indigo-600 hover:bg-indigo-700 text-white';
+    case 'installation': return 'bg-emerald-600 hover:bg-emerald-700 text-white';
+    case 'closing': return 'bg-green-700 hover:bg-green-800 text-white';
+    default: return 'bg-primary hover:bg-primary/90 text-primary-foreground';
+  }
+}
+
+function isBackwardTransition(label: string): boolean {
+  const lower = label.toLowerCase();
+  return lower.includes('reject') || lower.includes('back') || lower.includes('return') || lower.includes('re-propose');
+}
+
 export function ItemDetailModal({ open, onOpenChange, item: initialItem, projectId }: ItemDetailModalProps) {
   const { user } = useAuth();
   const { roles, canSeeCosts } = useUserRole();
@@ -71,7 +92,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const [editData, setEditData] = useState<Record<string, any>>({});
   const typedRoles = roles as AppRole[];
 
-  // Fetch live item data to avoid stale state after save
+  // Fetch live item data
   const { data: liveItem } = useQuery({
     queryKey: ['item-detail', initialItem?.id],
     queryFn: async () => {
@@ -89,7 +110,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const item = liveItem || initialItem;
 
-  // Reset edit mode when item changes or modal closes
   useEffect(() => {
     if (!open) {
       setEditMode(false);
@@ -97,7 +117,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     }
   }, [open, initialItem?.id]);
 
-  // Fetch child options for this item
+  // Fetch child options
   const { data: childOptions = [] } = useQuery({
     queryKey: ['item-options', item?.id],
     queryFn: async () => {
@@ -113,7 +133,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     enabled: !!item && open,
   });
 
-  // Fetch audit log for this item
+  // Fetch audit log
   const { data: auditLog = [] } = useQuery({
     queryKey: ['audit_log', item?.id],
     queryFn: async () => {
@@ -142,7 +162,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
-  // Fetch members for assignee display
+  // Fetch members
   const { data: members = [] } = useQuery({
     queryKey: ['project-members-profiles', projectId],
     queryFn: async () => {
@@ -159,6 +179,22 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       }));
     },
     enabled: !!projectId && open,
+  });
+
+  // Fetch supplier payments for this item
+  const { data: supplierPayments = [] } = useQuery({
+    queryKey: ['supplier-payments', item?.id],
+    queryFn: async () => {
+      if (!item) return [];
+      const { data, error } = await supabase
+        .from('supplier_payments')
+        .select('*')
+        .eq('project_item_id', item.id)
+        .order('payment_number', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!item && open,
   });
 
   const availableTransitions = useMemo(() => {
@@ -185,7 +221,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const handleEnterEdit = () => {
     if (!item) return;
-    // Merge selected option data for option-dependent fields
     const allOpts = [item, ...childOptions.slice(0, 3)];
     const selOpt = allOpts.find(o => o.is_selected_option);
     const src = (selOpt && selOpt.id !== item.id) ? selOpt : item;
@@ -201,8 +236,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       notes: src.notes,
       quantity: src.quantity,
       unit_cost: src.unit_cost,
-      selling_price: item.selling_price, // always from parent
-      margin_percentage: item.margin_percentage, // always from parent
+      selling_price: item.selling_price,
+      margin_percentage: item.margin_percentage,
       delivery_cost: item.delivery_cost,
       installation_cost: item.installation_cost,
       insurance_cost: item.insurance_cost,
@@ -256,15 +291,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     setEditData({});
   };
 
-
-  // Add new option (child item) — max 3 children so total with parent = 4
   const handleAddOption = async () => {
     if (!item || childOptions.length >= 3) {
       toast.error('Maximum 4 options (including original)');
       return;
     }
     try {
-      const letter = String.fromCharCode(66 + childOptions.length); // B, C, D
+      const letter = String.fromCharCode(66 + childOptions.length);
       await createItem.mutateAsync({
         project_id: projectId,
         parent_item_id: item.id,
@@ -281,27 +314,23 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       } as any);
       queryClient.invalidateQueries({ queryKey: ['item-options', item.id] });
       queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
-      toast.success(`Option ${letter} added — click the pencil to edit details`);
+      toast.success(`Option ${letter} added`);
     } catch {
       toast.error('Failed to add option');
     }
   };
 
-  // Handle selecting an option (parent or child)
   const handleSelectAnyOption = async (opt: ProjectItem) => {
     if (!item) return;
     try {
       const isParent = opt.id === item.id;
-      // If clicking already-selected, deselect all
       const isAlreadySelected = isParent ? !!item.is_selected_option : !!opt.is_selected_option;
 
-      // Update parent's is_selected_option
       await updateItem.mutateAsync({
         id: item.id,
         is_selected_option: isParent ? !isAlreadySelected : false,
       });
 
-      // Update all children
       for (const child of childOptions) {
         await updateItem.mutateAsync({
           id: child.id,
@@ -355,9 +384,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     } catch { toast.error('Failed to delete task'); }
   };
 
-  // Compute real total including all landed costs + margin
-  // NOTE: uses effectiveItem (selected option data) - defined below after early return guard
-  // Option-dependent fields: show selected option's data when available
   const OPTION_FIELDS_SET = new Set([
     'description', 'supplier', 'dimensions', 'finish_material', 'finish_color',
     'finish_notes', 'production_time', 'reference_image_url', 'technical_drawing_url',
@@ -369,7 +395,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const allOptions = item ? [item, ...childOptions.slice(0, 3)] : [];
   const selectedOption = allOptions.find(o => o.is_selected_option);
 
-  // Effective item for computed totals (merges selected option data)
   const effectiveItem = useMemo(() => {
     if (!item || !selectedOption || selectedOption.id === item.id) return item;
     const merged = { ...item };
@@ -448,11 +473,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
         <div className="flex flex-col gap-1 py-1.5">
           <Label className="text-xs text-muted-foreground">{label}</Label>
           {fieldType === 'textarea' ? (
-            <Textarea
-              value={value ?? ''}
-              onChange={e => setVal(field, e.target.value)}
-              className="text-sm min-h-[60px]"
-            />
+            <Textarea value={value ?? ''} onChange={e => setVal(field, e.target.value)} className="text-sm min-h-[60px]" />
           ) : (
             <Input
               type={fieldType}
@@ -499,6 +520,26 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       </a>
     );
   };
+
+  // ═══ Design approval helpers ═══
+  const designChecks = {
+    hasDimensions: !!(selectedOption?.dimensions || item.dimensions),
+    hasMaterial: !!(selectedOption?.finish_material || item.finish_material),
+    hasColor: !!(selectedOption?.finish_color || item.finish_color),
+    hasSelection: !!selectedOption,
+  };
+
+  // Budget comparison for quotations
+  const budgetEstimate = Number((item as any).budget_estimate) || 0;
+  const selectedUnitCost = selectedOption ? Number(selectedOption.unit_cost || 0) : Number(item.unit_cost || 0);
+  const selectedQty = selectedOption ? Number(selectedOption.quantity || 1) : Number(item.quantity || 1);
+  const selectedTotal = selectedUnitCost * selectedQty;
+  const budgetDiff = budgetEstimate > 0 && selectedTotal > 0 ? selectedTotal - budgetEstimate : null;
+
+  // Forward transitions grouped
+  const forwardTransitions = availableTransitions.filter(t => t.to !== 'on_hold' && t.to !== 'cancelled' && !isBackwardTransition(t.label));
+  const backwardTransitions = availableTransitions.filter(t => t.to !== 'on_hold' && t.to !== 'cancelled' && isBackwardTransition(t.label));
+  const specialTransitions = availableTransitions.filter(t => t.to === 'on_hold' || t.to === 'cancelled');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -551,16 +592,15 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             </div>
           </div>
 
+          {/* ALL transition buttons with distinct colors */}
           {!editMode && availableTransitions.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
-              {/* Forward transitions */}
-              {availableTransitions
-                .filter(t => t.to !== 'on_hold' && t.to !== 'cancelled')
-                .map(t => (
+              {/* Forward transitions — colored by phase */}
+              {forwardTransitions.map(t => (
                 <Button
                   key={t.to}
                   size="sm"
-                  variant="default"
+                  className={cn('h-8', getTransitionButtonStyle(t.to))}
                   onClick={() => handleTransition(t.to)}
                   disabled={updateItem.isPending}
                 >
@@ -569,17 +609,32 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 </Button>
               ))}
 
+              {/* Backward/reject transitions — outlined red */}
+              {backwardTransitions.map(t => (
+                <Button
+                  key={t.to + '_back'}
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-red-600 border-red-300 hover:bg-red-50"
+                  onClick={() => handleTransition(t.to)}
+                  disabled={updateItem.isPending}
+                >
+                  <ArrowLeft className="w-3 h-3 mr-1" />
+                  {t.label}
+                </Button>
+              ))}
+
               <div className="flex-1" />
 
               {/* On Hold */}
-              {availableTransitions.filter(t => t.to === 'on_hold').map(t => (
-                <Button key={t.to} size="sm" variant="outline" className="text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
+              {specialTransitions.filter(t => t.to === 'on_hold').map(t => (
+                <Button key={t.to} size="sm" variant="outline" className="h-8 text-amber-600 border-amber-300 hover:bg-amber-50" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
                   ⏸ {t.label}
                 </Button>
               ))}
               {/* Cancel */}
-              {availableTransitions.filter(t => t.to === 'cancelled').map(t => (
-                <Button key={t.to} size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
+              {specialTransitions.filter(t => t.to === 'cancelled').map(t => (
+                <Button key={t.to} size="sm" variant="outline" className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleTransition(t.to)} disabled={updateItem.isPending}>
                   ✕ {t.label}
                 </Button>
               ))}
@@ -611,14 +666,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {renderField('Category', 'category', { locked: true })}
                   {renderField('Area', 'area')}
                   {renderField('Description', 'description')}
-                  {selectedOption && selectedOption.id !== item.id && (
-                    <div className="flex justify-between items-start py-1.5">
-                      <span className="text-sm text-muted-foreground">Client Selection</span>
-                      <Badge variant="outline" className="text-xs text-primary border-primary/30">
-                        Option {String.fromCharCode(65 + allOptions.findIndex(o => o.id === selectedOption.id))}
-                      </Badge>
-                    </div>
-                  )}
                   {renderField('Revision', 'revision_number', { locked: true })}
                   {renderField('Approval', 'approval_status', { locked: true })}
                 </div>
@@ -626,7 +673,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   <h4 className="text-sm font-semibold text-foreground mb-2">Location</h4>
                   {renderField('Apartment', 'apartment_number')}
                   {renderField('Room Number', 'room_number', { locked: true })}
-                  {renderField('Dimensions', selectedOption ? 'dimensions' : 'dimensions')}
+                  {renderField('Dimensions', 'dimensions')}
                   {renderField('Supplier', 'supplier')}
                   {renderField('Production Time', 'production_time')}
                   {canSeeCosts && renderField('Quantity', 'quantity', { type: 'number' })}
@@ -636,21 +683,65 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               <div className="pt-3 border-t border-border">
                 <h4 className="text-sm font-semibold text-foreground mb-1">Notes</h4>
                 {editMode ? (
-                  <Textarea
-                    value={val('notes') ?? ''}
-                    onChange={e => setVal('notes', e.target.value)}
-                    className="text-sm min-h-[60px]"
-                    placeholder="Add notes..."
-                  />
+                  <Textarea value={val('notes') ?? ''} onChange={e => setVal('notes', e.target.value)} className="text-sm min-h-[60px]" placeholder="Add notes..." />
                 ) : (
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">{val('notes') || '—'}</p>
                 )}
               </div>
             </TabsContent>
 
-            {/* DESIGN TAB — option cards with inline editing */}
+            {/* ═══ DESIGN TAB ═══ */}
             {canSeeDesign && (
               <TabsContent value="design" className="space-y-5">
+                {/* Design Approval Checklist */}
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                    <Shield className="w-3.5 h-3.5" /> Design Approvals
+                  </h4>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* Dimensions check */}
+                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasDimensions ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
+                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Dimensions</div>
+                      {designChecks.hasDimensions ? (
+                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
+                      )}
+                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasDimensions ? 'Present' : 'Missing'}</p>
+                    </div>
+                    {/* Material check */}
+                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasMaterial ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
+                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Material</div>
+                      {designChecks.hasMaterial ? (
+                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
+                      )}
+                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasMaterial ? 'Present' : 'Missing'}</p>
+                    </div>
+                    {/* Color/Finish check */}
+                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasColor ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
+                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Color / Finish</div>
+                      {designChecks.hasColor ? (
+                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
+                      )}
+                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasColor ? 'Present' : 'Missing'}</p>
+                    </div>
+                    {/* Client Selection check */}
+                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasSelection ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
+                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Client Selection</div>
+                      {designChecks.hasSelection ? (
+                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
+                      )}
+                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasSelection ? 'Selected' : 'Pending'}</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -666,16 +757,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   )}
                 </div>
 
-                {/* Client selection highlight */}
-                {selectedOption && (
-                  <div className="rounded-lg border-2 border-primary bg-primary/5 p-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-primary">Client Selection: {selectedOption.description}</span>
-                    </div>
-                  </div>
-                )}
-
                 {/* Option cards grid */}
                 <div className={cn('grid gap-3', allOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
                   {allOptions.map((opt, i) => (
@@ -688,42 +769,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                       parentId={opt.id === item.id ? null : item.id}
                       projectId={projectId}
                       mode="design"
+                      canSeeCosts={canSeeCosts}
                     />
                   ))}
                 </div>
-
-                {/* Always-visible finish summary for selected option */}
-                {selectedOption && (
-                  <div className="rounded-lg border border-border p-4 space-y-2">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Selected Option Details</h4>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-muted-foreground">Description</span>
-                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.description || '—'}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-muted-foreground">Supplier</span>
-                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.supplier || '—'}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-muted-foreground">Material</span>
-                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_material || '—'}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-muted-foreground">Color</span>
-                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_color || '—'}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-muted-foreground">Dimensions</span>
-                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.dimensions || '—'}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-muted-foreground">Finish Notes</span>
-                        <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">{selectedOption.finish_notes || '—'}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </TabsContent>
             )}
 
@@ -746,13 +795,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                       <span className="text-sm text-muted-foreground">Lifecycle</span>
                       <Badge className={cn('text-xs', colors.bg, colors.text)}>{statusLabel}</Badge>
                     </div>
-                    {/* 1-click toggle for Purchased */}
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-sm text-muted-foreground">Purchased</span>
                       <Button
-                        size="sm"
-                        variant={item.purchased ? 'default' : 'outline'}
-                        className="h-7 text-xs"
+                        size="sm" variant={item.purchased ? 'default' : 'outline'} className="h-7 text-xs"
                         onClick={async () => {
                           try {
                             await updateItem.mutateAsync({ id: item.id, purchased: !item.purchased });
@@ -767,13 +813,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                         {item.purchased ? 'Purchased' : 'Not Purchased'}
                       </Button>
                     </div>
-                    {/* 1-click toggle for Received */}
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-sm text-muted-foreground">Received</span>
                       <Button
-                        size="sm"
-                        variant={item.received ? 'default' : 'outline'}
-                        className="h-7 text-xs"
+                        size="sm" variant={item.received ? 'default' : 'outline'} className="h-7 text-xs"
                         onClick={async () => {
                           try {
                             const updates: any = { id: item.id, received: !item.received };
@@ -796,7 +839,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </TabsContent>
             )}
 
-            {/* QUOTATIONS TAB — option cards with pricing + budget estimate + supplier quotations */}
+            {/* ═══ QUOTATIONS TAB — budget comparison + price approval ═══ */}
             {canSeeProcurement && (
               <TabsContent value="quotations" className="space-y-5">
                 {/* QS Budget Estimate */}
@@ -805,7 +848,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">QS Budget Estimate</span>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Manual reference budget set by QS before client selection</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Manual reference budget set by QS</p>
                       </div>
                       <div className="text-right">
                         {editMode ? (
@@ -818,9 +861,47 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                           />
                         ) : (
                           <span className="text-lg font-bold font-mono text-foreground">
-                            €{Number((item as any).budget_estimate || 0).toFixed(2)}
+                            €{budgetEstimate.toFixed(2)}
                           </span>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Budget vs Selected comparison */}
+                {canSeeCosts && budgetDiff !== null && selectedOption && (
+                  <div className={cn(
+                    'rounded-lg border-2 p-4',
+                    budgetDiff > 0
+                      ? 'border-red-400 bg-red-50'
+                      : 'border-blue-400 bg-emerald-50'
+                  )}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {budgetDiff > 0 ? (
+                          <>
+                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                            <div>
+                              <p className="text-sm font-semibold text-red-700">Over Budget</p>
+                              <p className="text-xs text-red-600">Selected option exceeds QS estimate by €{budgetDiff.toFixed(2)}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <TrendingUp className="w-5 h-5 text-emerald-600" />
+                            <div>
+                              <p className="text-sm font-semibold text-emerald-700">Under Budget — Higher Margin</p>
+                              <p className="text-xs text-emerald-600">Selected option saves €{Math.abs(budgetDiff).toFixed(2)} vs QS estimate</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-muted-foreground">Budget: €{budgetEstimate.toFixed(2)}</div>
+                        <div className={cn('text-sm font-bold font-mono', budgetDiff > 0 ? 'text-red-700' : 'text-emerald-700')}>
+                          Selected: €{selectedTotal.toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -855,6 +936,14 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
                 <Separator />
 
+                {/* Supplier Quotations */}
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3">Supplier Quotations</h4>
+                  <QuotationsTab itemId={item.id} canEdit={canSeeProcurement} />
+                </div>
+
+                <Separator />
+
                 {/* Item Documents */}
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-3">Item Documents</h4>
@@ -863,7 +952,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               </TabsContent>
             )}
 
-            {/* FINANCE TAB */}
+            {/* ═══ FINANCE TAB — with payment approval ═══ */}
             {(canSeePayment || canSeeCosts) && (
               <TabsContent value="finance" className="space-y-4">
                 <div className="grid grid-cols-2 gap-6">
@@ -914,6 +1003,88 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                         </span>
                       </div>
                     </div>
+
+                    {/* ═══ Payment Approval Section ═══ */}
+                    <Separator className="my-3" />
+                    <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <Shield className="w-4 h-4" /> Payment Approvals
+                    </h4>
+
+                    {/* Proforma status */}
+                    <div className={cn(
+                      'rounded-lg border p-3 mb-3',
+                      item.proforma_url ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50'
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {item.proforma_url ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-amber-600" />
+                          )}
+                          <span className="text-xs font-medium">
+                            {item.proforma_url ? 'Proforma Uploaded' : 'Proforma Missing — Required for payment'}
+                          </span>
+                        </div>
+                        {item.proforma_url && (
+                          <a href={item.proforma_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                            <ExternalLink className="w-3 h-3" /> View
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Payment schedule */}
+                    {supplierPayments.length > 0 ? (
+                      <div className="space-y-2">
+                        {supplierPayments.map((p: any) => (
+                          <div key={p.id} className={cn(
+                            'rounded-lg border p-3 flex items-center justify-between',
+                            p.is_paid ? 'border-emerald-300 bg-emerald-50/50' : 'border-border'
+                          )}>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold">
+                                  Payment {p.payment_number}/{p.total_payments}
+                                </span>
+                                <Badge variant={p.is_paid ? 'default' : 'outline'} className={cn('text-[9px] h-4', p.is_paid && 'bg-emerald-600')}>
+                                  {p.is_paid ? 'Paid' : 'Pending'}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {p.supplier} • €{Number(p.amount).toFixed(2)}
+                                {p.payment_date && ` • Due: ${p.payment_date}`}
+                                {p.paid_date && ` • Paid: ${p.paid_date}`}
+                              </p>
+                            </div>
+                            {!p.is_paid && canSeePayment && (
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
+                                onClick={async () => {
+                                  try {
+                                    await supabase.from('supplier_payments').update({
+                                      is_paid: true,
+                                      paid_date: new Date().toISOString().split('T')[0],
+                                    }).eq('id', p.id);
+                                    queryClient.invalidateQueries({ queryKey: ['supplier-payments', item.id] });
+                                    toast.success(`Payment ${p.payment_number} marked as paid`);
+                                  } catch { toast.error('Failed'); }
+                                }}
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> Approve Payment
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center py-3">
+                        {item.proforma_url
+                          ? 'No payment schedule created yet. Payments are managed from the supplier payments section.'
+                          : 'Upload proforma first to enable payment tracking.'}
+                      </p>
+                    )}
                   </div>
                 </div>
               </TabsContent>
@@ -934,10 +1105,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     <h4 className="text-sm font-semibold text-foreground mb-2">Quick Status</h4>
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-sm text-muted-foreground">Purchased</span>
-                      <Button
-                        size="sm"
-                        variant={item.purchased ? 'default' : 'outline'}
-                        className="h-7 text-xs"
+                      <Button size="sm" variant={item.purchased ? 'default' : 'outline'} className="h-7 text-xs"
                         onClick={async () => {
                           try {
                             await updateItem.mutateAsync({ id: item.id, purchased: !item.purchased });
@@ -953,10 +1121,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     </div>
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-sm text-muted-foreground">Received</span>
-                      <Button
-                        size="sm"
-                        variant={item.received ? 'default' : 'outline'}
-                        className="h-7 text-xs"
+                      <Button size="sm" variant={item.received ? 'default' : 'outline'} className="h-7 text-xs"
                         onClick={async () => {
                           try {
                             const updates: any = { id: item.id, received: !item.received };
@@ -990,10 +1155,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     <h4 className="text-sm font-semibold text-foreground mb-2">Status</h4>
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-sm text-muted-foreground">Installed</span>
-                      <Button
-                        size="sm"
-                        variant={item.installed ? 'default' : 'outline'}
-                        className="h-7 text-xs"
+                      <Button size="sm" variant={item.installed ? 'default' : 'outline'} className="h-7 text-xs"
                         onClick={async () => {
                           try {
                             const updates: any = { id: item.id, installed: !item.installed };
@@ -1017,12 +1179,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             {/* TASKS TAB */}
             <TabsContent value="tasks" className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-foreground">
-                  Tasks ({linkedTasks.length})
-                </h4>
+                <h4 className="text-sm font-semibold text-foreground">Tasks ({linkedTasks.length})</h4>
               </div>
-
-              {/* Quick add */}
               <div className="flex gap-2">
                 <Input
                   value={newTaskTitle}
@@ -1035,8 +1193,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   <Plus className="w-3 h-3 mr-1" /> Add
                 </Button>
               </div>
-
-              {/* Open tasks */}
               {openTasks.length > 0 && (
                 <div className="space-y-1">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Open</span>
@@ -1051,19 +1207,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                       />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm text-foreground">{task.title}</span>
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
-                        )}
+                        {task.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>}
                         <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
                           {task.assignee_id && (
-                            <span className="flex items-center gap-1">
-                              <User className="w-2.5 h-2.5" />{getMemberName(task.assignee_id) || 'Assigned'}
-                            </span>
+                            <span className="flex items-center gap-1"><User className="w-2.5 h-2.5" />{getMemberName(task.assignee_id) || 'Assigned'}</span>
                           )}
                           {task.end_date && (
-                            <span className="flex items-center gap-1">
-                              <CalendarIcon className="w-2.5 h-2.5" />{task.end_date}
-                            </span>
+                            <span className="flex items-center gap-1"><CalendarIcon className="w-2.5 h-2.5" />{task.end_date}</span>
                           )}
                           {task.completion_fields && task.completion_fields.length > 0 && (
                             <Badge variant="outline" className="text-[9px] h-4 px-1">Auto-complete</Badge>
@@ -1078,8 +1228,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   ))}
                 </div>
               )}
-
-              {/* Done tasks */}
               {doneTasks.length > 0 && (
                 <div className="space-y-1">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Completed</span>
@@ -1094,7 +1242,6 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   ))}
                 </div>
               )}
-
               {linkedTasks.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">No tasks linked to this item yet.</p>
               )}
