@@ -529,6 +529,81 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     hasSelection: !!selectedOption,
   };
 
+  // Design approval states from audit_log
+  const DESIGN_APPROVAL_KEYS = ['dimensions', 'material', 'color_finish', 'client_selection'] as const;
+  type DesignApprovalKey = typeof DESIGN_APPROVAL_KEYS[number];
+
+  const { data: designApprovals = {} as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null> } = useQuery({
+    queryKey: ['design-approvals', item.id],
+    queryFn: async () => {
+      const result: Record<string, any> = {};
+      for (const key of DESIGN_APPROVAL_KEYS) {
+        const { data } = await (supabase as any)
+          .from('audit_log')
+          .select('user_id, created_at')
+          .eq('entity_id', item.id)
+          .eq('entity_type', 'item')
+          .eq('action', `design_approve_${key}`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (data && data.length > 0) {
+          // Find display name from members
+          const member = members.find((m: any) => m.id === data[0].user_id);
+          result[key] = { user_id: data[0].user_id, display_name: member?.display_name || member?.email || 'Unknown', created_at: data[0].created_at };
+        } else {
+          result[key] = null;
+        }
+      }
+      return result as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null>;
+    },
+    enabled: !!item && open && members.length > 0,
+  });
+
+  const handleDesignApprove = async (key: DesignApprovalKey) => {
+    if (!item || !user) return;
+    try {
+      await (supabase as any).from('audit_log').insert({
+        entity_type: 'item',
+        entity_id: item.id,
+        action: `design_approve_${key}`,
+        user_id: user.id,
+        summary: `Design approval: ${key} approved for ${item.item_code || item.description}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['design-approvals', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
+      toast.success(`${key.replace(/_/g, ' ')} approved`);
+
+      // Check if all 4 are now approved → auto-advance
+      const updatedApprovals = { ...designApprovals, [key]: { user_id: user.id, display_name: '', created_at: '' } };
+      const allApproved = DESIGN_APPROVAL_KEYS.every(k => updatedApprovals[k] != null);
+      const allDataPresent = designChecks.hasDimensions && designChecks.hasMaterial && designChecks.hasColor && designChecks.hasSelection;
+      if (allApproved && allDataPresent) {
+        // Auto-advance to next design step if still in early design phase
+        const designStatuses = ['concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer'];
+        if (designStatuses.includes(item.lifecycle_status || '')) {
+          await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'finishes_approved_hod' as any, approval_status: 'approved' as any });
+          queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+          queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+          toast.success('All design approvals complete — advanced to next stage');
+        }
+      }
+    } catch { toast.error('Failed to approve'); }
+  };
+
+  const handleDesignRevoke = async (key: DesignApprovalKey) => {
+    if (!item || !user) return;
+    try {
+      // Delete the approval entry
+      await (supabase as any).from('audit_log').delete()
+        .eq('entity_id', item.id)
+        .eq('entity_type', 'item')
+        .eq('action', `design_approve_${key}`);
+      queryClient.invalidateQueries({ queryKey: ['design-approvals', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
+      toast.info(`${key.replace(/_/g, ' ')} approval revoked`);
+    } catch { toast.error('Failed to revoke'); }
+  };
+
   // Budget comparison for quotations
   const budgetEstimate = Number((item as any).budget_estimate) || 0;
   const selectedUnitCost = selectedOption ? Number(selectedOption.unit_cost || 0) : Number(item.unit_cost || 0);
