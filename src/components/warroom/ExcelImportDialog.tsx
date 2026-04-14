@@ -264,7 +264,7 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
         return {
           project_id: project.id,
           item_code: row.item_code || null,
-          category: itemTypeToCategory(row.item_type_code),
+          category: itemTypeToCategory(row.item_type_code) as any,
           area: row.area || row.room_code || 'General',
           description: row.description,
           supplier: row.supplier || null,

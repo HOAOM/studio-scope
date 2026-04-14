@@ -164,7 +164,7 @@ export default function ProjectDetail() {
   const [lifecycleFilter, setLifecycleFilter] = useState<string>('all');
   const [approvalFilter, setApprovalFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [boqModalCategory, setBOQModalCategory] = useState<BOQCategory | null>(null);
+  const [boqModalCategory, setBOQModalCategory] = useState<string | null>(null);
   const [boqModalOpen, setBOQModalOpen] = useState(false);
   const areas = useMemo(() => {
     const unique = new Set(items.map(i => i.area));
