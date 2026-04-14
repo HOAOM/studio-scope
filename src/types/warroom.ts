@@ -11,7 +11,13 @@ export type BOQCategory =
   | 'finishes' 
   | 'ffe' 
   | 'accessories' 
-  | 'appliances';
+  | 'appliances'
+  | 'hvac'
+  | 'electrical'
+  | 'plumbing'
+  | 'fire-protection'
+  | 'low-voltage'
+  | 'sanitary';
 
 export type BOQCoverage = 'present' | 'missing' | 'to-confirm';
 
@@ -134,6 +140,12 @@ export function getCategoryLabel(category: BOQCategory): string {
     'ffe': 'FF&E',
     'accessories': 'Accessories',
     'appliances': 'Appliances',
+    'hvac': 'HVAC',
+    'electrical': 'Electrical',
+    'plumbing': 'Plumbing',
+    'fire-protection': 'Fire Protection',
+    'low-voltage': 'Low Voltage / ICT',
+    'sanitary': 'Sanitary',
   };
   return labels[category];
 }

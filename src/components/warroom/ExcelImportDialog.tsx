@@ -56,20 +56,7 @@ interface ImportResult {
   totalAmount: string;
 }
 
-// Map item type codes to boq_category enum
-function itemTypeToCategory(typeCode: string): BOQCategory {
-  const map: Record<string, BOQCategory> = {
-    'LF': 'loose-furniture',
-    'CF': 'joinery',      // Custom Furniture → joinery
-    'CL': 'finishes',     // Ceiling → finishes
-    'CT': 'accessories',  // Curtains → accessories
-    'DR': 'joinery',      // Doors → joinery
-    'FL': 'finishes',     // Flooring → finishes
-    'FX': 'appliances',   // Fixtures → appliances
-    'LT': 'lighting',     // Lighting → lighting
-  };
-  return map[typeCode] || 'ffe';
-}
+import { itemTypeToCategory } from '@/lib/categories';
 
 function cleanValue(val: any): string {
   if (val === undefined || val === null) return '';
@@ -277,7 +264,7 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
         return {
           project_id: project.id,
           item_code: row.item_code || null,
-          category: itemTypeToCategory(row.item_type_code),
+          category: itemTypeToCategory(row.item_type_code) as any,
           area: row.area || row.room_code || 'General',
           description: row.description,
           supplier: row.supplier || null,

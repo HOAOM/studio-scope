@@ -30,15 +30,8 @@ type BOQCategory = Database['public']['Enums']['boq_category'];
 type ApprovalStatus = Database['public']['Enums']['approval_status'];
 type LifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
 
-const CATEGORIES: { value: BOQCategory; label: string }[] = [
-  { value: 'joinery', label: 'Joinery' },
-  { value: 'loose-furniture', label: 'Loose Furniture' },
-  { value: 'lighting', label: 'Lighting' },
-  { value: 'finishes', label: 'Finishes' },
-  { value: 'ffe', label: 'FF&E' },
-  { value: 'accessories', label: 'Accessories' },
-  { value: 'appliances', label: 'Appliances' },
-];
+import { CATEGORY_OPTIONS, ALL_CATEGORIES } from '@/lib/categories';
+const CATEGORIES = CATEGORY_OPTIONS;
 
 const APPROVAL_STATUSES: { value: ApprovalStatus; label: string }[] = [
   { value: 'pending', label: 'Pending' },
@@ -54,7 +47,7 @@ const COST_FIELDS = ['delivery_cost', 'installation_cost', 'insurance_cost', 'du
 type CostFieldName = typeof COST_FIELDS[number];
 
 const itemSchema = z.object({
-  category: z.enum(['joinery', 'loose-furniture', 'lighting', 'finishes', 'ffe', 'accessories', 'appliances']),
+  category: z.string().min(1, 'Category is required'),
   area: z.string().max(100).optional(),
   description: z.string().min(1, 'Description is required').max(500),
   approval_status: z.enum(['pending', 'approved', 'rejected', 'revision']),

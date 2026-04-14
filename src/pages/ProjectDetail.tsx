@@ -88,17 +88,8 @@ type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type StatusLevel = 'safe' | 'at-risk' | 'unsafe';
 type BOQCategory = Database['public']['Enums']['boq_category'];
 
-const CATEGORY_LABELS: Record<BOQCategory, string> = {
-  'joinery': 'Joinery',
-  'loose-furniture': 'Loose Furniture',
-  'lighting': 'Lighting',
-  'finishes': 'Finishes',
-  'ffe': 'FF&E',
-  'accessories': 'Accessories',
-  'appliances': 'Appliances',
-};
-
-const ALL_CATEGORIES: BOQCategory[] = ['joinery', 'loose-furniture', 'lighting', 'finishes', 'ffe', 'accessories', 'appliances'];
+import { CATEGORY_LABELS as _CAT_LABELS, ALL_CATEGORIES, getCategoryLabel } from '@/lib/categories';
+const CATEGORY_LABELS = _CAT_LABELS as Record<string, string>;
 
 function calculateItemStatus(item: ProjectItem): StatusLevel {
   if (item.approval_status === 'rejected') return 'unsafe';
@@ -173,7 +164,7 @@ export default function ProjectDetail() {
   const [lifecycleFilter, setLifecycleFilter] = useState<string>('all');
   const [approvalFilter, setApprovalFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [boqModalCategory, setBOQModalCategory] = useState<BOQCategory | null>(null);
+  const [boqModalCategory, setBOQModalCategory] = useState<string | null>(null);
   const [boqModalOpen, setBOQModalOpen] = useState(false);
   const areas = useMemo(() => {
     const unique = new Set(items.map(i => i.area));
@@ -858,7 +849,7 @@ export default function ProjectDetail() {
         <BOQCategoryModal
           open={boqModalOpen}
           onOpenChange={setBOQModalOpen}
-          category={boqModalCategory}
+          category={boqModalCategory as any}
           items={items}
           projectId={projectId}
           canSeeCosts={effectiveCanSeeCosts}

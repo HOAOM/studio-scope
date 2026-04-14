@@ -24,15 +24,7 @@ import { Edit, Image as ImageIcon, ExternalLink, Eye } from 'lucide-react';
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type BOQCategory = Database['public']['Enums']['boq_category'];
 
-const CATEGORY_LABELS: Record<BOQCategory, string> = {
-  'joinery': 'Joinery',
-  'loose-furniture': 'Loose Furniture',
-  'lighting': 'Lighting',
-  'finishes': 'Finishes',
-  'ffe': 'FF&E',
-  'accessories': 'Accessories',
-  'appliances': 'Appliances',
-};
+import { CATEGORY_LABELS } from '@/lib/categories';
 
 interface BOQCategoryModalProps {
   open: boolean;

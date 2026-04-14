@@ -157,7 +157,7 @@ export default function AdminPanel() {
                   isDeleting={deleteItemType.isPending}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Allowed Categories: comma-separated list (e.g. "joinery, lighting"). Valid: joinery, loose-furniture, lighting, finishes, ffe, accessories, appliances
+                  Allowed Categories: comma-separated list (e.g. "joinery, lighting"). Valid: joinery, loose-furniture, lighting, finishes, ffe, accessories, appliances, hvac, electrical, plumbing, fire-protection, low-voltage, sanitary
                 </p>
               </CardContent>
             </Card>
