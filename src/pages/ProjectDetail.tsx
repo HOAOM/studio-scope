@@ -849,7 +849,7 @@ export default function ProjectDetail() {
         <BOQCategoryModal
           open={boqModalOpen}
           onOpenChange={setBOQModalOpen}
-          category={boqModalCategory}
+          category={boqModalCategory as any}
           items={items}
           projectId={projectId}
           canSeeCosts={effectiveCanSeeCosts}
