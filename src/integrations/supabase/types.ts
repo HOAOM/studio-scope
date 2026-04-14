@@ -1166,6 +1166,12 @@ export type Database = {
         | "ffe"
         | "accessories"
         | "appliances"
+        | "hvac"
+        | "electrical"
+        | "plumbing"
+        | "fire-protection"
+        | "low-voltage"
+        | "sanitary"
       boq_coverage_status: "present" | "missing" | "to-confirm"
       item_lifecycle_status:
         | "draft"
@@ -1363,6 +1369,12 @@ export const Constants = {
         "ffe",
         "accessories",
         "appliances",
+        "hvac",
+        "electrical",
+        "plumbing",
+        "fire-protection",
+        "low-voltage",
+        "sanitary",
       ],
       boq_coverage_status: ["present", "missing", "to-confirm"],
       item_lifecycle_status: [

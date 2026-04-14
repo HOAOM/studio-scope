@@ -529,6 +529,82 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     hasSelection: !!selectedOption,
   };
 
+  // Design approval states from audit_log
+  const DESIGN_APPROVAL_KEYS = ['dimensions', 'material', 'color_finish', 'client_selection'] as const;
+  type DesignApprovalKey = typeof DESIGN_APPROVAL_KEYS[number];
+
+  const { data: designApprovals = {} as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null> } = useQuery({
+    queryKey: ['design-approvals', item.id],
+    queryFn: async () => {
+      const result: Record<string, any> = {};
+      for (const key of DESIGN_APPROVAL_KEYS) {
+        // Get the latest approve or revoke action for this key
+        const { data } = await (supabase as any)
+          .from('audit_log')
+          .select('action, user_id, created_at')
+          .eq('entity_id', item.id)
+          .eq('entity_type', 'item')
+          .in('action', [`design_approve_${key}`, `design_revoke_${key}`])
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (data && data.length > 0 && data[0].action === `design_approve_${key}`) {
+          const member = members.find((m: any) => m.id === data[0].user_id);
+          result[key] = { user_id: data[0].user_id, display_name: member?.display_name || member?.email || 'Unknown', created_at: data[0].created_at };
+        } else {
+          result[key] = null;
+        }
+      }
+      return result as Record<DesignApprovalKey, { user_id: string; display_name: string; created_at: string } | null>;
+    },
+    enabled: !!item && open && members.length > 0,
+  });
+
+  const handleDesignApprove = async (key: DesignApprovalKey) => {
+    if (!item || !user) return;
+    try {
+      await (supabase as any).from('audit_log').insert({
+        entity_type: 'item',
+        entity_id: item.id,
+        action: `design_approve_${key}`,
+        user_id: user.id,
+        summary: `Design approval: ${key} approved for ${item.item_code || item.description}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['design-approvals', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
+      toast.success(`${key.replace(/_/g, ' ')} approved`);
+
+      // Check if all 4 are now approved → auto-advance
+      const updatedApprovals = { ...designApprovals, [key]: { user_id: user.id, display_name: '', created_at: '' } };
+      const allApproved = DESIGN_APPROVAL_KEYS.every(k => updatedApprovals[k] != null);
+      const allDataPresent = designChecks.hasDimensions && designChecks.hasMaterial && designChecks.hasColor && designChecks.hasSelection;
+      if (allApproved && allDataPresent) {
+        const designStatuses = ['concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer'];
+        if (designStatuses.includes(item.lifecycle_status || '')) {
+          await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'finishes_approved_hod' as any, approval_status: 'approved' as any });
+          queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+          queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+          toast.success('All design approvals complete — advanced to next stage');
+        }
+      }
+    } catch { toast.error('Failed to approve'); }
+  };
+
+  const handleDesignRevoke = async (key: DesignApprovalKey) => {
+    if (!item || !user) return;
+    try {
+      await (supabase as any).from('audit_log').insert({
+        entity_type: 'item',
+        entity_id: item.id,
+        action: `design_revoke_${key}`,
+        user_id: user.id,
+        summary: `Design approval revoked: ${key} for ${item.item_code || item.description}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['design-approvals', item.id] });
+      queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
+      toast.info(`${key.replace(/_/g, ' ')} approval revoked`);
+    } catch { toast.error('Failed to revoke'); }
+  };
+
   // Budget comparison for quotations
   const budgetEstimate = Number((item as any).budget_estimate) || 0;
   const selectedUnitCost = selectedOption ? Number(selectedOption.unit_cost || 0) : Number(item.unit_cost || 0);
@@ -694,51 +770,62 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             {canSeeDesign && (
               <TabsContent value="design" className="space-y-5">
                 {/* Design Approval Checklist */}
-                <div className="rounded-lg border border-border p-4 space-y-3">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                    <Shield className="w-3.5 h-3.5" /> Design Approvals
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <Shield className="w-3 h-3" /> Design Approvals
                   </h4>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* Dimensions check */}
-                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasDimensions ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
-                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Dimensions</div>
-                      {designChecks.hasDimensions ? (
-                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
-                      ) : (
-                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
-                      )}
-                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasDimensions ? 'Present' : 'Missing'}</p>
-                    </div>
-                    {/* Material check */}
-                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasMaterial ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
-                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Material</div>
-                      {designChecks.hasMaterial ? (
-                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
-                      ) : (
-                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
-                      )}
-                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasMaterial ? 'Present' : 'Missing'}</p>
-                    </div>
-                    {/* Color/Finish check */}
-                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasColor ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
-                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Color / Finish</div>
-                      {designChecks.hasColor ? (
-                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
-                      ) : (
-                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
-                      )}
-                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasColor ? 'Present' : 'Missing'}</p>
-                    </div>
-                    {/* Client Selection check */}
-                    <div className={cn('rounded-lg border p-3 text-center', designChecks.hasSelection ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50')}>
-                      <div className="text-[10px] text-muted-foreground uppercase mb-1">Client Selection</div>
-                      {designChecks.hasSelection ? (
-                        <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-600" />
-                      ) : (
-                        <AlertTriangle className="w-5 h-5 mx-auto text-amber-600" />
-                      )}
-                      <p className="text-[10px] mt-1 font-medium">{designChecks.hasSelection ? 'Selected' : 'Pending'}</p>
-                    </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    {([
+                      { key: 'dimensions' as DesignApprovalKey, label: 'Dimensions', present: designChecks.hasDimensions },
+                      { key: 'material' as DesignApprovalKey, label: 'Material', present: designChecks.hasMaterial },
+                      { key: 'color_finish' as DesignApprovalKey, label: 'Color / Finish', present: designChecks.hasColor },
+                      { key: 'client_selection' as DesignApprovalKey, label: 'Client Selection', present: designChecks.hasSelection },
+                    ] as const).map(check => {
+                      const approval = designApprovals[check.key];
+                      const isApproved = !!approval;
+                      const canApprove = check.present && !isApproved;
+
+                      return (
+                        <div
+                          key={check.key}
+                          className={cn(
+                            'rounded border px-2 py-1.5 text-center transition-all select-none',
+                            isApproved
+                              ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 cursor-default'
+                              : check.present
+                                ? 'border-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer hover:ring-1 hover:ring-emerald-400'
+                                : 'border-amber-300 bg-amber-50 dark:bg-amber-950/20'
+                          )}
+                          onClick={() => {
+                            if (canApprove) handleDesignApprove(check.key);
+                          }}
+                          onDoubleClick={() => {
+                            if (isApproved) handleDesignRevoke(check.key);
+                          }}
+                          title={isApproved ? 'Double-click to revoke approval' : canApprove ? 'Click to approve' : 'Data missing'}
+                        >
+                          <div className="text-[9px] text-muted-foreground uppercase mb-0.5">{check.label}</div>
+                          {isApproved ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-600" />
+                              <p className="text-[8px] mt-0.5 text-emerald-700 dark:text-emerald-400 truncate">
+                                Approved by {approval.display_name}
+                              </p>
+                            </>
+                          ) : check.present ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-500/60" />
+                              <p className="text-[8px] mt-0.5 font-medium text-emerald-600">Click to approve</p>
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle className="w-4 h-4 mx-auto text-amber-600" />
+                              <p className="text-[8px] mt-0.5 font-medium text-amber-700">Missing</p>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
