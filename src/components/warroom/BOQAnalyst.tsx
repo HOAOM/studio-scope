@@ -77,8 +77,7 @@ function getRoomColor(floorCode: string, roomCode: string, roomNum: string): str
 }
 
 // ---- Item type to BOQ category mapping ----
-import { itemTypeToCategory as _itemTypeToCategory } from '@/lib/categories';
-const itemTypeToCategoryFn = _itemTypeToCategory;
+import { itemTypeToCategory } from '@/lib/categories';
 
 // ---- Column visibility type ----
 type ColumnKey = 'image' | 'zone' | 'area' | 'brand' | 'finishing' | 'size' | 'tech' | 'refImg' | 'coLink' | 'unitRate' | 'amount' | 'prodTime' | 'notes';
