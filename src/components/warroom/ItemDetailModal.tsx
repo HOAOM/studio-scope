@@ -586,7 +586,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       const allApproved = DESIGN_APPROVAL_KEYS.every(k => updatedApprovals[k] != null);
       const allDataPresent = designChecks.hasDimensions && designChecks.hasMaterial && designChecks.hasColor && designChecks.hasSelection;
       if (allApproved && allDataPresent) {
-        const designStatuses = ['concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer'];
+        const designStatuses = ['draft', 'concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer'];
         if (designStatuses.includes(item.lifecycle_status || '')) {
           await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'finishes_approved_hod' as any, approval_status: 'approved' as any });
           queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
@@ -797,7 +797,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                         <div
                           key={check.key}
                           className={cn(
-                            'rounded border px-2 py-1.5 text-center transition-all select-none h-8 flex flex-col items-center justify-center',
+                            'rounded border px-2 py-1.5 text-center transition-all select-none min-h-8 flex flex-col items-center justify-center',
                             isApproved
                               ? 'border-emerald-400 bg-emerald-950/30 cursor-default'
                               : check.present
