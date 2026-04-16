@@ -1439,6 +1439,62 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           )}
         </div>
       </DialogContent>
+
+      {/* Retrocession Reason Dialog */}
+      {retroDialog.open && (
+        <Dialog open={retroDialog.open} onOpenChange={(v) => { if (!v) setRetroDialog({ open: false, toStatus: null }); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Specify what's missing
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Please describe what needs to be corrected or completed before this item can advance again.
+                This reason will be visible to the responsible team member.
+              </p>
+              <Textarea
+                value={retroReason}
+                onChange={e => setRetroReason(e.target.value)}
+                placeholder="e.g. Missing color specification for table legs, need finish for drawer handles..."
+                className="min-h-[80px] text-sm"
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setRetroDialog({ open: false, toStatus: null })}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={!retroReason.trim() || updateItem.isPending}
+                onClick={async () => {
+                  if (!retroDialog.toStatus || !item) return;
+                  try {
+                    await handleTransition(retroDialog.toStatus);
+                    // Log the reason in audit
+                    await (supabase as any).from('audit_log').insert({
+                      entity_type: 'item',
+                      entity_id: item.id,
+                      action: 'retrocession',
+                      user_id: user?.id,
+                      summary: `Sent back to ${LIFECYCLE_LABELS[retroDialog.toStatus]} — Reason: ${retroReason.trim()} | ${item.item_code || item.description}`,
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
+                    setRetroDialog({ open: false, toStatus: null });
+                    setRetroReason('');
+                  } catch { toast.error('Failed'); }
+                }}
+              >
+                <ArrowLeft className="w-3 h-3 mr-1" /> Send Back
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }
