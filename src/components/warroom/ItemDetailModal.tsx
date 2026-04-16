@@ -810,7 +810,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     ] as const).map(check => {
                       const approval = designApprovals[check.key];
                       const isApproved = !!approval;
-                      const canApprove = check.present && !isApproved;
+                      const canApproveThis = check.present && !isApproved && canApproveDesign;
 
                       return (
                         <div
