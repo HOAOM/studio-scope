@@ -607,6 +607,7 @@ export type Database = {
       project_items: {
         Row: {
           apartment_number: string | null
+          approval_checklist: Json | null
           approval_status: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included: boolean
@@ -622,6 +623,7 @@ export type Database = {
           description: string
           dimensions: string | null
           duty_cost: number | null
+          dynamic_finishes: Json | null
           extra_safe_cost: number | null
           finish_color: string | null
           finish_material: string | null
@@ -672,6 +674,7 @@ export type Database = {
         }
         Insert: {
           apartment_number?: string | null
+          approval_checklist?: Json | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included?: boolean
@@ -687,6 +690,7 @@ export type Database = {
           description: string
           dimensions?: string | null
           duty_cost?: number | null
+          dynamic_finishes?: Json | null
           extra_safe_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
@@ -737,6 +741,7 @@ export type Database = {
         }
         Update: {
           apartment_number?: string | null
+          approval_checklist?: Json | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area?: string
           boq_included?: boolean
@@ -752,6 +757,7 @@ export type Database = {
           description?: string
           dimensions?: string | null
           duty_cost?: number | null
+          dynamic_finishes?: Json | null
           extra_safe_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
