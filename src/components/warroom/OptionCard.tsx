@@ -127,7 +127,7 @@ export function OptionCard({
         </div>
 
         {/* Image upload */}
-        <div className="relative aspect-[4/3] bg-muted/30 rounded-lg overflow-hidden border border-border">
+        <div className="relative h-[180px] bg-muted/30 rounded-lg overflow-hidden border border-border">
           {imgUrl ? (
             <img src={imgUrl} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -220,8 +220,8 @@ export function OptionCard({
           : 'border-border bg-card hover:border-muted-foreground/40 hover:shadow-sm'
       )}
     >
-      {/* Image */}
-      <div className="aspect-[4/3] relative bg-muted/30 rounded-t-lg overflow-hidden">
+      {/* Image — fixed height for consistency regardless of option count */}
+      <div className="h-[180px] relative bg-muted/30 rounded-t-lg overflow-hidden">
         {imgUrl ? (
           <img src={imgUrl} alt={`Option ${letter}`} className="w-full h-full object-cover" />
         ) : (
