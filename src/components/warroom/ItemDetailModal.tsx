@@ -561,6 +561,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   };
 
   // ═══ Design approval helpers ═══
+  // Role-based: HoD/CEO/COO/admin/project_manager can approve design, accountant approves budget
+  const DESIGN_APPROVER_ROLES: AppRole[] = ['admin', 'ceo', 'coo', 'head_of_design', 'project_manager'];
+  const canApproveDesign = typedRoles.some(r => DESIGN_APPROVER_ROLES.includes(r));
+
   const designChecks = {
     hasDimensions: !!(selectedOption?.dimensions || item.dimensions),
     hasMaterial: !!(selectedOption?.finish_material || item.finish_material),
