@@ -45,6 +45,7 @@ import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
 import { LifecycleChecklist } from './LifecycleChecklist';
 import { FileOrUrlInput } from './FileOrUrlInput';
+import { DynamicFinishes, DynamicFinish } from './DynamicFinishes';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -560,6 +561,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   };
 
   // ═══ Design approval helpers ═══
+  // Role-based: HoD/CEO/COO/admin/project_manager can approve design, accountant approves budget
+  const DESIGN_APPROVER_ROLES: AppRole[] = ['admin', 'ceo', 'coo', 'head_of_design', 'project_manager'];
+  const canApproveDesign = typedRoles.some(r => DESIGN_APPROVER_ROLES.includes(r));
+
   const designChecks = {
     hasDimensions: !!(selectedOption?.dimensions || item.dimensions),
     hasMaterial: !!(selectedOption?.finish_material || item.finish_material),
@@ -805,7 +810,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     ] as const).map(check => {
                       const approval = designApprovals[check.key];
                       const isApproved = !!approval;
-                      const canApprove = check.present && !isApproved;
+                      const canApproveThis = check.present && !isApproved && canApproveDesign;
 
                       return (
                         <div
@@ -818,9 +823,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                                 ? 'border-emerald-300/50 bg-emerald-950/10 cursor-pointer hover:ring-1 hover:ring-emerald-400'
                                 : 'border-amber-400/50 bg-amber-950/10'
                           )}
-                          onClick={() => { if (canApprove) handleDesignApprove(check.key); }}
-                          onDoubleClick={() => { if (isApproved) handleDesignRevoke(check.key); }}
-                          title={isApproved ? 'Double-click to revoke' : canApprove ? 'Click to approve' : 'Data missing'}
+                          onClick={() => { if (canApproveThis) handleDesignApprove(check.key); }}
+                          onDoubleClick={() => { if (isApproved && canApproveDesign) handleDesignRevoke(check.key); }}
+                          title={isApproved ? (canApproveDesign ? 'Double-click to revoke' : `Approved by ${approval.display_name}`) : canApproveThis ? 'Click to approve' : !canApproveDesign ? 'Insufficient permissions' : 'Data missing'}
                         >
                           <div className="flex items-center justify-center gap-1">
                             {isApproved ? (
@@ -935,6 +940,49 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                 </div>
+
+                {/* Dynamic Finishes Section */}
+                <Separator />
+                <DynamicFinishes
+                  finishes={(() => {
+                    try {
+                      const raw = (item as any).dynamic_finishes;
+                      if (Array.isArray(raw)) return raw as DynamicFinish[];
+                      if (typeof raw === 'string') return JSON.parse(raw) as DynamicFinish[];
+                      return [];
+                    } catch { return []; }
+                  })()}
+                  onChange={async (updated) => {
+                    try {
+                      await updateItem.mutateAsync({ id: item.id, dynamic_finishes: updated } as any);
+                      queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                    } catch { toast.error('Failed to save finishes'); }
+                  }}
+                  canAdd={typedRoles.some(r => ['admin', 'ceo', 'coo', 'procurement_manager', 'project_manager'].includes(r))}
+                  canEdit={typedRoles.some(r => ['admin', 'designer', 'head_of_design', 'architectural_dept', 'project_manager'].includes(r))}
+                  userId={user?.id}
+                  onFieldAdded={async () => {
+                    // Retrocede to design status
+                    const designStatuses: string[] = ['draft', 'concept', 'in_design', 'design_ready'];
+                    if (!designStatuses.includes(item.lifecycle_status || '')) {
+                      try {
+                        await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'in_design' as any });
+                        queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                        queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                        toast.warning('Item returned to Design status — new finish field requires design input');
+                        // Log in audit
+                        await (supabase as any).from('audit_log').insert({
+                          entity_type: 'item',
+                          entity_id: item.id,
+                          action: 'retrocession',
+                          user_id: user?.id,
+                          summary: `Retroceded to In Design — dynamic finish field added by procurement for ${item.item_code || item.description}`,
+                        });
+                      } catch { /* logged silently */ }
+                    }
+                  }}
+                />
               </TabsContent>
             )}
 
