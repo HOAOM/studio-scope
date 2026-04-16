@@ -1,7 +1,7 @@
 /**
  * LifecycleChecklist — Visual checklist of the 25-state lifecycle
- * Green = completed, Highlighted = current (with action button for authorized role), Gray = future.
- * Follows checklist + sequence logic: each step is visible to all but actionable only by the right role.
+ * Green = completed/validated, Highlighted = current, Gray = future.
+ * Only authorized roles can click to validate/advance a step; others see read-only status.
  */
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,8 @@ import {
   ArrowRight,
   Pause,
   XOctagon,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface LifecycleChecklistProps {
@@ -59,6 +61,23 @@ const PHASE_GROUPS: { label: string; states: ItemLifecycleStatus[] }[] = [
     states: ['installation_planned', 'installed', 'snagging', 'closed'],
   },
 ];
+
+/** Human-readable role labels for display */
+const ROLE_DISPLAY: Partial<Record<AppRole, string>> = {
+  head_of_design: 'Head of Design',
+  designer: 'Designer',
+  project_manager: 'Project Manager',
+  procurement_manager: 'Procurement',
+  accountant: 'Accountant',
+  head_of_payments: 'Head of Payments',
+  site_engineer: 'Site Engineer',
+  ceo: 'CEO',
+  coo: 'COO',
+  mep_engineer: 'MEP Engineer',
+  architectural_dept: 'Arch. Dept',
+  qs: 'QS',
+  client: 'Client',
+};
 
 export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isPending }: LifecycleChecklistProps) {
   const currentIdx = getLifecycleIndex(currentStatus);
@@ -122,7 +141,6 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
         const phaseMax = Math.max(...phaseIndices);
         const isPhaseComplete = !isSpecialState && currentIdx > phaseMax;
         const isPhaseActive = !isSpecialState && currentIdx >= phaseMin && currentIdx <= phaseMax;
-        const isPhaseFuture = isSpecialState || currentIdx < phaseMin;
 
         return (
           <div key={phase.label} className="space-y-0.5">
@@ -138,7 +156,8 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
               </span>
               {isPhaseComplete && (
                 <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary">
-                  Complete
+                  <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
+                  Validated
                 </Badge>
               )}
             </div>
@@ -150,7 +169,6 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
                 const isComplete = !isSpecialState && currentIdx > stepIdx;
                 const isCurrent = !isSpecialState && currentIdx === stepIdx;
                 const isFuture = isSpecialState || currentIdx < stepIdx;
-                const colors = LIFECYCLE_COLORS[status] || LIFECYCLE_COLORS['concept'];
 
                 // Find the forward transition for this step (if it's current)
                 const forwardTransition = isCurrent
@@ -163,10 +181,13 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
                 // Get who's responsible for this step's transition
                 const transitionsFromHere = STATE_TRANSITIONS[status] || [];
                 const responsibleRoles = transitionsFromHere.length > 0
-                  ? transitionsFromHere[0].roles.filter(r => !['admin', 'coo'].includes(r))
+                  ? transitionsFromHere[0].roles.filter(r => !['admin'].includes(r))
                   : [];
 
                 const isLastInPhase = i === phase.states.length - 1;
+
+                // Display responsible role names
+                const roleLabels = responsibleRoles.slice(0, 2).map(r => ROLE_DISPLAY[r] || r.replace(/_/g, ' '));
 
                 return (
                   <div key={status} className="flex items-stretch gap-0">
@@ -210,14 +231,19 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
                         )}>
                           {LIFECYCLE_LABELS[status]}
                         </span>
-                        {isCurrent && responsibleRoles.length > 0 && (
+                        {/* Show responsible role for current step */}
+                        {isCurrent && roleLabels.length > 0 && (
                           <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded hidden sm:inline-block">
-                            {responsibleRoles.slice(0, 2).map(r => r.replace(/_/g, ' ')).join(', ')}
+                            {roleLabels.join(', ')}
                           </span>
+                        )}
+                        {/* Show who validated for completed steps */}
+                        {isComplete && (
+                          <ShieldCheck className="w-3 h-3 text-primary/50" />
                         )}
                       </div>
 
-                      {/* Action button for current step */}
+                      {/* Action area — only visible for current step */}
                       {isCurrent && forwardTransition && (
                         <Button
                           size="sm"
@@ -229,9 +255,19 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
                           {forwardTransition.label}
                         </Button>
                       )}
+                      {/* Not authorized — show locked indicator */}
                       {isCurrent && !forwardTransition && !canUserAdvance && transitionsFromHere.length > 0 && (
-                        <span className="text-[9px] text-muted-foreground italic ml-2 shrink-0">
-                          Waiting for approval
+                        <div className="flex items-center gap-1 ml-2 shrink-0">
+                          <Lock className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[9px] text-muted-foreground italic">
+                            Waiting for {roleLabels[0] || 'approval'}
+                          </span>
+                        </div>
+                      )}
+                      {/* Future steps — show who will be responsible */}
+                      {isFuture && roleLabels.length > 0 && (
+                        <span className="text-[8px] text-muted-foreground/40 hidden lg:inline-block">
+                          {roleLabels[0]}
                         </span>
                       )}
                     </div>

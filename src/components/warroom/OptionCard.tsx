@@ -1,6 +1,7 @@
 /**
  * OptionCard — Reusable card for item options (Design + Quotations views)
  * Shows ALL fields in view mode (read-only), editable on Edit click.
+ * Supports multiple Material+Color pairs via dynamic_finishes.
  */
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -15,11 +16,17 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   CheckCircle2, Pencil, Save, X, Image as ImageIcon,
-  ExternalLink, Upload,
+  ExternalLink, Upload, Plus, Trash2,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+
+interface FinishLine {
+  label: string;
+  material: string;
+  color: string;
+}
 
 interface OptionCardProps {
   option: ProjectItem;
@@ -32,11 +39,32 @@ interface OptionCardProps {
   canSeeCosts?: boolean;
 }
 
+function parseFinishLines(option: ProjectItem): FinishLine[] {
+  // Primary finish is always line 0
+  const lines: FinishLine[] = [{
+    label: 'Primary',
+    material: option.finish_material || '',
+    color: option.finish_color || '',
+  }];
+  // Additional lines from dynamic_finishes
+  try {
+    const raw = (option as any).dynamic_finishes;
+    const arr = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+    for (const f of arr) {
+      if (f.label && (f.material !== undefined || f.color !== undefined)) {
+        lines.push({ label: f.label, material: f.material || '', color: f.color || '' });
+      }
+    }
+  } catch { /* ignore */ }
+  return lines;
+}
+
 export function OptionCard({
   option, letter, isSelected, onSelect, parentId, projectId, mode, canSeeCosts,
 }: OptionCardProps) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
+  const [finishLines, setFinishLines] = useState<FinishLine[]>([]);
   const updateItem = useUpdateProjectItem();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
@@ -44,8 +72,6 @@ export function OptionCard({
   const startEdit = () => {
     setForm({
       description: option.description,
-      finish_material: option.finish_material || '',
-      finish_color: option.finish_color || '',
       finish_notes: option.finish_notes || '',
       production_time: option.production_time || '',
       supplier: option.supplier || '',
@@ -57,6 +83,7 @@ export function OptionCard({
       quantity: option.quantity ?? 1,
       notes: option.notes || '',
     });
+    setFinishLines(parseFinishLines(option));
     setEditing(true);
   };
 
@@ -69,6 +96,17 @@ export function OptionCard({
           ? (v !== '' && v != null ? Number(v) : null)
           : (v || null);
       }
+      // Save primary finish from line 0
+      if (finishLines.length > 0) {
+        payload.finish_material = finishLines[0].material || null;
+        payload.finish_color = finishLines[0].color || null;
+      }
+      // Save additional lines to dynamic_finishes
+      const additionalLines = finishLines.slice(1).filter(l => l.label.trim());
+      payload.dynamic_finishes = additionalLines.length > 0
+        ? additionalLines.map(l => ({ label: l.label, material: l.material, color: l.color }))
+        : [];
+
       await updateItem.mutateAsync(payload as any);
       queryClient.invalidateQueries({ queryKey: ['item-options', parentId || option.id] });
       queryClient.invalidateQueries({ queryKey: ['item-detail', parentId || option.id] });
@@ -99,7 +137,21 @@ export function OptionCard({
     }
   };
 
+  const addFinishLine = () => {
+    setFinishLines(prev => [...prev, { label: '', material: '', color: '' }]);
+  };
+
+  const removeFinishLine = (idx: number) => {
+    if (idx === 0) return; // Can't remove primary
+    setFinishLines(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateFinishLine = (idx: number, field: keyof FinishLine, value: string) => {
+    setFinishLines(prev => prev.map((line, i) => i === idx ? { ...line, [field]: value } : line));
+  };
+
   const imgUrl = editing ? form.reference_image_url : option.reference_image_url;
+  const viewFinishLines = parseFinishLines(option);
 
   const renderViewField = (label: string, value: any, opts?: { mono?: boolean }) => (
     <div className="flex justify-between items-start py-0.5">
@@ -148,15 +200,45 @@ export function OptionCard({
           <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="h-7 text-xs" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-[10px]">Material</Label>
-            <Input value={form.finish_material} onChange={e => setForm(f => ({ ...f, finish_material: e.target.value }))} className="h-7 text-xs" placeholder="e.g. Oak wood" />
+        {/* Multiple Material + Color lines */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Finishes</Label>
+            <Button size="sm" variant="ghost" className="h-5 text-[9px] px-1.5" onClick={addFinishLine}>
+              <Plus className="w-2.5 h-2.5 mr-0.5" />Add Line
+            </Button>
           </div>
-          <div>
-            <Label className="text-[10px]">Color</Label>
-            <Input value={form.finish_color} onChange={e => setForm(f => ({ ...f, finish_color: e.target.value }))} className="h-7 text-xs" placeholder="e.g. Natural" />
-          </div>
+          {finishLines.map((line, idx) => (
+            <div key={idx} className="flex items-center gap-1.5">
+              {idx === 0 ? (
+                <span className="text-[9px] text-muted-foreground w-[52px] shrink-0 text-center">Primary</span>
+              ) : (
+                <Input
+                  value={line.label}
+                  onChange={e => updateFinishLine(idx, 'label', e.target.value)}
+                  placeholder="Part"
+                  className="h-6 text-[10px] w-[52px] shrink-0 px-1 text-center"
+                />
+              )}
+              <Input
+                value={line.material}
+                onChange={e => updateFinishLine(idx, 'material', e.target.value)}
+                placeholder="Material"
+                className="h-6 text-[10px] flex-1 px-1.5"
+              />
+              <Input
+                value={line.color}
+                onChange={e => updateFinishLine(idx, 'color', e.target.value)}
+                placeholder="Color"
+                className="h-6 text-[10px] flex-1 px-1.5"
+              />
+              {idx > 0 && (
+                <Button size="sm" variant="ghost" className="h-5 w-5 p-0 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFinishLine(idx)}>
+                  <Trash2 className="w-2.5 h-2.5" />
+                </Button>
+              )}
+            </div>
+          ))}
         </div>
 
         <div>
@@ -250,8 +332,29 @@ export function OptionCard({
       <div className="p-3 space-y-1">
         <p className="text-sm font-medium text-foreground line-clamp-2 mb-1">{option.description}</p>
 
-        {renderViewField('Material', option.finish_material)}
-        {renderViewField('Color', option.finish_color)}
+        {/* Multiple finish lines */}
+        {viewFinishLines.map((line, idx) => (
+          <div key={idx} className="space-y-0">
+            {idx > 0 && <div className="border-t border-border/50 my-0.5" />}
+            <div className="flex justify-between items-start py-0.5">
+              <span className="text-[10px] text-muted-foreground shrink-0">
+                {line.label || 'Finish'} — Material
+              </span>
+              <span className="text-[11px] font-medium text-foreground text-right max-w-[60%] truncate">
+                {line.material || '—'}
+              </span>
+            </div>
+            <div className="flex justify-between items-start py-0.5">
+              <span className="text-[10px] text-muted-foreground shrink-0">
+                {line.label || 'Finish'} — Color
+              </span>
+              <span className="text-[11px] font-medium text-foreground text-right max-w-[60%] truncate">
+                {line.color || '—'}
+              </span>
+            </div>
+          </div>
+        ))}
+
         {renderViewField('Finish Notes', option.finish_notes)}
         {renderViewField('Supplier', option.supplier)}
         {renderViewField('Dimensions', option.dimensions)}

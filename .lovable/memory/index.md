@@ -1,0 +1,82 @@
+# Project Memory
+
+## Core
+- **Aesthetic**: Dark theme "command center". High contrast KPIs (Green/Yellow/Red). Prioritize visual clarity over data density.
+- **Rules**: No free-text status fields; derive from `workflow.ts`. Cost/margin data must be strictly hidden from Client/Designer roles.
+- **Financial**: `Sale Price = (Subtotal + All Landed Costs) * (1 + Margin%)`.
+- **Tech Stack**: Use `exceljs` for parsing (NEVER `xlsx`).
+- **Architecture**: Modular `TaskGantt.tsx` in `src/components/warroom/gantt/` (do not use legacy `GanttChart.tsx`). DB upgrades must be side-by-side; never drop historical data.
+- **UI UX**: Extreme horizontal density for BOQ with sticky headers. 95vw/95vh for Item Detail Modal. Lifecycle checklist in Info tab.
+- **Versioning**: V1 baseline saved. From next update: v2.1, v2.2... naming for easy rollback.
+
+## Memories
+- [User Context](mem://business-context/user-role-and-goal) — Centralized "War Room" dashboard for Operation Managers
+- [Visual Direction](mem://style/visual-direction) — Executive dark theme, high contrast KPIs, no superfluous animations
+- [Database Structure](mem://infrastructure/database) — Supabase RLS, supplier_documents, company_settings, internal messages
+- [Database Migration](mem://infrastructure/database-migration-strategy) — Side-by-side DB migrations, preserve historical data
+- [Security Standards](mem://infrastructure/dependency-security-standards) — Use 'exceljs' instead of 'xlsx' for security
+- [Unified Data Platform](mem://architecture/unified-data-platform) — workflow.ts central engine driving BOQ, Tracker, Gantt, Budgeting
+- [Deprecated Components](mem://architecture/deprecated-components) — Legacy GanttChart.tsx is completely replaced by TaskGantt.tsx
+- [Authentication System](mem://auth/authentication-system) — Supabase auth with auto_confirm_email enabled for beta
+- [Role-based Access](mem://auth/role-based-access-model) — 11 specific roles, segmented permissions hiding costs from Designers/Clients
+- [User Management](mem://auth/user-management-system) — Admin panel with Supabase Edge Function for role assignment/invites
+- [Beta Test Credentials](mem://testing/beta-test-credentials) — 11 test accounts (*@test.it) using password 'Def@ult01'
+- [Dashboard Structure](mem://features/dashboard-structure) — Overview + 8 Project Tabs (Overview, BOQ Analyst, Gantt, etc.)
+- [Project Detail Layout](mem://ui/project-detail-layout) — Responsive 92-94% expanded layout, compact auto-hiding header
+- [Global Navigation](mem://ui/global-navigation-and-notifications) — Avatar dropdown with red badge for unread global messages
+- [Dashboard KPIs](mem://features/dashboard-kpis) — 10 lifecycle progress KPIs with live BOQ Analyst statistics
+- [Internal Messaging](mem://features/internal-messaging-system) — Project -> Thread -> Chat, global access with email notifications
+- [Data Entry System](mem://features/data-entry-system) — Inline edit with 1s debounce, Searchable Select, FileOrUrlInput
+- [Searchable Select UI](mem://ui/searchable-select-behavior) — Typing filters options; align icons and clear buttons to prevent shifting
+- [Project Creation](mem://features/project-creation-fields) — Required fields: Code, Name, Client, Location, Start/End Dates
+- [Project Team](mem://features/project-team-management) — Admin team assignment mapping directly to Gantt task assignees
+- [Section Responsibility](mem://features/section-responsibility-management) — Assign users to macro-areas to govern visibility and permissions
+- [Subscription Tiers](mem://constraints/subscription-tiers) — 3 tier subscription model for external companies
+- [UX Principles](mem://constraints/ux-principles) — No free-text statuses, visual clarity over data density
+- [Project Hierarchy](mem://features/project-hierarchy) — Floor -> Apartment -> Room Type -> Room Number
+- [BOQ Coding System](mem://logic/boq-coding-system) — Format: [Floor][Room][RoomNo]-[Type][Subcategory][Sequence]
+- [Matrix Categories](mem://features/boq-coverage-matrix-categories) — Standard categories (LF, CF, LT, CT, FX, FL, DR, CL) with interactive grid
+- [MEP & RCP Categories](mem://logic/mep-rcp-categorization) — Specific 2-letter codes for MEP and RCP technical systems
+- [BOQ Analyst UI](mem://ui/boq-analyst-interface) — Selected option displayed, unselected indented and desaturated
+- [BOQ Analyst Layout](mem://features/boq-analyst-layout-density) — Extreme horizontal density, natural scroll, sticky table header
+- [Excel Import System](mem://features/excel-import-system) — Bulk Excel import using exceljs, batch size 50, column mapping
+- [Item Detail Modal](mem://ui/item-detail-modal-hub) — 95vw/95vh central hub with 8 tabs and colored lifecycle transitions
+- [Item Options](mem://logic/item-options-structure) — Client selection governs BOQ display; QS manual budget_estimate
+- [Multi-finish System](mem://features/item-multi-finish-system) — Primary finish fields + dynamic finish lines per option (material+color pairs)
+- [Item Privacy](mem://constraints/item-detail-privacy) — Cost/price strictly hidden in Design tab for objective review
+- [Design Approval Flow](mem://features/design-approval-workflow) — 4 design options (A/B/C/D), Client Board signature locks selection
+- [Item Approval Mechanics](mem://logic/item-approval-mechanics-ux) — 4 checklist buttons (Dimensions/Material/Color/Selection) to advance to HoD
+- [Item Ownership](mem://logic/item-ownership-and-modification-rules) — Only creator can edit/delete rejected items, others just change state
+- [Commenting Separation](mem://features/commenting-separation-visibility) — Strict separation between internal and client-facing comments
+- [Item Workflow Engine](mem://logic/item-workflow-engine) — Workflow gates, tech fields locked post-signature (R+1)
+- [Lifecycle Mapping](mem://logic/item-lifecycle-mapping-and-roles) — 25 statuses across 7 macro phases, with strict role-based gates
+- [Item Task Flow](mem://logic/item-task-operational-flow) — Tasks linked to items, auto-completed by field population (trg_auto_complete_tasks)
+- [Phase Retrocession](mem://logic/item-phase-retrocession) — 'Send Back -> Missing Specs' requires reason specifying what's missing
+- [Revisions and Audit](mem://logic/revisions-and-audit-system) — R+1 revisions, central audit_log table for all changes
+- [Gantt Component Structure](mem://architecture/gantt-component-structure) — Modular SVG components in src/components/warroom/gantt/, helpers.ts
+- [Gantt Visualization](mem://features/project-gantt-visualization-logic) — 7 macro-phases, Baseline/Forecast/Actual layers, auto-sorted by hierarchy
+- [Gantt UI & Navigation](mem://logic/gantt-ui-and-navigation) — Horizontal scroll, Today button, drag-to-pan, 36px/day zoom
+- [Gantt Dynamic Timeline](mem://logic/gantt-dynamic-timeline-behavior) — Incomplete active phases extend to today, pushing forecast
+- [Gantt Timeline Extension](mem://logic/gantt-timeline-extension) — Master Gantt timeline = Target Completion Date + 14 days buffer
+- [Gantt Auto Delay](mem://logic/gantt-auto-delay-monitoring) — Auto 'Delayed' flag if active phase surpasses baseline end date
+- [Macro Phase Durations](mem://logic/gantt-macro-phase-durations) — Predefined durations (Planning 10d, Design 7d... Closing 5d)
+- [Operational Filtering](mem://features/operational-filtering-logic) — Quick-filters (Waiting for me, Delayed, At risk), role-aware visibility
+- [Urgent Task Alerts](mem://features/urgent-task-alerts) — Delayed and At Risk (90% elapsed) warnings in Gantt and Overview
+- [COO Milestones](mem://features/coo-milestones-logic) — Vertical dashed markers in Gantt tracking target dates and risks
+- [Landed Costs](mem://features/accounting-landed-costs) — Subtotal + Landed Costs * Margin%. Cast to numeric, restricted visibility
+- [Budget Overview Chart](mem://features/budget-overview-chart) — Pie chart visualizing budget allocation, available, and overruns
+- [Procurement Logic](mem://features/procurement-quotation-logic) — 'Higher Margin' badges; Finance approves payments from proformas
+- [Quotation Management](mem://logic/item-quotations-management) — Multiple quotes per item; accepting one auto-rejects others
+- [Supplier Comparison Tool](mem://features/supplier-comparison-tool) — Side-by-side comparison of supplier quotes
+- [Payment Tracking](mem://features/procurement-payment-tracking) — Group by supplier, proforma upload, payment schedules
+- [Quotation Lead Time](mem://logic/quotation-lead-time) — 12 working days default lead time calculation
+- [Client Boards System](mem://features/client-boards-system) — A3 landscape PDF 2x3 grid, locks item specs on signature
+- [Presentation Builder](mem://features/presentation-builder) — JSON A3 slide builder with direct client accept/reject actions
+- [Supplier Document Exports](mem://features/supplier-document-exports) — RFQ, PO, Proforma generation in dual PDF/Excel format
+- [Master Data Management](mem://features/master-data-management) — Company settings inject branding into PDF/Excel headers
+- [Documents Management](mem://features/item-documents-management) — Centralized document upload (Supabase) in item Quotations tab
+- [Design to Client Workflow](mem://logic/design-to-client-workflow) — Full flow: design approval → client board → signature → proformas → production
+- [Option Selection Behavior](mem://logic/option-selection-behavior) — Selected option propagates everywhere, consistent image sizes
+- [Lifecycle in Info Tab](mem://ui/lifecycle-in-info-tab) — Lifecycle checklist embedded in Info tab, not separate tab
+- [Validation Hierarchy](mem://logic/validation-hierarchy) — CEO/COO validates everything, HoD validates design, Accountant validates budget
+- [V1 Milestone](mem://versioning/v1-milestone) — V1 baseline before v2.x changes. Use v2.1, v2.2... naming for rollback
