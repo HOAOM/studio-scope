@@ -14,6 +14,7 @@ import {
   STATE_TRANSITIONS,
   getLifecycleIndex,
   getAvailableTransitions,
+  mapLegacyStatus,
   type AppRole,
   type ItemLifecycleStatus,
 } from '@/lib/workflow';
