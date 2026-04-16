@@ -954,7 +954,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   })()}
                   onChange={async (updated) => {
                     try {
-                      await updateItem.mutateAsync({ id: item.id, dynamic_finishes: updated as any });
+                      await updateItem.mutateAsync({ id: item.id, dynamic_finishes: updated } as any);
                       queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
                       queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
                     } catch { toast.error('Failed to save finishes'); }
