@@ -83,12 +83,26 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
   const currentIdx = getLifecycleIndex(currentStatus);
   const isSpecialState = currentStatus === 'on_hold' || currentStatus === 'cancelled';
 
-  // Get available transitions for the current user
-  const availableTransitions = useMemo(() => {
-    return getAvailableTransitions(currentStatus, userRoles);
-  }, [currentStatus, userRoles]);
+  // Super-users see all action buttons regardless of declared roles per transition
+  const isSuperUser = userRoles.includes('admin') || userRoles.includes('coo');
 
-  // Which roles can action the NEXT normal transition
+  // Get available transitions for the current user (admin/coo bypass role filter)
+  const availableTransitions = useMemo(() => {
+    if (isSuperUser) {
+      const normal = STATE_TRANSITIONS[currentStatus || 'concept'] || [];
+      const special = currentStatus && currentStatus !== 'cancelled' && currentStatus !== 'closed'
+        ? [
+            ...(currentStatus !== 'on_hold' ? [{ to: 'on_hold' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Put On Hold' }] : []),
+            ...(currentStatus === 'on_hold' ? [{ to: 'concept' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Resume' }] : []),
+            { to: 'cancelled' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Cancel Item' },
+          ]
+        : [];
+      return [...normal, ...special];
+    }
+    return getAvailableTransitions(currentStatus, userRoles);
+  }, [currentStatus, userRoles, isSuperUser]);
+
+  // Which roles can action the NEXT normal transition (for "waiting for" hint)
   const nextNormalTransition = useMemo(() => {
     const normalStatuses = STATE_TRANSITIONS[currentStatus || 'concept'] || [];
     return normalStatuses.length > 0 ? normalStatuses[0] : null;
@@ -96,9 +110,10 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
 
   // Check if user can perform the next forward transition
   const canUserAdvance = useMemo(() => {
+    if (isSuperUser) return true;
     if (!nextNormalTransition) return false;
     return nextNormalTransition.roles.some(r => userRoles.includes(r));
-  }, [nextNormalTransition, userRoles]);
+  }, [nextNormalTransition, userRoles, isSuperUser]);
 
   return (
     <div className="space-y-4">
