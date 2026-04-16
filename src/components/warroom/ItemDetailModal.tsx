@@ -823,9 +823,9 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                                 ? 'border-emerald-300/50 bg-emerald-950/10 cursor-pointer hover:ring-1 hover:ring-emerald-400'
                                 : 'border-amber-400/50 bg-amber-950/10'
                           )}
-                          onClick={() => { if (canApprove) handleDesignApprove(check.key); }}
-                          onDoubleClick={() => { if (isApproved) handleDesignRevoke(check.key); }}
-                          title={isApproved ? 'Double-click to revoke' : canApprove ? 'Click to approve' : 'Data missing'}
+                          onClick={() => { if (canApproveThis) handleDesignApprove(check.key); }}
+                          onDoubleClick={() => { if (isApproved && canApproveDesign) handleDesignRevoke(check.key); }}
+                          title={isApproved ? (canApproveDesign ? 'Double-click to revoke' : `Approved by ${approval.display_name}`) : canApproveThis ? 'Click to approve' : !canApproveDesign ? 'Insufficient permissions' : 'Data missing'}
                         >
                           <div className="flex items-center justify-center gap-1">
                             {isApproved ? (
