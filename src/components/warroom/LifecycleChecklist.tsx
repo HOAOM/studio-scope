@@ -84,30 +84,37 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
   const currentIdx = getLifecycleIndex(currentStatus);
   const isSpecialState = currentStatus === 'on_hold' || currentStatus === 'cancelled';
 
+  // Normalize legacy statuses (e.g. 'draft' → 'concept') for transition lookups
+  const normalizedStatus = useMemo<ItemLifecycleStatus>(() => {
+    if (!currentStatus) return 'concept';
+    if (currentStatus === 'on_hold' || currentStatus === 'cancelled') return currentStatus as ItemLifecycleStatus;
+    return mapLegacyStatus(currentStatus);
+  }, [currentStatus]);
+
   // Super-users see all action buttons regardless of declared roles per transition
   const isSuperUser = userRoles.includes('admin') || userRoles.includes('coo');
 
   // Get available transitions for the current user (admin/coo bypass role filter)
   const availableTransitions = useMemo(() => {
     if (isSuperUser) {
-      const normal = STATE_TRANSITIONS[currentStatus || 'concept'] || [];
-      const special = currentStatus && currentStatus !== 'cancelled' && currentStatus !== 'closed'
+      const normal = STATE_TRANSITIONS[normalizedStatus] || [];
+      const special = normalizedStatus !== 'cancelled' && normalizedStatus !== 'closed'
         ? [
-            ...(currentStatus !== 'on_hold' ? [{ to: 'on_hold' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Put On Hold' }] : []),
-            ...(currentStatus === 'on_hold' ? [{ to: 'concept' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Resume' }] : []),
+            ...(normalizedStatus !== 'on_hold' ? [{ to: 'on_hold' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Put On Hold' }] : []),
+            ...(normalizedStatus === 'on_hold' ? [{ to: 'concept' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Resume' }] : []),
             { to: 'cancelled' as ItemLifecycleStatus, roles: ['admin' as AppRole], label: 'Cancel Item' },
           ]
         : [];
       return [...normal, ...special];
     }
-    return getAvailableTransitions(currentStatus, userRoles);
-  }, [currentStatus, userRoles, isSuperUser]);
+    return getAvailableTransitions(normalizedStatus, userRoles);
+  }, [normalizedStatus, userRoles, isSuperUser]);
 
   // Which roles can action the NEXT normal transition (for "waiting for" hint)
   const nextNormalTransition = useMemo(() => {
-    const normalStatuses = STATE_TRANSITIONS[currentStatus || 'concept'] || [];
+    const normalStatuses = STATE_TRANSITIONS[normalizedStatus] || [];
     return normalStatuses.length > 0 ? normalStatuses[0] : null;
-  }, [currentStatus]);
+  }, [normalizedStatus]);
 
   // Check if user can perform the next forward transition
   const canUserAdvance = useMemo(() => {
