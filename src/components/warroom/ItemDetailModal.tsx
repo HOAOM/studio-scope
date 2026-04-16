@@ -736,7 +736,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               {(canSeePayment || canSeeCosts) && <TabsTrigger value="finance"><CreditCard className="w-3 h-3 mr-1" />Finance</TabsTrigger>}
               {canSeeLogistics && <TabsTrigger value="logistics"><Truck className="w-3 h-3 mr-1" />Logistics</TabsTrigger>}
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
-              <TabsTrigger value="lifecycle"><ArrowRight className="w-3 h-3 mr-1" />Lifecycle</TabsTrigger>
+              {/* Lifecycle moved to Info tab */}
               <TabsTrigger value="tasks"><ListTodo className="w-3 h-3 mr-1" />Tasks{openTasks.length > 0 ? ` (${openTasks.length})` : ''}</TabsTrigger>
               <TabsTrigger value="history"><History className="w-3 h-3 mr-1" />History</TabsTrigger>
             </TabsList>
@@ -771,6 +771,20 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 ) : (
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">{val('notes') || '—'}</p>
                 )}
+              </div>
+
+              {/* Lifecycle Checklist — embedded in Info tab */}
+              <div className="pt-4 border-t border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-1">Lifecycle Progress</h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Green = done, highlighted = current, gray = upcoming.
+                </p>
+                <LifecycleChecklist
+                  currentStatus={item.lifecycle_status}
+                  userRoles={typedRoles}
+                  onTransition={handleTransition}
+                  isPending={updateItem.isPending}
+                />
               </div>
             </TabsContent>
 
@@ -843,7 +857,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 </div>
 
                 {/* Option cards grid */}
-                <div className={cn('grid gap-3', allOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
                   {allOptions.map((opt, i) => (
                     <OptionCard
                       key={opt.id}
@@ -1322,23 +1336,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               )}
             </TabsContent>
 
-            {/* LIFECYCLE CHECKLIST TAB */}
-            <TabsContent value="lifecycle" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-semibold text-foreground">Item Lifecycle Progress</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Each step is approved by the responsible role. Green = done, highlighted = current, gray = upcoming.
-                  </p>
-                </div>
-              </div>
-              <LifecycleChecklist
-                currentStatus={item.lifecycle_status}
-                userRoles={typedRoles}
-                onTransition={handleTransition}
-                isPending={updateItem.isPending}
-              />
-            </TabsContent>
+            {/* Lifecycle checklist is now in Info tab */}
 
             {/* HISTORY TAB */}
             <TabsContent value="history" className="space-y-3">
