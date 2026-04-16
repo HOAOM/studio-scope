@@ -940,6 +940,49 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     {renderField('Received Date', 'received_date', { type: 'date' })}
                   </div>
                 </div>
+
+                {/* Dynamic Finishes Section */}
+                <Separator />
+                <DynamicFinishes
+                  finishes={(() => {
+                    try {
+                      const raw = (item as any).dynamic_finishes;
+                      if (Array.isArray(raw)) return raw as DynamicFinish[];
+                      if (typeof raw === 'string') return JSON.parse(raw) as DynamicFinish[];
+                      return [];
+                    } catch { return []; }
+                  })()}
+                  onChange={async (updated) => {
+                    try {
+                      await updateItem.mutateAsync({ id: item.id, dynamic_finishes: updated as any });
+                      queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                      queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                    } catch { toast.error('Failed to save finishes'); }
+                  }}
+                  canAdd={typedRoles.some(r => ['admin', 'ceo', 'coo', 'procurement_manager', 'project_manager'].includes(r))}
+                  canEdit={typedRoles.some(r => ['admin', 'designer', 'head_of_design', 'architectural_dept', 'project_manager'].includes(r))}
+                  userId={user?.id}
+                  onFieldAdded={async () => {
+                    // Retrocede to design status
+                    const designStatuses: string[] = ['draft', 'concept', 'in_design', 'design_ready'];
+                    if (!designStatuses.includes(item.lifecycle_status || '')) {
+                      try {
+                        await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'in_design' as any });
+                        queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
+                        queryClient.invalidateQueries({ queryKey: ['project-items', projectId] });
+                        toast.warning('Item returned to Design status — new finish field requires design input');
+                        // Log in audit
+                        await (supabase as any).from('audit_log').insert({
+                          entity_type: 'item',
+                          entity_id: item.id,
+                          action: 'retrocession',
+                          user_id: user?.id,
+                          summary: `Retroceded to In Design — dynamic finish field added by procurement for ${item.item_code || item.description}`,
+                        });
+                      } catch { /* logged silently */ }
+                    }
+                  }}
+                />
               </TabsContent>
             )}
 
