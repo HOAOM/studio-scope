@@ -45,6 +45,7 @@ import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
 import { LifecycleChecklist } from './LifecycleChecklist';
 import { FileOrUrlInput } from './FileOrUrlInput';
+import { DynamicFinishes, DynamicFinish } from './DynamicFinishes';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
