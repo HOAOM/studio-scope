@@ -93,6 +93,10 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const [editData, setEditData] = useState<Record<string, any>>({});
   const typedRoles = roles as AppRole[];
 
+  // Retrocession reason dialog state
+  const [retroDialog, setRetroDialog] = useState<{ open: boolean; toStatus: ItemLifecycleStatus | null }>({ open: false, toStatus: null });
+  const [retroReason, setRetroReason] = useState('');
+
   // Fetch live item data
   const { data: liveItem } = useQuery({
     queryKey: ['item-detail', initialItem?.id],
