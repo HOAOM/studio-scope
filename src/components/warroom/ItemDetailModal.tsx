@@ -702,14 +702,17 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 </Button>
               ))}
 
-              {/* Backward/reject transitions — outlined red */}
+              {/* Backward/reject transitions — opens reason dialog */}
               {backwardTransitions.map(t => (
                 <Button
                   key={t.to + '_back'}
                   size="sm"
                   variant="outline"
                   className="h-8 text-red-600 border-red-300 hover:bg-red-50"
-                  onClick={() => handleTransition(t.to)}
+                  onClick={() => {
+                    setRetroReason('');
+                    setRetroDialog({ open: true, toStatus: t.to });
+                  }}
                   disabled={updateItem.isPending}
                 >
                   <ArrowLeft className="w-3 h-3 mr-1" />
