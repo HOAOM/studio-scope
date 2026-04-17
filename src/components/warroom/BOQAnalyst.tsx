@@ -916,7 +916,18 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       {isCol('area') && <TableCell className="text-xs">{isOption ? '' : (item.area || '-')}</TableCell>}
                       {isCol('brand') && <TableCell className="text-xs">{displayItem.supplier || '-'}</TableCell>}
                       <TableCell className={cn('text-sm max-w-[200px] truncate font-medium', isOption ? 'pl-14' : '')} title={displayItem.description}>{displayItem.description}</TableCell>
-                      {isCol('finishing') && <TableCell className="text-xs">{displayItem.finish_material || '-'}</TableCell>}
+                      {isCol('finishing') && <TableCell className="text-xs">{(() => {
+                        const parts: string[] = [];
+                        if (displayItem.finish_material) parts.push(displayItem.finish_material);
+                        try {
+                          const raw = (displayItem as any).dynamic_finishes;
+                          const arr = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+                          for (const f of arr) {
+                            if (f?.material) parts.push(`${f.label || 'F'}:${f.material}`);
+                          }
+                        } catch { /* ignore */ }
+                        return parts.length ? parts.join(' · ') : '-';
+                      })()}</TableCell>}
                       {isCol('size') && <TableCell className="text-xs">{displayItem.dimensions || '-'}</TableCell>}
                       {isCol('tech') && <TableCell>{renderLinks(displayItem.technical_drawing_url)}</TableCell>}
                       {isCol('refImg') && (
