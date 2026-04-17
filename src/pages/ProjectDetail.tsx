@@ -252,6 +252,7 @@ export default function ProjectDetail() {
                 <span className="font-mono text-xs text-muted-foreground">{project.code}</span>
                 <span className="text-muted-foreground">·</span>
                 <h1 className="text-base font-bold text-foreground group-[.compact]/header:text-sm transition-all duration-200 truncate max-w-[300px]">{project.name}</h1>
+                <VersionBadge className="ml-1 hidden md:inline-flex" />
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -326,6 +327,9 @@ export default function ProjectDetail() {
             {canSeeCosts && (
               <BudgetOverview items={items} totalBudget={null} canSeeCosts={canSeeCosts} />
             )}
+
+            {/* Deleted items recovery (admin/COO only, auto-hides if empty) */}
+            {projectId && <DeletedItemsPanel projectId={projectId} />}
 
             {/* Project Summary + Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
