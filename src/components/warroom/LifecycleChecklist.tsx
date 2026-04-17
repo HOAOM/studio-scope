@@ -278,15 +278,23 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
 
                       {/* Action area — only visible for current step */}
                       {isCurrent && forwardTransition && (
-                        <Button
-                          size="sm"
-                          className="h-6 text-[10px] px-2 ml-2 shrink-0"
-                          onClick={() => onTransition(forwardTransition.to)}
-                          disabled={isPending}
-                        >
-                          <ArrowRight className="w-3 h-3 mr-0.5" />
-                          {forwardTransition.label}
-                        </Button>
+                        <div className="flex flex-col items-end gap-0.5 ml-2 shrink-0">
+                          <Button
+                            size="sm"
+                            className="h-6 text-[10px] px-2"
+                            onClick={() => onTransition(forwardTransition.to)}
+                            disabled={isPending}
+                          >
+                            <ArrowRight className="w-3 h-3 mr-0.5" />
+                            {forwardTransition.label}
+                          </Button>
+                          {/* Role label visible to super-users only — clarifies who can act on this step */}
+                          {isSuperUser && roleLabels.length > 0 && (
+                            <span className="text-[8px] text-muted-foreground/70 italic">
+                              {roleLabels.join(' · ')}
+                            </span>
+                          )}
+                        </div>
                       )}
                       {/* Not authorized — show locked indicator */}
                       {isCurrent && !forwardTransition && !canUserAdvance && transitionsFromHere.length > 0 && (

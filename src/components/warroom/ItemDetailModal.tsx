@@ -696,20 +696,29 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
           {/* ALL transition buttons with distinct colors */}
           {!editMode && availableTransitions.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {/* Forward transitions — colored by phase */}
-              {forwardTransitions.map(t => (
-                <Button
-                  key={t.to}
-                  size="sm"
-                  className={cn('h-8', getTransitionButtonStyle(t.to))}
-                  onClick={() => handleTransition(t.to)}
-                  disabled={updateItem.isPending}
-                >
-                  <ArrowRight className="w-3 h-3 mr-1" />
-                  {t.label}
-                </Button>
-              ))}
+            <div className="flex flex-wrap gap-2 mt-4 items-start">
+              {/* Forward transitions — colored by phase. Admin/COO see role hints under each button. */}
+              {forwardTransitions.map(t => {
+                const allowedRoles = (t.roles || []).filter((r: AppRole) => r !== 'admin');
+                return (
+                  <div key={t.to} className="flex flex-col items-stretch gap-0.5">
+                    <Button
+                      size="sm"
+                      className={cn('h-8', getTransitionButtonStyle(t.to))}
+                      onClick={() => handleTransition(t.to)}
+                      disabled={updateItem.isPending}
+                    >
+                      <ArrowRight className="w-3 h-3 mr-1" />
+                      {t.label}
+                    </Button>
+                    {(typedRoles.includes('admin') || typedRoles.includes('coo')) && allowedRoles.length > 0 && (
+                      <span className="text-[8px] text-muted-foreground/70 italic text-center px-1 max-w-[160px] truncate" title={allowedRoles.join(' · ')}>
+                        {allowedRoles.slice(0, 3).map((r: string) => r.replace(/_/g, ' ')).join(' · ')}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
 
               {/* Backward/reject transitions — opens reason dialog */}
               {backwardTransitions.map(t => (
