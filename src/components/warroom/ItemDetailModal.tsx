@@ -569,12 +569,21 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const DESIGN_APPROVER_ROLES: AppRole[] = ['admin', 'ceo', 'coo', 'head_of_design', 'project_manager'];
   const canApproveDesign = typedRoles.some(r => DESIGN_APPROVER_ROLES.includes(r));
 
+  // Design Approval gate: the selected option must carry Material + Color + Reference Image.
+  // Without these three the "Approve all" auto-advance is blocked and the user sees a warning banner.
   const designChecks = {
     hasDimensions: !!(selectedOption?.dimensions || item.dimensions),
     hasMaterial: !!(selectedOption?.finish_material || item.finish_material),
     hasColor: !!(selectedOption?.finish_color || item.finish_color),
+    hasReferenceImage: !!(selectedOption?.reference_image_url || item.reference_image_url),
     hasSelection: !!selectedOption,
   };
+  const designGateMissing: string[] = [];
+  if (!designChecks.hasSelection) designGateMissing.push('Select a client option');
+  if (!designChecks.hasMaterial) designGateMissing.push('Material');
+  if (!designChecks.hasColor) designGateMissing.push('Color');
+  if (!designChecks.hasReferenceImage) designGateMissing.push('Reference Image');
+  const designGateOk = designGateMissing.length === 0;
 
   const handleDesignApprove = async (key: DesignApprovalKey) => {
     if (!item || !user) return;
@@ -590,11 +599,11 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
       toast.success(`${key.replace(/_/g, ' ')} approved`);
 
-      // Check if all 4 are now approved → auto-advance
+      // Check if all 4 are now approved → auto-advance only if the design gate is satisfied
+      // (selected option + material + color + reference image populated).
       const updatedApprovals = { ...designApprovals, [key]: { user_id: user.id, display_name: '', created_at: '' } };
       const allApproved = DESIGN_APPROVAL_KEYS.every(k => updatedApprovals[k] != null);
-      const allDataPresent = designChecks.hasDimensions && designChecks.hasMaterial && designChecks.hasColor && designChecks.hasSelection;
-      if (allApproved && allDataPresent) {
+      if (allApproved && designGateOk) {
         const designStatuses = ['draft', 'concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer'];
         if (designStatuses.includes(item.lifecycle_status || '')) {
           await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'finishes_approved_hod' as any, approval_status: 'approved' as any });
