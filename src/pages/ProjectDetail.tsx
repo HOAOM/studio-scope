@@ -62,6 +62,7 @@ import { UserMenu } from '@/components/warroom/UserMenu';
 import { Image as ImageIcon } from 'lucide-react';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 import { DeletedItemsPanel } from '@/components/warroom/DeletedItemsPanel';
+import { SectionResponsibilityPanel } from '@/components/warroom/SectionResponsibilityPanel';
 
 import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 import { useProjectTasks } from '@/hooks/useTasks';
@@ -327,6 +328,9 @@ export default function ProjectDetail() {
             {canSeeCosts && (
               <BudgetOverview items={items} totalBudget={null} canSeeCosts={canSeeCosts} />
             )}
+
+            {/* Section Responsibility — phase ownership matrix */}
+            {projectId && <SectionResponsibilityPanel projectId={projectId} />}
 
             {/* Deleted items recovery (admin/COO only, auto-hides if empty) */}
             {projectId && <DeletedItemsPanel projectId={projectId} />}

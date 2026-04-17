@@ -125,6 +125,16 @@ export function LifecycleChecklist({ currentStatus, userRoles, onTransition, isP
 
   return (
     <div className="space-y-4">
+      {/* Super-user override banner: actions are visible because admin/COO bypass role gates */}
+      {isSuperUser && !isSpecialState && !canUserAdvance === false && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700">
+          <span className="font-semibold uppercase tracking-wide">Override mode</span>
+          <span className="opacity-80">
+            You are advancing this item as Admin/COO, bypassing role gates. Action will be recorded in the audit log.
+          </span>
+        </div>
+      )}
+
       {/* Special state banner */}
       {isSpecialState && (
         <div className={cn(
