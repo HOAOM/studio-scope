@@ -99,7 +99,7 @@ export function SectionResponsibilityPanel({ projectId }: SectionResponsibilityP
                   ) : (
                     row.assigned.slice(0, 4).map((m: any) => (
                       <Badge key={m.id} variant="secondary" className="text-[10px] font-normal">
-                        {m.profile?.display_name || m.profile?.email?.split('@')[0] || 'User'}
+                        {m.display_name || m.email?.split('@')[0] || 'User'}
                         <span className="text-muted-foreground ml-1">· {ROLE_LABELS[m.role] || m.role}</span>
                       </Badge>
                     ))
