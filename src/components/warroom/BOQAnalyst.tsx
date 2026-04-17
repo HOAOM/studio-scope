@@ -42,16 +42,7 @@ import { useCreateProjectItem, useUpdateProjectItem, useDeleteProjectItem } from
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from '@/components/warroom/ConfirmDeleteDialog';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type BOQCategory = Database['public']['Enums']['boq_category'];
@@ -978,23 +969,20 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
         </div>
       </div>
 
-      {/* Delete dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Item</AlertDialogTitle>
-            <AlertDialogDescription>
-              Delete "{itemToDelete?.description}"? This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete dialog (two-step confirmation) */}
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        itemLabel={itemToDelete?.item_code || itemToDelete?.description}
+        description={itemToDelete?.description}
+        cascadeWarning={
+          itemToDelete && items.some((i) => i.parent_item_id === itemToDelete.id)
+            ? `This item has ${items.filter((i) => i.parent_item_id === itemToDelete.id).length} child option(s) that will also be deleted.`
+            : undefined
+        }
+        onConfirm={handleDeleteConfirm}
+        isPending={deleteItem.isPending}
+      />
 
       {/* Item Detail Modal */}
       <ItemDetailModal
