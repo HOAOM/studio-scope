@@ -348,11 +348,23 @@ export function getSpecialTransitions(currentStatus: string | null): TransitionD
   return result;
 }
 
-/** Get all valid transitions for a status + user roles */
+/** Roles that bypass all hard gates, field locks, and role-based transition restrictions. */
+export const SUPER_ROLES: AppRole[] = ['admin', 'coo'];
+
+/** True if the user holds at least one super role. */
+export function isSuperUser(userRoles: AppRole[]): boolean {
+  return userRoles.some(r => SUPER_ROLES.includes(r));
+}
+
+/** Get all valid transitions for a status + user roles. Super users see every transition. */
 export function getAvailableTransitions(currentStatus: string | null, userRoles: AppRole[]): TransitionDef[] {
   const status = currentStatus || 'concept';
   const normal = STATE_TRANSITIONS[status] || [];
   const special = getSpecialTransitions(status);
+  // Super users (admin/COO) bypass per-transition role gates
+  if (isSuperUser(userRoles)) {
+    return [...normal, ...special];
+  }
   return [...normal, ...special].filter(t =>
     t.roles.some(r => userRoles.includes(r))
   );
@@ -393,11 +405,20 @@ export interface HardGateCheck {
   reason?: string;
 }
 
-/** Check if an item can move to a target state */
-export function checkHardGate(targetStatus: ItemLifecycleStatus, item: {
-  lifecycle_status: string | null;
-  approval_status?: string;
-}): HardGateCheck {
+/**
+ * Check if an item can move to a target state.
+ * Super users (admin/COO) override all hard gates with audit-recorded justification.
+ */
+export function checkHardGate(
+  targetStatus: ItemLifecycleStatus,
+  item: { lifecycle_status: string | null; approval_status?: string },
+  userRoles: AppRole[] = [],
+): HardGateCheck {
+  // Admin/COO override
+  if (isSuperUser(userRoles)) {
+    return { blocked: false };
+  }
+
   const idx = getLifecycleIndex(targetStatus);
 
   // Gate: Cannot go to PO without design approved + finishes approved + client board signed
