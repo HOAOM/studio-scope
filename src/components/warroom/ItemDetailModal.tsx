@@ -569,12 +569,21 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const DESIGN_APPROVER_ROLES: AppRole[] = ['admin', 'ceo', 'coo', 'head_of_design', 'project_manager'];
   const canApproveDesign = typedRoles.some(r => DESIGN_APPROVER_ROLES.includes(r));
 
+  // Design Approval gate: the selected option must carry Material + Color + Reference Image.
+  // Without these three the "Approve all" auto-advance is blocked and the user sees a warning banner.
   const designChecks = {
     hasDimensions: !!(selectedOption?.dimensions || item.dimensions),
     hasMaterial: !!(selectedOption?.finish_material || item.finish_material),
     hasColor: !!(selectedOption?.finish_color || item.finish_color),
+    hasReferenceImage: !!(selectedOption?.reference_image_url || item.reference_image_url),
     hasSelection: !!selectedOption,
   };
+  const designGateMissing: string[] = [];
+  if (!designChecks.hasSelection) designGateMissing.push('Select a client option');
+  if (!designChecks.hasMaterial) designGateMissing.push('Material');
+  if (!designChecks.hasColor) designGateMissing.push('Color');
+  if (!designChecks.hasReferenceImage) designGateMissing.push('Reference Image');
+  const designGateOk = designGateMissing.length === 0;
 
   const handleDesignApprove = async (key: DesignApprovalKey) => {
     if (!item || !user) return;
@@ -590,11 +599,11 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
       queryClient.invalidateQueries({ queryKey: ['audit-log', item.id] });
       toast.success(`${key.replace(/_/g, ' ')} approved`);
 
-      // Check if all 4 are now approved → auto-advance
+      // Check if all 4 are now approved → auto-advance only if the design gate is satisfied
+      // (selected option + material + color + reference image populated).
       const updatedApprovals = { ...designApprovals, [key]: { user_id: user.id, display_name: '', created_at: '' } };
       const allApproved = DESIGN_APPROVAL_KEYS.every(k => updatedApprovals[k] != null);
-      const allDataPresent = designChecks.hasDimensions && designChecks.hasMaterial && designChecks.hasColor && designChecks.hasSelection;
-      if (allApproved && allDataPresent) {
+      if (allApproved && designGateOk) {
         const designStatuses = ['draft', 'concept', 'in_design', 'design_ready', 'finishes_proposed', 'finishes_approved_designer'];
         if (designStatuses.includes(item.lifecycle_status || '')) {
           await updateItem.mutateAsync({ id: item.id, lifecycle_status: 'finishes_approved_hod' as any, approval_status: 'approved' as any });
@@ -687,20 +696,29 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
           {/* ALL transition buttons with distinct colors */}
           {!editMode && availableTransitions.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {/* Forward transitions — colored by phase */}
-              {forwardTransitions.map(t => (
-                <Button
-                  key={t.to}
-                  size="sm"
-                  className={cn('h-8', getTransitionButtonStyle(t.to))}
-                  onClick={() => handleTransition(t.to)}
-                  disabled={updateItem.isPending}
-                >
-                  <ArrowRight className="w-3 h-3 mr-1" />
-                  {t.label}
-                </Button>
-              ))}
+            <div className="flex flex-wrap gap-2 mt-4 items-start">
+              {/* Forward transitions — colored by phase. Admin/COO see role hints under each button. */}
+              {forwardTransitions.map(t => {
+                const allowedRoles = (t.roles || []).filter((r: AppRole) => r !== 'admin');
+                return (
+                  <div key={t.to} className="flex flex-col items-stretch gap-0.5">
+                    <Button
+                      size="sm"
+                      className={cn('h-8', getTransitionButtonStyle(t.to))}
+                      onClick={() => handleTransition(t.to)}
+                      disabled={updateItem.isPending}
+                    >
+                      <ArrowRight className="w-3 h-3 mr-1" />
+                      {t.label}
+                    </Button>
+                    {(typedRoles.includes('admin') || typedRoles.includes('coo')) && allowedRoles.length > 0 && (
+                      <span className="text-[8px] text-muted-foreground/70 italic text-center px-1 max-w-[160px] truncate" title={allowedRoles.join(' · ')}>
+                        {allowedRoles.slice(0, 3).map((r: string) => r.replace(/_/g, ' ')).join(' · ')}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
 
               {/* Backward/reject transitions — opens reason dialog */}
               {backwardTransitions.map(t => (
@@ -803,12 +821,26 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             {/* ═══ DESIGN TAB ═══ */}
             {canSeeDesign && (
               <TabsContent value="design" className="space-y-5">
+                {/* Design gate warning — appears whenever the selected option is missing required spec */}
+                {!designGateOk && (
+                  <div className="rounded-lg border border-amber-400/50 bg-amber-950/10 p-3 flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-amber-600">Design Approval blocked</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Compila i seguenti campi sull'opzione selezionata per sbloccare l'approvazione automatica:
+                        <span className="ml-1 font-medium text-amber-600">{designGateMissing.join(' · ')}</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Design Approval Checklist */}
                 <div className="rounded-lg border border-border p-3 space-y-2">
                   <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                     <Shield className="w-3 h-3" /> Design Approvals
                   </h4>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-5 gap-1">
                     {([
                       { key: 'dimensions' as DesignApprovalKey, label: 'Dim', present: designChecks.hasDimensions },
                       { key: 'material' as DesignApprovalKey, label: 'Mat', present: designChecks.hasMaterial },
@@ -817,7 +849,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                     ] as const).map(check => {
                       const approval = designApprovals[check.key];
                       const isApproved = !!approval;
-                      const canApproveThis = check.present && !isApproved && canApproveDesign;
+                      const canApproveThis = check.present && !isApproved && canApproveDesign && designGateOk;
 
                       return (
                         <div
@@ -826,13 +858,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                             'rounded border px-2 py-1.5 text-center transition-all select-none min-h-8 flex flex-col items-center justify-center',
                             isApproved
                               ? 'border-emerald-400 bg-emerald-950/30 cursor-default'
-                              : check.present
+                              : check.present && designGateOk
                                 ? 'border-emerald-300/50 bg-emerald-950/10 cursor-pointer hover:ring-1 hover:ring-emerald-400'
                                 : 'border-amber-400/50 bg-amber-950/10'
                           )}
                           onClick={() => { if (canApproveThis) handleDesignApprove(check.key); }}
                           onDoubleClick={() => { if (isApproved && canApproveDesign) handleDesignRevoke(check.key); }}
-                          title={isApproved ? (canApproveDesign ? 'Double-click to revoke' : `Approved by ${approval.display_name}`) : canApproveThis ? 'Click to approve' : !canApproveDesign ? 'Insufficient permissions' : 'Data missing'}
+                          title={isApproved ? (canApproveDesign ? 'Double-click to revoke' : `Approved by ${approval.display_name}`) : !designGateOk ? `Manca: ${designGateMissing.join(', ')}` : canApproveThis ? 'Click to approve' : !canApproveDesign ? 'Insufficient permissions' : 'Data missing'}
                         >
                           <div className="flex items-center justify-center gap-1">
                             {isApproved ? (
@@ -850,6 +882,25 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                         </div>
                       );
                     })}
+                    {/* Reference Image gate indicator (read-only, shows whether the spec is met) */}
+                    <div
+                      className={cn(
+                        'rounded border px-2 py-1.5 text-center select-none min-h-8 flex flex-col items-center justify-center',
+                        designChecks.hasReferenceImage
+                          ? 'border-emerald-300/50 bg-emerald-950/10'
+                          : 'border-amber-400/50 bg-amber-950/10',
+                      )}
+                      title={designChecks.hasReferenceImage ? 'Reference image present' : 'Reference image missing on selected option'}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        {designChecks.hasReferenceImage ? (
+                          <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : (
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                        )}
+                        <span className="text-[9px] uppercase font-medium text-muted-foreground">Img</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

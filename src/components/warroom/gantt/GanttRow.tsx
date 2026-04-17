@@ -72,7 +72,7 @@ export function GanttRowComponent({
   return (
     <div
       className={cn(
-        'flex items-center border-b border-border/10 transition-colors group/row relative',
+        'flex items-center border-b border-border/10 group/row relative',
         index % 2 === 0 ? 'bg-transparent' : 'bg-muted/[0.02]',
         isDraggingThis && 'bg-primary/[0.04]',
         isCriticalPath && 'bg-destructive/[0.02]',
@@ -82,7 +82,7 @@ export function GanttRowComponent({
         row.isCancelled && 'opacity-50',
         row.type === 'item' && 'cursor-pointer',
       )}
-      style={{ height: ROW_HEIGHT }}
+      style={{ height: ROW_HEIGHT, transform: 'translateZ(0)', willChange: 'transform' }}
       onDoubleClick={() => {
         if (row.type === 'item' && row.itemId && onItemDoubleClick) {
           onItemDoubleClick(row.itemId);

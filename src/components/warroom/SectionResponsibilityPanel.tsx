@@ -5,7 +5,7 @@
  * No new tables: maps existing role assignments to macro-phases. Highlights gaps
  * (phases with nobody assigned) so the PM can fix the team before kickoff.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { AlertTriangle, ShieldCheck, Users } from 'lucide-react';
 import type { TaskMacroArea, AppRole } from '@/lib/workflow';
 import { MACRO_PHASES } from '@/lib/workflow';
 import { cn } from '@/lib/utils';
+import { AssignRoleDialog } from './AssignRoleDialog';
 
 /** Roles primarily responsible for each macro-phase (validation hierarchy). */
 const PHASE_OWNERS: Record<TaskMacroArea, AppRole[]> = {
@@ -40,6 +41,8 @@ interface SectionResponsibilityPanelProps {
 
 export function SectionResponsibilityPanel({ projectId }: SectionResponsibilityPanelProps) {
   const { data: members = [], isLoading } = useProjectMembers(projectId);
+  const [dialogPhase, setDialogPhase] = useState<{ label: string; roles: AppRole[] } | null>(null);
+  const assignedUserIds = useMemo(() => members.map((m: any) => m.user_id || m.id).filter(Boolean), [members]);
 
   const matrix = useMemo(() => {
     return MACRO_PHASES.map((phase) => {
@@ -81,8 +84,10 @@ export function SectionResponsibilityPanel({ projectId }: SectionResponsibilityP
             {matrix.map((row) => (
               <div
                 key={row.key}
+                onDoubleClick={() => setDialogPhase({ label: row.label, roles: row.ownerRoles })}
+                title="Doppio click per assegnare/invitare team"
                 className={cn(
-                  'flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs',
+                  'flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs cursor-pointer hover:ring-1 hover:ring-primary/40 transition-shadow',
                   row.isGap ? 'bg-destructive/5 border border-destructive/30' : 'bg-muted/30',
                 )}
               >
@@ -113,9 +118,19 @@ export function SectionResponsibilityPanel({ projectId }: SectionResponsibilityP
           </div>
         )}
         <p className="mt-3 text-[10px] text-muted-foreground">
-          Phase owners are derived from project team roles. Update the Team tab to fill gaps.
+          Phase owners are derived from project team roles. <span className="font-semibold">Doppio click su una fase</span> per aggiungere persone esistenti o invitare nuovi membri.
         </p>
       </CardContent>
+      {dialogPhase && (
+        <AssignRoleDialog
+          open={!!dialogPhase}
+          onOpenChange={(o) => !o && setDialogPhase(null)}
+          projectId={projectId}
+          phaseLabel={dialogPhase.label}
+          candidateRoles={dialogPhase.roles}
+          alreadyAssignedUserIds={assignedUserIds}
+        />
+      )}
     </Card>
   );
 }
