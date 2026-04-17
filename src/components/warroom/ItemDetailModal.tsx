@@ -1061,7 +1061,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                       </Button>
                     )}
                   </div>
-                  <div className={cn('grid gap-3', allOptions.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
+                  <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
                     {allOptions.map((opt, i) => (
                       <OptionCard
                         key={opt.id}
