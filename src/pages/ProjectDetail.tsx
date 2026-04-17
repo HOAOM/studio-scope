@@ -60,6 +60,8 @@ import { useProjectMembers } from '@/hooks/useProjectMembers';
 import { BOQCategoryModal } from '@/components/warroom/BOQCategoryModal';
 import { UserMenu } from '@/components/warroom/UserMenu';
 import { Image as ImageIcon } from 'lucide-react';
+import { VersionBadge } from '@/components/warroom/VersionBadge';
+import { DeletedItemsPanel } from '@/components/warroom/DeletedItemsPanel';
 
 import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 import { useProjectTasks } from '@/hooks/useTasks';
