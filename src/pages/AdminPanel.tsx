@@ -22,6 +22,8 @@ import { ArrowLeft, Shield, Loader2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
+import { SubscriptionTierPanel } from '@/components/admin/SubscriptionTierPanel';
+import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -82,6 +84,7 @@ export default function AdminPanel() {
             </Button>
             <Shield className="w-5 h-5 text-primary" />
             <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
+            <VersionBadge className="ml-2" />
           </div>
         </div>
       </header>
@@ -96,6 +99,7 @@ export default function AdminPanel() {
             <TabsTrigger value="costs">Cost Categories</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="company">Company Settings</TabsTrigger>
+            <TabsTrigger value="subscription">Subscription</TabsTrigger>
           </TabsList>
 
           <TabsContent value="floors">
@@ -207,6 +211,10 @@ export default function AdminPanel() {
 
           <TabsContent value="company">
             <CompanySettingsForm />
+          </TabsContent>
+
+          <TabsContent value="subscription">
+            <SubscriptionTierPanel />
           </TabsContent>
         </Tabs>
       </main>
