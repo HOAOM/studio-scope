@@ -35,12 +35,12 @@ const TIER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 function formatValue(key: keyof TierFeatures, value: number | boolean): React.ReactNode {
   if (typeof value === 'boolean') {
     return value ? (
-      <Check className="w-4 h-4 text-emerald-500" />
+      <Check className="w-4 h-4 text-primary" />
     ) : (
       <X className="w-4 h-4 text-muted-foreground/40" />
     );
   }
-  if (value === Infinity) return <span className="text-emerald-500 font-semibold">Unlimited</span>;
+  if (value === Infinity) return <span className="text-primary font-semibold">Unlimited</span>;
   if (key === 'auditRetentionDays') return `${value} days`;
   return value.toLocaleString();
 }
@@ -85,11 +85,11 @@ export function SubscriptionTierPanel() {
                   isCurrent
                     ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20'
                     : 'border-border bg-background/40 hover:border-primary/40',
-                  t.highlight && !isCurrent && 'border-amber-500/40'
+                  t.highlight && !isCurrent && 'border-accent/60'
                 )}
               >
                 {t.highlight && (
-                  <Badge className="absolute -top-2 right-3 bg-amber-500 text-black text-[10px]">
+                  <Badge className="absolute -top-2 right-3 bg-accent text-accent-foreground text-[10px]">
                     Most popular
                   </Badge>
                 )}
