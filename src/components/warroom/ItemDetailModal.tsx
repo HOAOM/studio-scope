@@ -1453,15 +1453,25 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             <div className="space-y-3 py-2">
               <p className="text-xs text-muted-foreground">
                 Please describe what needs to be corrected or completed before this item can advance again.
-                This reason will be visible to the responsible team member.
+                This reason will be visible to the responsible team member and logged in the audit trail.
               </p>
               <Textarea
                 value={retroReason}
                 onChange={e => setRetroReason(e.target.value)}
                 placeholder="e.g. Missing color specification for table legs, need finish for drawer handles..."
-                className="min-h-[80px] text-sm"
+                className="min-h-[100px] text-sm"
                 autoFocus
               />
+              <div className="flex items-center justify-between text-[10px]">
+                <span className={cn(
+                  retroReason.trim().length < 10 ? 'text-destructive' : 'text-status-safe'
+                )}>
+                  {retroReason.trim().length < 10
+                    ? `Minimum 10 characters required (${retroReason.trim().length}/10)`
+                    : '✓ Reason is detailed enough'}
+                </span>
+                <span className="text-muted-foreground">{retroReason.length} chars</span>
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setRetroDialog({ open: false, toStatus: null })}>
@@ -1470,7 +1480,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               <Button
                 size="sm"
                 className="bg-red-600 hover:bg-red-700 text-white"
-                disabled={!retroReason.trim() || updateItem.isPending}
+                disabled={retroReason.trim().length < 10 || updateItem.isPending}
                 onClick={async () => {
                   if (!retroDialog.toStatus || !item) return;
                   try {
