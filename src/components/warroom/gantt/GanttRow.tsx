@@ -90,7 +90,7 @@ export function GanttRowComponent({
       }}
     >
       {/* ── Left Panel ── */}
-      <div className="sticky left-0 z-10 flex items-center border-r border-border/20 bg-card" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH }}>
+      <div className="sticky left-0 z-10 flex items-center border-r border-border/20" style={{ width: LEFT_PANEL_WIDTH, minWidth: LEFT_PANEL_WIDTH, backgroundColor: 'hsl(var(--card))' }}>
         {/* Icon */}
         <div className={cn('flex items-center justify-center flex-shrink-0', row.isSubTask ? 'w-8 pl-3' : 'w-8')}>
           {row.type === 'task' && row.task ? (
