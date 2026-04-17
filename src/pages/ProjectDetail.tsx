@@ -34,16 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from '@/components/warroom/ConfirmDeleteDialog';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -826,23 +817,20 @@ export default function ProjectDetail() {
         />
       )}
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Item</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{itemToDelete?.description}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Confirmation (two-step) */}
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        itemLabel={itemToDelete?.item_code || itemToDelete?.description}
+        description={itemToDelete?.description}
+        cascadeWarning={
+          itemToDelete && items.some((i) => i.parent_item_id === itemToDelete.id)
+            ? `This item has ${items.filter((i) => i.parent_item_id === itemToDelete.id).length} child option(s) that will also be deleted.`
+            : undefined
+        }
+        onConfirm={handleDeleteItem}
+        isPending={deleteItem.isPending}
+      />
 
       {/* BOQ Category Modal */}
       {projectId && (
