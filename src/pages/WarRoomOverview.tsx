@@ -8,6 +8,7 @@ import { computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ProjectFormDialog } from '@/components/warroom/ProjectFormDialog';
 import { ExcelImportDialog } from '@/components/warroom/ExcelImportDialog';
 import { UserMenu } from '@/components/warroom/UserMenu';
+import { VersionBadge } from '@/components/warroom/VersionBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { 
@@ -162,6 +163,7 @@ export default function WarRoomOverview() {
               <div className="flex items-center gap-3">
                 <Activity className="w-6 h-6 text-primary" />
                 <h1 className="text-2xl font-bold text-foreground">War Room</h1>
+                <VersionBadge />
               </div>
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                 <Clock className="w-3 h-3" />
