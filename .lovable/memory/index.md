@@ -10,6 +10,7 @@
 - **Versioning**: V1 baseline saved. From next update: v2.1, v2.2... naming for easy rollback.
 
 ## Memories
+- [v2.5 Design Gate](mem://versioning/v2.5-design-gate) — Design Approval requires Material+Color+Reference Image on selected option
 - [User Context](mem://business-context/user-role-and-goal) — Centralized "War Room" dashboard for Operation Managers
 - [Visual Direction](mem://style/visual-direction) — Executive dark theme, high contrast KPIs, no superfluous animations
 - [Database Structure](mem://infrastructure/database) — Supabase RLS, supplier_documents, company_settings, internal messages
