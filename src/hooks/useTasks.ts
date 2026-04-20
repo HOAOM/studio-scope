@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -21,7 +22,9 @@ export interface ProjectTask {
 }
 
 export function useProjectTasks(projectId: string | undefined) {
-  return useQuery({
+  const qc = useQueryClient();
+
+  const query = useQuery({
     queryKey: ['project-tasks', projectId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -34,6 +37,24 @@ export function useProjectTasks(projectId: string | undefined) {
     },
     enabled: !!projectId,
   });
+
+  // Realtime: invalidate on any task change in this project
+  useEffect(() => {
+    if (!projectId) return;
+    const channel = supabase
+      .channel(`project-tasks-${projectId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_tasks', filter: `project_id=eq.${projectId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [projectId, qc]);
+
+  return query;
 }
 
 export function useCreateTask() {
