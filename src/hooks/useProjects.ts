@@ -58,8 +58,9 @@ export function useProject(projectId: string | undefined) {
  */
 export function useProjectItems(projectId: string | undefined) {
   const { user } = useAuth();
+  const qc = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['project-items', projectId],
     queryFn: async () => {
       if (!projectId) return [];
@@ -76,6 +77,24 @@ export function useProjectItems(projectId: string | undefined) {
     },
     enabled: !!user && !!projectId,
   });
+
+  // Realtime: invalidate on any change to items in this project
+  useEffect(() => {
+    if (!projectId) return;
+    const channel = supabase
+      .channel(`project-items-${projectId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_items', filter: `project_id=eq.${projectId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ['project-items', projectId] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [projectId, qc]);
+
+  return query;
 }
 
 /**
