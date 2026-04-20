@@ -1,151 +1,72 @@
 
+## Risposta diretta: Sì, ma con un setup specifico
 
-# Export & Document Generation System
+Sì, potete lavorare in 3 simultaneamente sul progetto. L'app è già predisposta per multi-utente in tempo reale. Ti spiego come configurarlo correttamente e cosa aspettarti.
 
-## Overview
+## Come funziona già oggi
 
-Build a comprehensive document generation system with three modules: Client Board PDF export, Presentation PDF export, and Supplier Document generation (RFQ, PO, Proforma Request) in both PDF and Excel formats.
+**Real-time built-in**: il sistema usa già Supabase Realtime per:
+- `direct_messages` (chat globale tra utenti)
+- `item_messages` (chat per singolo item)
 
----
+**Persistenza condivisa**: tutti i cambi su `project_items`, `project_tasks`, `item_quotations` vengono scritti subito nel DB. Gli altri utenti li vedono al prossimo refresh / cambio tab / azione.
 
-## Module 1: Client Board PDF Export
+**Permessi già attivi**: RLS policies bloccano l'accesso ai progetti a cui non sei membro. Ogni utente vede SOLO il progetto a cui l'hai assegnato.
 
-**What it does**: Generates A3 landscape PDF from a client board, showing only the selected option per item with image, description, finishes, dimensions, and client price. Grouped by room in a 2x3 grid layout.
+## Setup in 5 step (10 minuti)
 
-**Technical approach**:
-- Add a "Download PDF" button on each board card in `ClientBoardsTab.tsx`
-- Use `jsPDF` (already in the project) to generate A3 landscape pages
-- Each page = 1 room, 2x3 grid of items
-- Each cell: reference image (loaded from URL), item code, description, dimensions, finish material/color, selling price, quantity
-- Header: project name, board name, date, room name
-- Footer: page number, "For Client Approval" watermark
-- No internal margins or cost data visible
+**1. Crea il progetto** (tu, da admin)
+- War Room Overview → "+ New Project"
+- Inserisci Code, Name, Client, Location, Start/End date
 
-**Files**: 
-- New: `src/lib/exportClientBoard.ts`
-- Edit: `src/components/warroom/ClientBoardsTab.tsx` (add Download button)
+**2. Crea i 2 user**
+- Avatar in alto a destra → "Admin"
+- Tab "User Management" → "Invite User"
+- Email + ruolo (es. `designer@cliente.it` con ruolo Designer, `qs@cliente.it` con ruolo QS)
+- L'invitato riceve mail con link per impostare password
 
----
+**3. Assegnali al progetto**
+- Apri il progetto → tab "Section Responsibility"
+- Doppio click sul ruolo (es. "Design") → tab "Esistenti" → seleziona l'utente
+- Ripeti per ogni ruolo
 
-## Module 2: Presentation PDF Export
+**4. Distribuisci il link**
+- URL: `https://studio-scope.lovable.app`
+- Login con email + password che ognuno ha impostato
+- Vedranno solo il progetto assegnato
 
-**Current state**: `PresentationBuilder.tsx` already has an `exportPDF` function using `html2canvas` + `jsPDF`. This works but quality is limited.
+**5. Test parallelo**
+- Tu (Admin/PM): crea 5-10 item base nel BOQ
+- User 2 (Designer): apre item, aggiunge opzioni A/B con material+color+reference image
+- User 3 (QS): inserisce `budget_estimate` + apre quotations
 
-**Improvement**: Refine the existing export to ensure A3 landscape, proper resolution, and consistent layout. Minor polish, not a rewrite.
+## ⚠️ Cosa NON è ancora real-time (limiti attuali)
 
-**Files**: Edit `src/components/warroom/PresentationBuilder.tsx`
+| Cosa | Comportamento |
+|---|---|
+| BOQ Analyst (lista item) | Non si aggiorna live → serve refresh manuale (F5) o cambio tab per vedere cambi degli altri |
+| Gantt | Non si aggiorna live → refresh manuale |
+| Item Detail Modal aperto | Se 2 utenti aprono lo stesso item e salvano, **vince l'ultimo** (no lock, no merge) |
+| Quotations / Procurement | Refresh manuale |
+| Section Responsibility | Refresh manuale |
 
----
+**Solo le chat** (item messages + direct messages) sono push-realtime istantanee.
 
-## Module 3: Supplier Documents (RFQ, PO, Proforma Request)
+## Raccomandazione operativa per il primo test
 
-This is the most substantial new feature. Three document types, each available as PDF + Excel.
+Per evitare conflitti durante il test in 3:
+- **Accordatevi sull'item attivo**: "Adesso lavoro su LF001-CHA001" su chat per evitare doppio editing
+- **Refresh ogni 30-60 secondi** quando aspetti aggiornamenti dagli altri
+- **Apri l'Item Modal solo uno alla volta** (l'ultimo che salva sovrascrive)
+- **Usa la chat item-level** per coordinarvi: è l'unico canale 100% real-time
 
-### 3.1 Database
+## Opzionale: vuoi che aggiunga real-time anche al BOQ + Gantt?
 
-New table `supplier_documents` to track generated documents:
-```
-id uuid PK
-project_id uuid
-supplier text
-document_type text (rfq, purchase_order, proforma_request)
-items jsonb (snapshot of item data at generation time)
-generated_at timestamptz
-generated_by uuid
-notes text
-status text (draft, sent, confirmed)
-```
+Posso abilitare in 1 step la subscription real-time anche su `project_items` e `project_tasks`. Effetti:
+- ✅ Gli altri utenti vedono i nuovi item / cambi di stato senza refresh
+- ⚠️ Più traffico DB (irrilevante per 3 utenti)
+- ⚠️ Resta il problema "ultimo che salva vince" sul singolo item aperto contemporaneamente
 
-### 3.2 New UI Tab: "Supplier Export"
+**Vuoi che lo aggiunga prima del test?** Se sì, dimmi "vai realtime" e in 1 sola modifica abilito Realtime su `project_items` + `project_tasks` + invalida le query React Query al volo.
 
-Add a new tab in `ProjectDetail.tsx` (or integrate into existing Procurement view). The flow:
-
-1. **Select supplier** from a dropdown (auto-populated from items with that supplier)
-2. **Items list** auto-filters to show all items for that supplier
-3. **Choose document type**: RFQ / Purchase Order / Proforma Request
-4. User can add notes, payment terms, delivery address
-5. **Generate** button creates PDF + Excel
-
-### 3.3 Document Content per Type
-
-**RFQ (Request for Quotation)**:
-- Header: company logo placeholder, project name, date, RFQ number
-- Table: item code, description, dimensions, finishes, quantity, reference image URL
-- No internal prices — supplier fills in their prices
-- Footer: response deadline, contact info, terms
-
-**Purchase Order (PO)**:
-- Header: PO number (auto-generated), project name, date
-- Table: item code, description, dimensions, quantity, agreed unit price, total
-- Payment terms section (from the supplier_payments data)
-- Delivery address, required delivery date
-- Signature line
-
-**Proforma Request**:
-- Header: project name, date, reference to accepted quotation
-- Table: item code, description, quantity, agreed price, total
-- Request for proforma invoice with payment details
-- Bank transfer info placeholder
-
-### 3.4 PDF Generation
-
-Use `jsPDF` with a clean, professional template:
-- A4 portrait for supplier documents
-- Company header area (configurable later with logo)
-- Structured table with alternating row colors
-- Totals row at bottom
-- Footer with page numbers
-
-### 3.5 Excel Generation
-
-Use `exceljs` (already installed) to create a structured .xlsx:
-- Same data as PDF but in editable spreadsheet format
-- Formatted headers, column widths, number formatting
-- For RFQ: empty price columns for supplier to fill in
-- For PO: all prices filled, formulas for totals
-
-**Files**:
-- New: `src/lib/exportSupplierDocs.ts` (PDF + Excel generation logic)
-- New: `src/components/warroom/SupplierExportTab.tsx` (UI)
-- Edit: `src/pages/ProjectDetail.tsx` (add tab)
-- Migration: `supplier_documents` table
-
----
-
-## Module 4: Preventivo Cliente (Client Quotation)
-
-Generate a formal client-facing quotation document:
-- Groups items by room/area
-- Shows only selected options with selling prices
-- Summary table with subtotals per category/room
-- Grand total
-- Terms and conditions section
-- Available as PDF
-
-**Files**: 
-- New: `src/lib/exportClientQuotation.ts`
-- Button added in Client Boards or a dedicated export area
-
----
-
-## Implementation Order
-
-1. **Migration**: Create `supplier_documents` table with RLS
-2. **Supplier export logic**: `exportSupplierDocs.ts` with PDF + Excel for all 3 types
-3. **Supplier Export UI**: `SupplierExportTab.tsx` with supplier selection and generation
-4. **Client Board PDF**: `exportClientBoard.ts` with A3 layout
-5. **Client Quotation PDF**: `exportClientQuotation.ts`
-6. **Wire everything**: Add tabs/buttons in ProjectDetail
-7. **Polish Presentation export**: Improve existing PDF quality
-
----
-
-## Technical Notes
-
-- All PDF generation uses `jsPDF` (already installed)
-- All Excel generation uses `exceljs` (already installed)
-- Images in PDFs: fetch from Supabase storage URLs, convert to base64 via canvas
-- Documents are generated client-side (no edge function needed)
-- `supplier_documents` table stores metadata only, not the actual files
-- RLS: project owner can manage, members can view
-
+Altrimenti procedi pure col test manuale, è già tutto funzionante per 3 utenti che si coordinano via chat.
