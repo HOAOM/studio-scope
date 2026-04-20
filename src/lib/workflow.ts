@@ -408,10 +408,20 @@ export interface HardGateCheck {
 /**
  * Check if an item can move to a target state.
  * Super users (admin/COO) override all hard gates with audit-recorded justification.
+ *
+ * The optional `item` payload may carry the selected option's design specs
+ * (finish_material, finish_color, reference_image_url) so that the
+ * Design Approval gate can be enforced on direct transitions too.
  */
 export function checkHardGate(
   targetStatus: ItemLifecycleStatus,
-  item: { lifecycle_status: string | null; approval_status?: string },
+  item: {
+    lifecycle_status: string | null;
+    approval_status?: string;
+    finish_material?: string | null;
+    finish_color?: string | null;
+    reference_image_url?: string | null;
+  },
   userRoles: AppRole[] = [],
 ): HardGateCheck {
   // Admin/COO override
@@ -420,6 +430,17 @@ export function checkHardGate(
   }
 
   const idx = getLifecycleIndex(targetStatus);
+
+  // Gate: Design Approval requires Material + Color + Reference Image on the selected option
+  if (targetStatus === 'finishes_approved_hod' || targetStatus === 'finishes_approved_designer') {
+    const missing: string[] = [];
+    if (!item.finish_material) missing.push('Material');
+    if (!item.finish_color) missing.push('Color');
+    if (!item.reference_image_url) missing.push('Reference Image');
+    if (missing.length > 0) {
+      return { blocked: true, reason: `Design Approval blocked — missing: ${missing.join(', ')}` };
+    }
+  }
 
   // Gate: Cannot go to PO without design approved + finishes approved + client board signed
   if (idx >= LIFECYCLE_ORDER.indexOf('po_issued')) {
