@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, ArrowUp, ArrowDown, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Column {
@@ -26,27 +26,77 @@ interface MasterDataTableProps {
   isDeleting: boolean;
   hideSortOrder?: boolean;
   searchable?: boolean;
+  sortable?: boolean;
+  flagDuplicateKey?: string;
 }
 
-export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting, hideSortOrder, searchable }: MasterDataTableProps) {
+export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting, hideSortOrder, searchable, sortable, flagDuplicateKey }: MasterDataTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<string>('code');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  const filteredData = searchable && search.trim()
-    ? data.filter(item => {
-        const q = search.toLowerCase();
-        return columns.some(c => {
+  // Compute duplicate codes for visual flagging
+  const duplicateValues = (() => {
+    if (!flagDuplicateKey) return new Set<string>();
+    const counts = new Map<string, number>();
+    data.forEach(it => {
+      const v = String(it[flagDuplicateKey] ?? '').trim();
+      if (!v) return;
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    });
+    return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([k]) => k));
+  })();
+
+  const getSortValue = (item: any, key: string): string => {
+    if (key === 'item_type_id') {
+      return item.master_item_types
+        ? `${item.master_item_types.code} ${item.master_item_types.name}`.toLowerCase()
+        : '';
+    }
+    const v = item[key];
+    if (Array.isArray(v)) return v.join(', ').toLowerCase();
+    return String(v ?? '').toLowerCase();
+  };
+
+  const filteredData = (() => {
+    let arr = data;
+    if (searchable && search.trim()) {
+      const q = search.toLowerCase();
+      arr = arr.filter(item =>
+        columns.some(c => {
           const v = c.key === 'item_type_id' && item.master_item_types
             ? `${item.master_item_types.code} ${item.master_item_types.name}`
             : String(item[c.key] ?? '');
           return v.toLowerCase().includes(q);
-        });
-      })
-    : data;
+        })
+      );
+    }
+    if (sortable) {
+      arr = [...arr].sort((a, b) => {
+        const av = getSortValue(a, sortKey);
+        const bv = getSortValue(b, sortKey);
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return arr;
+  })();
+
+  const toggleSort = (key: string) => {
+    if (!sortable) return;
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const openNew = () => {
     setEditItem(null);
@@ -119,7 +169,24 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
         <Table>
           <TableHeader>
             <TableRow>
-              {columns.map(c => <TableHead key={c.key}>{c.label}</TableHead>)}
+              {columns.map(c => {
+                const isActive = sortable && sortKey === c.key;
+                const Arrow = !sortable ? null : isActive
+                  ? (sortDir === 'asc' ? ArrowUp : ArrowDown)
+                  : ArrowUpDown;
+                return (
+                  <TableHead
+                    key={c.key}
+                    className={sortable ? 'cursor-pointer select-none hover:text-foreground' : undefined}
+                    onClick={() => toggleSort(c.key)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {c.label}
+                      {Arrow && <Arrow className={`w-3 h-3 ${isActive ? 'text-primary' : 'text-muted-foreground/60'}`} />}
+                    </span>
+                  </TableHead>
+                );
+              })}
               {!hideSortOrder && <TableHead className="w-16">Order</TableHead>}
               <TableHead className="w-24">Actions</TableHead>
             </TableRow>
@@ -128,8 +195,10 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
             {filteredData.length === 0 ? (
               <TableRow><TableCell colSpan={columns.length + (hideSortOrder ? 1 : 2)} className="text-center text-muted-foreground py-8">No data</TableCell></TableRow>
             ) : (
-              filteredData.map(item => (
-                <TableRow key={item.id} className="tracker-row">
+              filteredData.map(item => {
+                const isDup = !!flagDuplicateKey && duplicateValues.has(String(item[flagDuplicateKey] ?? '').trim());
+                return (
+                <TableRow key={item.id} className={`tracker-row ${isDup ? 'bg-destructive/10' : ''}`}>
                   {columns.map(c => {
                     const val = item[c.key];
                     let display: string;
@@ -142,8 +211,18 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
                     } else {
                       display = String(val ?? '');
                     }
+                    const showDupBadge = isDup && c.key === flagDuplicateKey;
                     return (
-                      <TableCell key={c.key} className="font-mono text-sm">{display}</TableCell>
+                      <TableCell key={c.key} className="font-mono text-sm">
+                        <span className="inline-flex items-center gap-2">
+                          {display}
+                          {showDupBadge && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-destructive/20 text-destructive border border-destructive/40">
+                              <AlertTriangle className="w-2.5 h-2.5" />DUP
+                            </span>
+                          )}
+                        </span>
+                      </TableCell>
                     );
                   })}
                   {!hideSortOrder && (
@@ -156,7 +235,8 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

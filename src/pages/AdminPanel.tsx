@@ -185,6 +185,8 @@ export default function AdminPanel() {
                   isDeleting={deleteSubcategory.isPending}
                   hideSortOrder
                   searchable
+                  sortable
+                  flagDuplicateKey="code"
                 />
               </CardContent>
             </Card>
