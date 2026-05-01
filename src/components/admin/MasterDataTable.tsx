@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, ArrowUp, ArrowDown, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Column {
@@ -26,27 +26,77 @@ interface MasterDataTableProps {
   isDeleting: boolean;
   hideSortOrder?: boolean;
   searchable?: boolean;
+  sortable?: boolean;
+  flagDuplicateKey?: string;
 }
 
-export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting, hideSortOrder, searchable }: MasterDataTableProps) {
+export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting, hideSortOrder, searchable, sortable, flagDuplicateKey }: MasterDataTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<string>('code');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  const filteredData = searchable && search.trim()
-    ? data.filter(item => {
-        const q = search.toLowerCase();
-        return columns.some(c => {
+  // Compute duplicate codes for visual flagging
+  const duplicateValues = (() => {
+    if (!flagDuplicateKey) return new Set<string>();
+    const counts = new Map<string, number>();
+    data.forEach(it => {
+      const v = String(it[flagDuplicateKey] ?? '').trim();
+      if (!v) return;
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    });
+    return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([k]) => k));
+  })();
+
+  const getSortValue = (item: any, key: string): string => {
+    if (key === 'item_type_id') {
+      return item.master_item_types
+        ? `${item.master_item_types.code} ${item.master_item_types.name}`.toLowerCase()
+        : '';
+    }
+    const v = item[key];
+    if (Array.isArray(v)) return v.join(', ').toLowerCase();
+    return String(v ?? '').toLowerCase();
+  };
+
+  const filteredData = (() => {
+    let arr = data;
+    if (searchable && search.trim()) {
+      const q = search.toLowerCase();
+      arr = arr.filter(item =>
+        columns.some(c => {
           const v = c.key === 'item_type_id' && item.master_item_types
             ? `${item.master_item_types.code} ${item.master_item_types.name}`
             : String(item[c.key] ?? '');
           return v.toLowerCase().includes(q);
-        });
-      })
-    : data;
+        })
+      );
+    }
+    if (sortable) {
+      arr = [...arr].sort((a, b) => {
+        const av = getSortValue(a, sortKey);
+        const bv = getSortValue(b, sortKey);
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return arr;
+  })();
+
+  const toggleSort = (key: string) => {
+    if (!sortable) return;
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const openNew = () => {
     setEditItem(null);
