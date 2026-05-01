@@ -34,6 +34,19 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
   const [editItem, setEditItem] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState('');
+
+  const filteredData = searchable && search.trim()
+    ? data.filter(item => {
+        const q = search.toLowerCase();
+        return columns.some(c => {
+          const v = c.key === 'item_type_id' && item.master_item_types
+            ? `${item.master_item_types.code} ${item.master_item_types.name}`
+            : String(item[c.key] ?? '');
+          return v.toLowerCase().includes(q);
+        });
+      })
+    : data;
 
   const openNew = () => {
     setEditItem(null);
@@ -58,7 +71,8 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
 
   const handleSave = async () => {
     try {
-      const payload: any = { ...formData, sort_order: parseInt(formData.sort_order || '0') };
+      const payload: any = { ...formData };
+      if (!hideSortOrder) payload.sort_order = parseInt(formData.sort_order || '0');
       if (editItem) payload.id = editItem.id;
       await onSave(payload);
       toast.success(editItem ? 'Updated' : 'Created');
