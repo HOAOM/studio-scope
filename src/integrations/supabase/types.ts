@@ -512,7 +512,7 @@ export type Database = {
           code: string
           created_at: string | null
           id: string
-          item_type_id: string
+          item_type_id: string | null
           name: string
           sort_order: number | null
         }
@@ -520,7 +520,7 @@ export type Database = {
           code: string
           created_at?: string | null
           id?: string
-          item_type_id: string
+          item_type_id?: string | null
           name: string
           sort_order?: number | null
         }
@@ -528,7 +528,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           id?: string
-          item_type_id?: string
+          item_type_id?: string | null
           name?: string
           sort_order?: number | null
         }
