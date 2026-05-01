@@ -134,7 +134,7 @@ export function useSubcategories() {
   return useQuery({
     queryKey: ['master_subcategories'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('master_subcategories').select('*, master_item_types(name, code)').order('sort_order');
+      const { data, error } = await supabase.from('master_subcategories').select('*, master_item_types(name, code)').order('code');
       if (error) throw error;
       return data;
     },
@@ -144,12 +144,13 @@ export function useSubcategories() {
 export function useUpsertSubcategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (sub: { id?: string; name: string; code: string; item_type_id: string; sort_order?: number }) => {
+    mutationFn: async (sub: { id?: string; name: string; code: string; item_type_id: string | null; sort_order?: number }) => {
+      const itemTypeId = sub.item_type_id && sub.item_type_id.length > 0 ? sub.item_type_id : null;
       if (sub.id) {
-        const { error } = await supabase.from('master_subcategories').update({ name: sub.name, code: sub.code, item_type_id: sub.item_type_id, sort_order: sub.sort_order ?? 0 }).eq('id', sub.id);
+        const { error } = await supabase.from('master_subcategories').update({ name: sub.name, code: sub.code, item_type_id: itemTypeId, sort_order: sub.sort_order ?? 0 }).eq('id', sub.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('master_subcategories').insert({ name: sub.name, code: sub.code, item_type_id: sub.item_type_id, sort_order: sub.sort_order ?? 0 });
+        const { error } = await supabase.from('master_subcategories').insert({ name: sub.name, code: sub.code, item_type_id: itemTypeId, sort_order: sub.sort_order ?? 0 });
         if (error) throw error;
       }
     },
