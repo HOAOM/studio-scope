@@ -24,9 +24,11 @@ interface MasterDataTableProps {
   onDelete: (id: string) => Promise<void>;
   isSaving: boolean;
   isDeleting: boolean;
+  hideSortOrder?: boolean;
+  searchable?: boolean;
 }
 
-export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting }: MasterDataTableProps) {
+export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting, hideSortOrder, searchable }: MasterDataTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
