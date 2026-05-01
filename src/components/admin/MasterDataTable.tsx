@@ -235,7 +235,8 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
