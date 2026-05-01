@@ -183,6 +183,8 @@ export default function AdminPanel() {
                   onDelete={async (id) => { await deleteSubcategory.mutateAsync(id); }}
                   isSaving={upsertSubcategory.isPending}
                   isDeleting={deleteSubcategory.isPending}
+                  hideSortOrder
+                  searchable
                 />
               </CardContent>
             </Card>
