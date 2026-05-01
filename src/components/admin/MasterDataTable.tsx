@@ -24,14 +24,29 @@ interface MasterDataTableProps {
   onDelete: (id: string) => Promise<void>;
   isSaving: boolean;
   isDeleting: boolean;
+  hideSortOrder?: boolean;
+  searchable?: boolean;
 }
 
-export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting }: MasterDataTableProps) {
+export function MasterDataTable({ title, columns, data, isLoading, onSave, onDelete, isSaving, isDeleting, hideSortOrder, searchable }: MasterDataTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState('');
+
+  const filteredData = searchable && search.trim()
+    ? data.filter(item => {
+        const q = search.toLowerCase();
+        return columns.some(c => {
+          const v = c.key === 'item_type_id' && item.master_item_types
+            ? `${item.master_item_types.code} ${item.master_item_types.name}`
+            : String(item[c.key] ?? '');
+          return v.toLowerCase().includes(q);
+        });
+      })
+    : data;
 
   const openNew = () => {
     setEditItem(null);
@@ -56,7 +71,8 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
 
   const handleSave = async () => {
     try {
-      const payload: any = { ...formData, sort_order: parseInt(formData.sort_order || '0') };
+      const payload: any = { ...formData };
+      if (!hideSortOrder) payload.sort_order = parseInt(formData.sort_order || '0');
       if (editItem) payload.id = editItem.id;
       await onSave(payload);
       toast.success(editItem ? 'Updated' : 'Created');
@@ -84,9 +100,19 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3">
         <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-        <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" />Add</Button>
+        <div className="flex items-center gap-2 flex-1 justify-end">
+          {searchable && (
+            <Input
+              placeholder="Search..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="max-w-xs h-8"
+            />
+          )}
+          <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" />Add</Button>
+        </div>
       </div>
 
       <div className="rounded-md border border-border overflow-hidden">
@@ -94,21 +120,23 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
           <TableHeader>
             <TableRow>
               {columns.map(c => <TableHead key={c.key}>{c.label}</TableHead>)}
-              <TableHead className="w-16">Order</TableHead>
+              {!hideSortOrder && <TableHead className="w-16">Order</TableHead>}
               <TableHead className="w-24">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.length === 0 ? (
-              <TableRow><TableCell colSpan={columns.length + 2} className="text-center text-muted-foreground py-8">No data</TableCell></TableRow>
+            {filteredData.length === 0 ? (
+              <TableRow><TableCell colSpan={columns.length + (hideSortOrder ? 1 : 2)} className="text-center text-muted-foreground py-8">No data</TableCell></TableRow>
             ) : (
-              data.map(item => (
+              filteredData.map(item => (
                 <TableRow key={item.id} className="tracker-row">
                   {columns.map(c => {
                     const val = item[c.key];
                     let display: string;
                     if (c.key === 'item_type_id' && item.master_item_types) {
                       display = `${item.master_item_types.code} - ${item.master_item_types.name}`;
+                    } else if (c.key === 'item_type_id' && !val) {
+                      display = '—';
                     } else if (Array.isArray(val)) {
                       display = val.join(', ');
                     } else {
@@ -118,7 +146,9 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
                       <TableCell key={c.key} className="font-mono text-sm">{display}</TableCell>
                     );
                   })}
-                  <TableCell className="font-mono text-sm text-muted-foreground">{item.sort_order ?? 0}</TableCell>
+                  {!hideSortOrder && (
+                    <TableCell className="font-mono text-sm text-muted-foreground">{item.sort_order ?? 0}</TableCell>
+                  )}
                   <TableCell>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}><Edit className="w-3 h-3" /></Button>
@@ -143,9 +173,13 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
               <div key={col.key}>
                 <label className="text-sm font-medium text-foreground mb-1 block">{col.label}</label>
                 {col.type === 'select' ? (
-                  <Select value={formData[col.key] || ''} onValueChange={v => setFormData(p => ({ ...p, [col.key]: v }))}>
+                  <Select
+                    value={formData[col.key] && formData[col.key].length > 0 ? formData[col.key] : '__none__'}
+                    onValueChange={v => setFormData(p => ({ ...p, [col.key]: v === '__none__' ? '' : v }))}
+                  >
                     <SelectTrigger><SelectValue placeholder={`Select ${col.label}`} /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">— none —</SelectItem>
                       {col.options?.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -154,10 +188,12 @@ export function MasterDataTable({ title, columns, data, isLoading, onSave, onDel
                 )}
               </div>
             ))}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1 block">Sort Order</label>
-              <Input type="number" value={formData.sort_order || '0'} onChange={e => setFormData(p => ({ ...p, sort_order: e.target.value }))} />
-            </div>
+            {!hideSortOrder && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1 block">Sort Order</label>
+                <Input type="number" value={formData.sort_order || '0'} onChange={e => setFormData(p => ({ ...p, sort_order: e.target.value }))} />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
