@@ -613,6 +613,7 @@ export type Database = {
           boq_included: boolean
           boxing_cost: number | null
           budget_estimate: number | null
+          budget_unit_cost: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url: string | null
           created_at: string
@@ -680,6 +681,7 @@ export type Database = {
           boq_included?: boolean
           boxing_cost?: number | null
           budget_estimate?: number | null
+          budget_unit_cost?: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
@@ -747,6 +749,7 @@ export type Database = {
           boq_included?: boolean
           boxing_cost?: number | null
           budget_estimate?: number | null
+          budget_unit_cost?: number | null
           category?: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
@@ -1054,6 +1057,38 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_comments: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          supplier_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          supplier_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_comments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_payments: {
         Row: {
           amount: number
@@ -1109,6 +1144,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      suppliers: {
+        Row: {
+          categories: string[]
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          categories?: string[]
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number
+          updated_at?: string
+        }
+        Update: {
+          categories?: string[]
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
