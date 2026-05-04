@@ -796,6 +796,11 @@ export default function ProjectDetail() {
             )}
           </TabsContent>
 
+          {/* CHAT TAB */}
+          <TabsContent value="chat">
+            <DirectMessagesPanel />
+          </TabsContent>
+
         </Tabs>
       </main>
 
