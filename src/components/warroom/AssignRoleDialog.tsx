@@ -19,7 +19,7 @@ import { Search, UserPlus, Mail, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AppRole } from '@/lib/workflow';
+import { type AppRole, MACRO_ROLE_CATEGORIES, getMacroCategory, type RoleMacroCategory } from '@/lib/workflow';
 
 interface AssignRoleDialogProps {
   open: boolean;
@@ -60,6 +60,9 @@ export function AssignRoleDialog({
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<AppRole>(candidateRoles[0] || 'project_manager');
+  const [inviteMacro, setInviteMacro] = useState<RoleMacroCategory>(
+    getMacroCategory(candidateRoles[0] || 'project_manager')?.id || 'operations'
+  );
   const [inviting, setInviting] = useState(false);
 
   // Reset state on open
@@ -69,7 +72,9 @@ export function AssignRoleDialog({
       setSearch('');
       setInviteEmail('');
       setInviteName('');
-      setInviteRole(candidateRoles[0] || 'project_manager');
+      const def = candidateRoles[0] || 'project_manager';
+      setInviteRole(def);
+      setInviteMacro(getMacroCategory(def)?.id || 'operations');
     }
   }, [open, candidateRoles]);
 
@@ -293,15 +298,43 @@ export function AssignRoleDialog({
                 />
               </div>
               <div>
+                <Label className="text-xs">Macro-categoria</Label>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {MACRO_ROLE_CATEGORIES.filter(cat =>
+                    cat.roles.some(r => candidateRoles.includes(r))
+                  ).map(cat => {
+                    const active = inviteMacro === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setInviteMacro(cat.id);
+                          const firstRole = cat.roles.find(r => candidateRoles.includes(r));
+                          if (firstRole) setInviteRole(firstRole);
+                        }}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] transition ${active ? 'border-foreground' : 'border-border opacity-70 hover:opacity-100'}`}
+                        style={active ? { backgroundColor: cat.color + '22', borderColor: cat.color } : undefined}
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                        {cat.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
                 <Label className="text-xs">Ruolo per questa fase</Label>
                 <select
                   value={inviteRole}
                   onChange={e => setInviteRole(e.target.value as AppRole)}
                   className="w-full h-8 text-sm border border-border rounded-md bg-background px-2"
                 >
-                  {candidateRoles.map(r => (
-                    <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
-                  ))}
+                  {candidateRoles
+                    .filter(r => getMacroCategory(r)?.id === inviteMacro)
+                    .map(r => (
+                      <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
+                    ))}
                 </select>
               </div>
             </div>
