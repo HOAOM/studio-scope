@@ -282,6 +282,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
             <TabsTrigger value="supplier-docs">Supplier Docs</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
+            <TabsTrigger value="chat">Chat</TabsTrigger>
           </TabsList>
 
           {/* BOQ ANALYST TAB */}
