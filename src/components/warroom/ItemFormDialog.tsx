@@ -147,6 +147,7 @@ const DEFAULT_VALUES: ItemFormData = {
 export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemFormDialogProps) {
   const { user } = useAuth();
   const { canSeeCosts } = useUserRole();
+  const { data: suppliersList = [] } = useSuppliers();
   const createItem = useCreateProjectItem();
   const updateItem = useUpdateProjectItem();
   const isEditing = !!item;
