@@ -713,6 +713,14 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                   </FormItem>
                 )} />
                 {canSeeCosts && (
+                  <FormField control={form.control} name="budget_unit_cost" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Budget Unit Cost (€)</FormLabel>
+                      <FormControl><Input type="text" inputMode="decimal" placeholder="Es. 1200" {...field} className="[appearance:textfield]" /></FormControl>
+                    </FormItem>
+                  )} />
+                )}
+                {canSeeCosts && (
                   <FormField control={form.control} name="unit_cost" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Unit Cost</FormLabel>
