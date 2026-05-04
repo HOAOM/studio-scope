@@ -66,6 +66,7 @@ const itemSchema = z.object({
   purchased: z.boolean(),
   purchase_order_ref: z.string().max(100).optional(),
   supplier: z.string().max(200).optional(),
+  budget_unit_cost: z.string().optional(),
   unit_cost: z.string().optional(),
   quantity: z.string().optional(),
   production_due_date: z.string().optional(),
