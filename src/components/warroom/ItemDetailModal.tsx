@@ -818,6 +818,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {renderField('Supplier', 'supplier')}
                   {renderField('Production Time', 'production_time')}
                   {canSeeCosts && renderField('Quantity', 'quantity', { type: 'number' })}
+                  {canSeeCosts && renderBudgetVariance()}
                   {canSeeCosts && renderField('Unit Cost', 'unit_cost', { type: 'number' })}
                 </div>
               </div>
