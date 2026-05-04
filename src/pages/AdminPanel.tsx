@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
 import { SubscriptionTierPanel } from '@/components/admin/SubscriptionTierPanel';
+import { SupplierManagement } from '@/components/admin/SupplierManagement';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
