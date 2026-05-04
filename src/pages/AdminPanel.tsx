@@ -211,8 +211,17 @@ export default function AdminPanel() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="suppliers">
+            <Card className="bg-card border-border">
+              <CardContent className="pt-6">
+                <SupplierManagement />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
           </TabsContent>
 
           <TabsContent value="company">
