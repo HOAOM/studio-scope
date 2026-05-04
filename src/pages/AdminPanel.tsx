@@ -98,6 +98,7 @@ export default function AdminPanel() {
             <TabsTrigger value="types">Item Types</TabsTrigger>
             <TabsTrigger value="subcategories">Subcategories</TabsTrigger>
             <TabsTrigger value="costs">Cost Categories</TabsTrigger>
+            <TabsTrigger value="suppliers">Fornitori</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="company">Company Settings</TabsTrigger>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
