@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Loader2, UserPlus, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
+import { MACRO_ROLE_CATEGORIES, getMacroCategory, type AppRole as WfRole } from '@/lib/workflow';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
