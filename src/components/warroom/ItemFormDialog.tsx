@@ -375,6 +375,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         purchased: data.purchased,
         purchase_order_ref: data.purchase_order_ref || null,
         supplier: data.supplier || null,
+        budget_unit_cost: num(data.budget_unit_cost),
         unit_cost: num(data.unit_cost),
         quantity: data.quantity ? parseInt(data.quantity) : 1,
         production_due_date: data.production_due_date || null,
