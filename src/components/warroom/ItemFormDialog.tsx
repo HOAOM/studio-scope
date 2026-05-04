@@ -271,6 +271,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         purchased: item.purchased,
         purchase_order_ref: item.purchase_order_ref || '',
         supplier: item.supplier || '',
+        budget_unit_cost: (item as any).budget_unit_cost?.toString() || '',
         unit_cost: item.unit_cost?.toString() || '',
         quantity: item.quantity?.toString() || '1',
         production_due_date: item.production_due_date || '',
