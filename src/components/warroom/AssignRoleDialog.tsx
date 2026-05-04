@@ -72,7 +72,9 @@ export function AssignRoleDialog({
       setSearch('');
       setInviteEmail('');
       setInviteName('');
-      setInviteRole(candidateRoles[0] || 'project_manager');
+      const def = candidateRoles[0] || 'project_manager';
+      setInviteRole(def);
+      setInviteMacro(getMacroCategory(def)?.id || 'operations');
     }
   }, [open, candidateRoles]);
 
