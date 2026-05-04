@@ -89,3 +89,65 @@ export function useGanttAutoGen() {
     },
   });
 }
+
+// ─────────────────────────────────────────
+// Sync Gantt tasks when an item's lifecycle changes
+// ─────────────────────────────────────────
+
+/**
+ * When an item's lifecycle_status reaches a milestone, mark the corresponding
+ * Gantt task (if any) as done. The project_tasks table has no `template_key`
+ * column, so we match by `linked_item_id` + the task `title` starting with
+ * the template label from ITEM_TASK_CHAIN.
+ */
+export async function syncTaskFromLifecycleChange(
+  projectId: string,
+  itemId: string,
+  newLifecycleStatus: string,
+  supabaseClient: any
+): Promise<void> {
+  // Map: lifecycle status reached -> ITEM_TASK_CHAIN.key
+  const statusToTaskKey: Record<string, string> = {
+    design_ready: 'design',
+    finishes_approved_hod: 'finishes',
+    client_board_signed: 'client_board',
+    quotation_approved_ops: 'quotation',
+    payment_executed: 'po_payment',
+    ready_to_ship: 'production',
+    delivered_to_site: 'delivery',
+    installed: 'installation',
+    closed: 'closing',
+  };
+
+  const taskKey = statusToTaskKey[newLifecycleStatus];
+  if (!taskKey) return;
+
+  const template = ITEM_TASK_CHAIN.find(t => t.key === taskKey);
+  if (!template) return;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Find candidate tasks for this item; filter in JS by title prefix
+  const { data: candidateTasks, error } = await supabaseClient
+    .from('project_tasks')
+    .select('id, status, title, end_date')
+    .eq('project_id', projectId)
+    .eq('linked_item_id', itemId);
+
+  if (error || !candidateTasks) return;
+
+  const match = candidateTasks.find((t: any) =>
+    typeof t.title === 'string' && t.title.startsWith(template.label)
+  );
+
+  if (!match) return; // auto-gen will create it later
+
+  await supabaseClient
+    .from('project_tasks')
+    .update({
+      status: 'done',
+      end_date: match.end_date || today,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', match.id);
+}
