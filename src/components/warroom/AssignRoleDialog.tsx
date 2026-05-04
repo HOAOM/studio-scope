@@ -60,6 +60,9 @@ export function AssignRoleDialog({
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<AppRole>(candidateRoles[0] || 'project_manager');
+  const [inviteMacro, setInviteMacro] = useState<RoleMacroCategory>(
+    getMacroCategory(candidateRoles[0] || 'project_manager')?.id || 'operations'
+  );
   const [inviting, setInviting] = useState(false);
 
   // Reset state on open
