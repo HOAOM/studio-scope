@@ -222,7 +222,6 @@ export default function AdminPanel() {
           <TabsContent value="users">
             <UserManagement />
           </TabsContent>
-          </TabsContent>
 
           <TabsContent value="company">
             <CompanySettingsForm />
