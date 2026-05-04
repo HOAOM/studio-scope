@@ -175,40 +175,95 @@ export function TeamManagement({ projectId }: TeamManagementProps) {
       ) : members.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">Nessun membro assegnato</p>
       ) : (
-        <div className="rounded-md border border-border overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Nome</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Email</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Ruolo</th>
-                <th className="px-3 py-2 w-12"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map(m => (
-                <tr key={m.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-2 text-sm text-foreground">{m.profile?.display_name || '—'}</td>
-                  <td className="px-3 py-2 text-sm text-muted-foreground">{m.profile?.email || m.user_id}</td>
-                  <td className="px-3 py-2">
-                    <Select value={m.role} onValueChange={(v) => handleRoleChange(m.id, v)}>
-                      <SelectTrigger className="w-40 h-7 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
+        <div className="space-y-4">
+          {(() => {
+            const groups = MACRO_ROLE_CATEGORIES.map(cat => ({
+              cat,
+              items: members.filter(m => getMacroCategory(m.role as WfRole)?.id === cat.id),
+            }));
+            const uncategorized = members.filter(m => !getMacroCategory(m.role as WfRole));
+            return (
+              <>
+                {groups.filter(g => g.items.length > 0).map(({ cat, items }) => (
+                  <div key={cat.id} className="rounded-md border border-border overflow-hidden">
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold"
+                      style={{ backgroundColor: cat.color + '22', borderBottom: `2px solid ${cat.color}` }}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                      <span className="text-foreground">{cat.label}</span>
+                      <span className="text-muted-foreground font-normal">({items.length})</span>
+                    </div>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40">
+                          <th className="px-3 py-1.5 text-left text-[10px] font-medium text-muted-foreground">Nome</th>
+                          <th className="px-3 py-1.5 text-left text-[10px] font-medium text-muted-foreground">Email</th>
+                          <th className="px-3 py-1.5 text-left text-[10px] font-medium text-muted-foreground">Ruolo</th>
+                          <th className="px-3 py-1.5 w-12"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map(m => (
+                          <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                            <td className="px-3 py-2 text-sm text-foreground">{m.profile?.display_name || '—'}</td>
+                            <td className="px-3 py-2 text-sm text-muted-foreground">{m.profile?.email || m.user_id}</td>
+                            <td className="px-3 py-2">
+                              <Select value={m.role} onValueChange={(v) => handleRoleChange(m.id, v)}>
+                                <SelectTrigger className="w-40 h-7 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                                    <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="px-3 py-2">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(m.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </td>
+                          </tr>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(m.id)}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+                {uncategorized.length > 0 && (
+                  <div className="rounded-md border border-border overflow-hidden">
+                    <div className="px-3 py-2 text-xs font-semibold bg-muted/40 border-b border-border text-muted-foreground">
+                      Altri ({uncategorized.length})
+                    </div>
+                    <table className="w-full">
+                      <tbody>
+                        {uncategorized.map(m => (
+                          <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                            <td className="px-3 py-2 text-sm text-foreground">{m.profile?.display_name || '—'}</td>
+                            <td className="px-3 py-2 text-sm text-muted-foreground">{m.profile?.email || m.user_id}</td>
+                            <td className="px-3 py-2">
+                              <Select value={m.role} onValueChange={(v) => handleRoleChange(m.id, v)}>
+                                <SelectTrigger className="w-40 h-7 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                                    <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="px-3 py-2">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(m.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
