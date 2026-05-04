@@ -2,6 +2,6 @@
  * App version metadata.
  * Bump on every release. Shown in header & footer for traceability.
  */
-export const APP_VERSION = 'v2.4.1';
-export const APP_VERSION_LABEL = 'Gantt Sticky Fix + Quotation Grid Coherence';
-export const APP_VERSION_DATE = '2026-04-17';
+export const APP_VERSION = 'v2.5.0';
+export const APP_VERSION_LABEL = 'Roles Refactor · Gantt Sync · Costs · Messaging · Suppliers';
+export const APP_VERSION_DATE = '2026-05-04';
