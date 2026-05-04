@@ -1,8 +1,34 @@
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, FileSpreadsheet } from 'lucide-react';
+import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
+import { exportBOQToExcel } from '@/lib/exportBOQExcel';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+
+export function ExportExcelButton({ project, items }: { project: any; items: ProjectItem[] }) {
+  const { data: companySettings } = useCompanySettings();
+  const handleExport = async () => {
+    try {
+      await exportBOQToExcel(project, items, companySettings);
+      toast.success('BOQ esportato in Excel');
+    } catch (e: any) {
+      toast.error('Errore export Excel: ' + (e?.message || 'unknown'));
+    }
+  };
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleExport}
+      className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+    >
+      <FileSpreadsheet className="w-4 h-4 mr-2" />
+      Export Excel
+    </Button>
+  );
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   'joinery': 'Joinery',
