@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
 import { SubscriptionTierPanel } from '@/components/admin/SubscriptionTierPanel';
+import { SupplierManagement } from '@/components/admin/SupplierManagement';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -97,6 +98,7 @@ export default function AdminPanel() {
             <TabsTrigger value="types">Item Types</TabsTrigger>
             <TabsTrigger value="subcategories">Subcategories</TabsTrigger>
             <TabsTrigger value="costs">Cost Categories</TabsTrigger>
+            <TabsTrigger value="suppliers">Fornitori</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="company">Company Settings</TabsTrigger>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
@@ -205,6 +207,14 @@ export default function AdminPanel() {
                   isSaving={upsertCostCategory.isPending}
                   isDeleting={deleteCostCategory.isPending}
                 />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="suppliers">
+            <Card className="bg-card border-border">
+              <CardContent className="pt-6">
+                <SupplierManagement />
               </CardContent>
             </Card>
           </TabsContent>

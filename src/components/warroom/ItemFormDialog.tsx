@@ -24,6 +24,7 @@ import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useSuppliers } from '@/hooks/useSuppliers';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type BOQCategory = Database['public']['Enums']['boq_category'];
@@ -146,6 +147,7 @@ const DEFAULT_VALUES: ItemFormData = {
 export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemFormDialogProps) {
   const { user } = useAuth();
   const { canSeeCosts } = useUserRole();
+  const { data: suppliersList = [] } = useSuppliers();
   const createItem = useCreateProjectItem();
   const updateItem = useUpdateProjectItem();
   const isEditing = !!item;
@@ -706,12 +708,28 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                 )}
               </div>
               <div className={cn("grid grid-cols-2 md:grid-cols-4 gap-4", form.watch('approval_status') !== 'approved' && 'opacity-40 pointer-events-none select-none')}>
-                <FormField control={form.control} name="supplier" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Supplier Name</FormLabel>
-                    <FormControl><Input placeholder="Supplier name" {...field} /></FormControl>
-                  </FormItem>
-                )} />
+                <FormField control={form.control} name="supplier" render={({ field }) => {
+                  const known = suppliersList.some(s => s.name === field.value);
+                  const isFreeText = !!field.value && !known;
+                  const options = suppliersList.map(s => ({ value: s.name, label: s.name }));
+                  if (isFreeText && field.value) {
+                    options.unshift({ value: field.value, label: `${field.value} (non in anagrafica)` });
+                  }
+                  return (
+                    <FormItem>
+                      <FormLabel>Supplier Name {isFreeText && <span className="text-[10px] text-muted-foreground">(non in anagrafica)</span>}</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          options={options}
+                          value={field.value || ''}
+                          onValueChange={(v) => field.onChange(v === '__none__' ? '' : v)}
+                          placeholder="Cerca o digita un fornitore..."
+                          emptyMessage="Nessun fornitore in anagrafica"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  );
+                }} />
                 {canSeeCosts && (
                   <FormField control={form.control} name="budget_unit_cost" render={({ field }) => (
                     <FormItem>
