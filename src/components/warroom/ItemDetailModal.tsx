@@ -270,7 +270,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     if (!item) return;
     try {
       const payload: Record<string, any> = { id: item.id };
-      const numericFields = ['quantity', 'unit_cost', 'selling_price', 'margin_percentage', 'delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost', 'boxing_cost', 'shifting_cost', 'extra_safe_cost', 'budget_estimate'];
+      const numericFields = ['quantity', 'unit_cost', 'budget_unit_cost', 'selling_price', 'margin_percentage', 'delivery_cost', 'installation_cost', 'insurance_cost', 'duty_cost', 'custom_cost', 'boxing_cost', 'shifting_cost', 'extra_safe_cost', 'budget_estimate'];
       
       for (const [key, value] of Object.entries(editData)) {
         if (numericFields.includes(key)) {
@@ -542,6 +542,33 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     );
   };
 
+  const renderBudgetVariance = () => {
+    const budget = Number(val('budget_unit_cost')) || 0;
+    const real = Number(val('unit_cost')) || 0;
+    if (!budget) return null;
+    const fmt = (n: number) => `€${n.toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    const rows = [
+      <div key="bud" className="flex justify-between items-start py-1.5">
+        <span className="text-sm text-muted-foreground">Budget Unit Cost</span>
+        <span className="text-sm font-medium text-foreground">{fmt(budget)}</span>
+      </div>,
+    ];
+    if (real > 0) {
+      const diff = real - budget;
+      const pct = (diff / budget) * 100;
+      const color = pct <= 0 ? 'text-emerald-500' : pct <= 10 ? 'text-yellow-500' : 'text-red-500';
+      rows.push(
+        <div key="var" className="flex justify-between items-start py-1.5">
+          <span className="text-sm text-muted-foreground">Scostamento</span>
+          <span className={`text-sm font-semibold ${color}`}>
+            {diff >= 0 ? '+' : ''}{fmt(diff)} ({pct >= 0 ? '+' : ''}{pct.toFixed(1)}%)
+          </span>
+        </div>
+      );
+    }
+    return <>{rows}</>;
+  };
+
   const renderLink = (label: string, field: string) => {
     const value = val(field);
     if (editMode) {
@@ -791,6 +818,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   {renderField('Supplier', 'supplier')}
                   {renderField('Production Time', 'production_time')}
                   {canSeeCosts && renderField('Quantity', 'quantity', { type: 'number' })}
+                  {canSeeCosts && renderBudgetVariance()}
                   {canSeeCosts && renderField('Unit Cost', 'unit_cost', { type: 'number' })}
                 </div>
               </div>
@@ -1153,6 +1181,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Base Cost</h4>
+                    {renderField('Budget Unit Cost', 'budget_unit_cost' as any, { type: 'number' })}
+                    {renderBudgetVariance()}
                     {renderField('Unit Cost', 'unit_cost', { type: 'number' })}
                     {renderField('Quantity', 'quantity', { type: 'number' })}
                     <Separator className="my-2" />

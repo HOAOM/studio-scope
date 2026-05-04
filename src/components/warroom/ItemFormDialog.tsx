@@ -66,6 +66,7 @@ const itemSchema = z.object({
   purchased: z.boolean(),
   purchase_order_ref: z.string().max(100).optional(),
   supplier: z.string().max(200).optional(),
+  budget_unit_cost: z.string().optional(),
   unit_cost: z.string().optional(),
   quantity: z.string().optional(),
   production_due_date: z.string().optional(),
@@ -118,6 +119,7 @@ const DEFAULT_VALUES: ItemFormData = {
   purchased: false,
   purchase_order_ref: '',
   supplier: '',
+  budget_unit_cost: '',
   unit_cost: '',
   quantity: '1',
   production_due_date: '',
@@ -269,6 +271,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         purchased: item.purchased,
         purchase_order_ref: item.purchase_order_ref || '',
         supplier: item.supplier || '',
+        budget_unit_cost: (item as any).budget_unit_cost?.toString() || '',
         unit_cost: item.unit_cost?.toString() || '',
         quantity: item.quantity?.toString() || '1',
         production_due_date: item.production_due_date || '',
@@ -372,6 +375,7 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
         purchased: data.purchased,
         purchase_order_ref: data.purchase_order_ref || null,
         supplier: data.supplier || null,
+        budget_unit_cost: num(data.budget_unit_cost),
         unit_cost: num(data.unit_cost),
         quantity: data.quantity ? parseInt(data.quantity) : 1,
         production_due_date: data.production_due_date || null,
@@ -708,6 +712,14 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
                     <FormControl><Input placeholder="Supplier name" {...field} /></FormControl>
                   </FormItem>
                 )} />
+                {canSeeCosts && (
+                  <FormField control={form.control} name="budget_unit_cost" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Budget Unit Cost (€)</FormLabel>
+                      <FormControl><Input type="text" inputMode="decimal" placeholder="Es. 1200" {...field} className="[appearance:textfield]" /></FormControl>
+                    </FormItem>
+                  )} />
+                )}
                 {canSeeCosts && (
                   <FormField control={form.control} name="unit_cost" render={({ field }) => (
                     <FormItem>
