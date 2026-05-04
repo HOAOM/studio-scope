@@ -19,7 +19,7 @@ import { Search, UserPlus, Mail, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AppRole } from '@/lib/workflow';
+import { type AppRole, MACRO_ROLE_CATEGORIES, getMacroCategory, type RoleMacroCategory } from '@/lib/workflow';
 
 interface AssignRoleDialogProps {
   open: boolean;
