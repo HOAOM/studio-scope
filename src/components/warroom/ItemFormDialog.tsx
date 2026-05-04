@@ -119,6 +119,7 @@ const DEFAULT_VALUES: ItemFormData = {
   purchased: false,
   purchase_order_ref: '',
   supplier: '',
+  budget_unit_cost: '',
   unit_cost: '',
   quantity: '1',
   production_due_date: '',
