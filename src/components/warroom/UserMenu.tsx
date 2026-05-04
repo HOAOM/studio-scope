@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User, MessageSquare, LogOut, Shield } from 'lucide-react';
+import { NotificationBell } from '@/components/warroom/NotificationBell';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -54,7 +55,8 @@ export function UserMenu() {
   };
 
   return (
-    <>
+    <div className="flex items-center gap-2">
+      <NotificationBell />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="relative focus:outline-none">
@@ -104,6 +106,6 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-    </>
+    </div>
   );
 }

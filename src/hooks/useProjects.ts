@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Database } from '@/integrations/supabase/types';
 import { syncTaskFromLifecycleChange } from '@/hooks/useGanttAutoGen';
+import { createNotification } from '@/hooks/useNotifications';
+import { LIFECYCLE_LABELS } from '@/lib/workflow';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
@@ -273,6 +275,30 @@ export function useUpdateProjectItem() {
           );
         } catch (e) {
           console.error('syncTaskFromLifecycleChange failed', e);
+        }
+
+        // Notify project_manager and head_of_design members
+        try {
+          const newStatus = (updates as any).lifecycle_status as string;
+          const { data: members } = await (supabase as any)
+            .from('project_members')
+            .select('user_id, role')
+            .eq('project_id', data.project_id)
+            .in('role', ['project_manager', 'head_of_design']);
+          const label = LIFECYCLE_LABELS[newStatus] || newStatus;
+          const itemLabel = (data as any).item_code || data.description || 'item';
+          await Promise.all((members || []).map((m: any) =>
+            createNotification({
+              user_id: m.user_id,
+              type: 'status_change',
+              title: `Item aggiornato: ${itemLabel}`,
+              body: `Nuovo stato: ${label}`,
+              item_id: data.id,
+              project_id: data.project_id,
+            })
+          ));
+        } catch (e) {
+          console.error('createNotification failed', e);
         }
       }
       return data;

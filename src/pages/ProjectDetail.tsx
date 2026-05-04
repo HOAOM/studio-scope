@@ -63,6 +63,7 @@ import { Image as ImageIcon } from 'lucide-react';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 import { DeletedItemsPanel } from '@/components/warroom/DeletedItemsPanel';
 import { SectionResponsibilityPanel } from '@/components/warroom/SectionResponsibilityPanel';
+import { DirectMessagesPanel } from '@/components/warroom/DirectMessages';
 
 import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 import { useProjectTasks } from '@/hooks/useTasks';
@@ -282,6 +283,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
             <TabsTrigger value="supplier-docs">Supplier Docs</TabsTrigger>
             <TabsTrigger value="presentation">Presentation</TabsTrigger>
+            <TabsTrigger value="chat">Chat</TabsTrigger>
           </TabsList>
 
           {/* BOQ ANALYST TAB */}
@@ -793,6 +795,11 @@ export default function ProjectDetail() {
                 projectCode={project.code}
               />
             )}
+          </TabsContent>
+
+          {/* CHAT TAB */}
+          <TabsContent value="chat">
+            <DirectMessagesPanel />
           </TabsContent>
 
         </Tabs>
