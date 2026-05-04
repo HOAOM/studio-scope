@@ -55,7 +55,8 @@ export function UserMenu() {
   };
 
   return (
-    <>
+    <div className="flex items-center gap-2">
+      <NotificationBell />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="relative focus:outline-none">
