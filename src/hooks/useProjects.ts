@@ -261,10 +261,25 @@ export function useUpdateProjectItem() {
         .single();
       
       if (error) throw error;
+
+      // Sync linked Gantt task when lifecycle_status changes
+      if ((updates as any).lifecycle_status && data?.project_id) {
+        try {
+          await syncTaskFromLifecycleChange(
+            data.project_id,
+            data.id,
+            (updates as any).lifecycle_status,
+            supabase
+          );
+        } catch (e) {
+          console.error('syncTaskFromLifecycleChange failed', e);
+        }
+      }
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-items', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', data.project_id] });
     },
   });
 }
