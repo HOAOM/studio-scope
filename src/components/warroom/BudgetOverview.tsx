@@ -48,21 +48,26 @@ export function BudgetOverview({ items, totalBudget, canSeeCosts }: BudgetOvervi
       return true;
     });
 
-    const byCategory = new Map<BOQCategory, number>();
+    const byCategory = new Map<BOQCategory, { real: number; budget: number }>();
     let totalAllocated = 0;
+    let totalBudgetAllocated = 0;
 
     for (const item of relevantItems) {
-      const cost = (item.unit_cost || 0) * (item.quantity || 1);
+      const qty = item.quantity || 1;
+      const cost = (item.unit_cost || 0) * qty;
+      const bud = ((item as any).budget_unit_cost || 0) * qty;
       totalAllocated += cost;
-      const current = byCategory.get(item.category) || 0;
-      byCategory.set(item.category, current + cost);
+      totalBudgetAllocated += bud;
+      const current = byCategory.get(item.category) || { real: 0, budget: 0 };
+      byCategory.set(item.category, { real: current.real + cost, budget: current.budget + bud });
     }
 
     const chartData = Array.from(byCategory.entries())
-      .filter(([, v]) => v > 0)
-      .map(([cat, val]) => ({
+      .filter(([, v]) => v.real > 0 || v.budget > 0)
+      .map(([cat, v]) => ({
         name: CATEGORY_LABELS[cat],
-        value: Math.round(val * 100) / 100,
+        value: Math.round(v.real * 100) / 100,
+        budget: Math.round(v.budget * 100) / 100,
         color: CATEGORY_COLORS[cat],
       }))
       .sort((a, b) => b.value - a.value);
@@ -72,10 +77,10 @@ export function BudgetOverview({ items, totalBudget, canSeeCosts }: BudgetOvervi
     const overBudget = budget > 0 ? Math.max(0, totalAllocated - budget) : 0;
 
     if (budget > 0 && free > 0) {
-      chartData.push({ name: 'Available', value: Math.round(free * 100) / 100, color: 'hsl(0, 0%, 30%)' });
+      chartData.push({ name: 'Available', value: Math.round(free * 100) / 100, budget: 0, color: 'hsl(0, 0%, 30%)' });
     }
 
-    return { chartData, totalAllocated, budget, free, overBudget, totalItems: relevantItems.length };
+    return { chartData, totalAllocated, totalBudgetAllocated, budget, free, overBudget, totalItems: relevantItems.length };
   }, [items, totalBudget]);
 
   const formatCurrency = (v: number) => `€${v.toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
