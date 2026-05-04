@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User, MessageSquare, LogOut, Shield } from 'lucide-react';
+import { NotificationBell } from '@/components/warroom/NotificationBell';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
