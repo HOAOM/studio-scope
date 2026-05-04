@@ -769,3 +769,63 @@ export function computeProjectKPIs(items: Array<{ lifecycle_status: string | nul
     totalItems: total,
   };
 }
+
+// ─────────────────────────────────────────
+// Macro Role Categories
+// ─────────────────────────────────────────
+
+export type RoleMacroCategory = 'management' | 'design' | 'operations' | 'finance' | 'site';
+
+export interface MacroRoleCategory {
+  id: RoleMacroCategory;
+  label: string;
+  color: string;
+  roles: AppRole[];
+  permissions: FieldGroup[];
+}
+
+export const MACRO_ROLE_CATEGORIES: MacroRoleCategory[] = [
+  {
+    id: 'management',
+    label: 'Management',
+    color: '#1e293b',
+    roles: ['admin', 'coo', 'ceo'],
+    permissions: ['design', 'finishes', 'dimensions', 'costs', 'procurement', 'payment', 'logistics', 'installation', 'internal_notes', 'client_notes'],
+  },
+  {
+    id: 'design',
+    label: 'Design',
+    color: '#3b82f6',
+    roles: ['head_of_design', 'designer', 'architectural_dept'],
+    permissions: ['design', 'finishes', 'dimensions', 'client_notes', 'internal_notes'],
+  },
+  {
+    id: 'operations',
+    label: 'Operations',
+    color: '#f59e0b',
+    roles: ['project_manager', 'qs', 'procurement_manager'],
+    permissions: ['design', 'finishes', 'dimensions', 'costs', 'procurement', 'payment', 'logistics', 'installation', 'internal_notes', 'client_notes'],
+  },
+  {
+    id: 'finance',
+    label: 'Finance',
+    color: '#10b981',
+    roles: ['accountant', 'head_of_payments'],
+    permissions: ['costs', 'procurement', 'payment', 'internal_notes'],
+  },
+  {
+    id: 'site',
+    label: 'Site',
+    color: '#8b5cf6',
+    roles: ['site_engineer', 'mep_engineer'],
+    permissions: ['design', 'dimensions', 'logistics', 'installation', 'internal_notes'],
+  },
+];
+
+export function getMacroCategory(role: AppRole): MacroRoleCategory | undefined {
+  return MACRO_ROLE_CATEGORIES.find(cat => cat.roles.includes(role));
+}
+
+export function getRolesByMacroCategory(macroId: RoleMacroCategory): AppRole[] {
+  return MACRO_ROLE_CATEGORIES.find(c => c.id === macroId)?.roles ?? [];
+}
