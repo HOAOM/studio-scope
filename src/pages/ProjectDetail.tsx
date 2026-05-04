@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useProject, useProjectItems, useDeleteProjectItem } from '@/hooks/useProjects';
 import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { ProjectKPIs, computeKPIs } from '@/components/warroom/ProjectKPIs';
-import { ExportCSVButton, ExportJSONButton } from '@/components/warroom/ExportButtons';
+import { ExportCSVButton, ExportJSONButton, ExportExcelButton } from '@/components/warroom/ExportButtons';
 import { ItemFormDialog } from '@/components/warroom/ItemFormDialog';
 import { ItemDetailModal } from '@/components/warroom/ItemDetailModal';
 import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
@@ -556,6 +556,7 @@ export default function ProjectDetail() {
                   <div className="flex items-center gap-2">
                     <ExportCSVButton items={filteredItems} projectName={project.name} />
                     <ExportJSONButton items={filteredItems} projectName={project.name} />
+                    <ExportExcelButton project={project} items={filteredItems} />
                   </div>
                 </div>
 
