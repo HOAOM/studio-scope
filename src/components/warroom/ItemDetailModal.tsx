@@ -1181,6 +1181,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Base Cost</h4>
+                    {renderField('Budget Unit Cost', 'budget_unit_cost' as any, { type: 'number' })}
+                    {renderBudgetVariance()}
                     {renderField('Unit Cost', 'unit_cost', { type: 'number' })}
                     {renderField('Quantity', 'quantity', { type: 'number' })}
                     <Separator className="my-2" />
