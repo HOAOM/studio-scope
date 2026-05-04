@@ -183,20 +183,52 @@ export function BudgetOverview({ items, totalBudget, canSeeCosts }: BudgetOvervi
               </div>
             )}
 
-            {/* Category breakdown */}
+            {/* Category breakdown — Budget vs Real */}
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">By Category</span>
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center text-[10px] font-medium text-muted-foreground uppercase tracking-wide pb-1 border-b border-border">
+                <span>By Category</span>
+                <span className="text-right w-20">Budget</span>
+                <span className="text-right w-20">Real</span>
+                <span className="text-right w-24">Variance</span>
+              </div>
               {data.chartData
                 .filter(d => d.name !== 'Available')
-                .map(d => (
-                <div key={d.name} className="flex items-center justify-between py-0.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="text-xs text-foreground">{d.name}</span>
+                .map(d => {
+                  const diff = d.value - d.budget;
+                  const pct = d.budget > 0 ? (diff / d.budget) * 100 : null;
+                  const varColor = pct == null ? 'text-muted-foreground' : pct <= 0 ? 'text-emerald-500' : pct <= 10 ? 'text-yellow-500' : 'text-red-500';
+                  return (
+                    <div key={d.name} className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center py-0.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                        <span className="text-xs text-foreground truncate">{d.name}</span>
+                      </div>
+                      <span className="text-xs font-mono text-muted-foreground text-right w-20">{d.budget > 0 ? formatCurrency(d.budget) : '—'}</span>
+                      <span className="text-xs font-mono text-foreground text-right w-20">{formatCurrency(d.value)}</span>
+                      <span className={cn('text-xs font-mono font-semibold text-right w-24', varColor)}>
+                        {pct == null ? '—' : `${diff >= 0 ? '+' : ''}${formatCurrency(diff)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)`}
+                      </span>
+                    </div>
+                  );
+                })}
+              {/* Totals row */}
+              {(() => {
+                const tBud = data.totalBudgetAllocated;
+                const tReal = data.totalAllocated;
+                const diff = tReal - tBud;
+                const pct = tBud > 0 ? (diff / tBud) * 100 : null;
+                const varColor = pct == null ? 'text-muted-foreground' : pct <= 0 ? 'text-emerald-500' : pct <= 10 ? 'text-yellow-500' : 'text-red-500';
+                return (
+                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center pt-2 mt-1 border-t border-border">
+                    <span className="text-xs font-bold text-foreground">Total</span>
+                    <span className="text-xs font-mono font-bold text-muted-foreground text-right w-20">{tBud > 0 ? formatCurrency(tBud) : '—'}</span>
+                    <span className="text-xs font-mono font-bold text-foreground text-right w-20">{formatCurrency(tReal)}</span>
+                    <span className={cn('text-xs font-mono font-bold text-right w-24', varColor)}>
+                      {pct == null ? '—' : `${diff >= 0 ? '+' : ''}${formatCurrency(diff)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)`}
+                    </span>
                   </div>
-                  <span className="text-xs font-mono text-muted-foreground">{formatCurrency(d.value)}</span>
-                </div>
-              ))}
+                );
+              })()}
             </div>
           </div>
         </div>
