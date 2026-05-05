@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 const queryClient = new QueryClient();
 
@@ -44,10 +45,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function OnboardingGate() {
   const { roles } = useUserRole();
   const { data: settings } = useCompanySettings();
+  const [skipped, setSkipped] = useState(() => sessionStorage.getItem('onboarding_skipped') === 'true');
   const isAdmin = roles.includes('admin' as any);
-  const needsOnboarding = isAdmin && settings && !settings.onboarding_completed;
+  const needsOnboarding = isAdmin && settings && !settings.onboarding_completed && !skipped;
   if (!needsOnboarding) return null;
-  return <OnboardingWizard open={true} settingsId={settings.id} />;
+  return (
+    <OnboardingWizard
+      open={true}
+      settingsId={settings.id}
+      onSkip={() => {
+        sessionStorage.setItem('onboarding_skipped', 'true');
+        setSkipped(true);
+      }}
+    />
+  );
 }
 
 const App = () => (
