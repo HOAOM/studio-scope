@@ -33,7 +33,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <OnboardingGate />
+      {children}
+    </>
+  );
+}
+
+function OnboardingGate() {
+  const { roles } = useUserRole();
+  const { data: settings } = useCompanySettings();
+  const isAdmin = roles.includes('admin' as any);
+  const needsOnboarding = isAdmin && settings && !(settings as any).onboarding_completed;
+  if (!needsOnboarding) return null;
+  return <OnboardingWizard open={true} settingsId={(settings as any).id} />;
 }
 
 const App = () => (
