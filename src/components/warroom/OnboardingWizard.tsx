@@ -247,7 +247,7 @@ export function OnboardingWizard({ open, settingsId }: Props) {
               <div><Label>Data inizio</Label><Input type="date" value={projectStart} onChange={(e) => setProjectStart(e.target.value)} /></div>
               <div className="flex justify-between items-center pt-2">
                 <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
-                  Salta per ora
+                  Salta onboarding
                 </button>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(3)}>← Indietro</Button>
