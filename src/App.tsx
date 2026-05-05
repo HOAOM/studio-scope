@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useUserRole } from "@/hooks/useUserRole";
+import { OnboardingWizard } from "@/components/warroom/OnboardingWizard";
 import Index from "./pages/Index";
 import ProjectDetail from "./pages/ProjectDetail";
 import AdminPanel from "./pages/AdminPanel";
@@ -30,7 +33,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <OnboardingGate />
+      {children}
+    </>
+  );
+}
+
+function OnboardingGate() {
+  const { roles } = useUserRole();
+  const { data: settings } = useCompanySettings();
+  const isAdmin = roles.includes('admin' as any);
+  const needsOnboarding = isAdmin && settings && !(settings as any).onboarding_completed;
+  if (!needsOnboarding) return null;
+  return <OnboardingWizard open={true} settingsId={(settings as any).id} />;
 }
 
 const App = () => (
