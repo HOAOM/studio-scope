@@ -44,7 +44,7 @@ export function useGanttAutoGen() {
         let chainStart = new Date(startAnchor);
 
         for (const template of ITEM_TASK_CHAIN) {
-          const key = `${item.id}__${template.macroArea}`;
+          const key = `${item.id}__${template.key}`;
           if (existingSet.has(key)) continue; // skip already created
 
           const taskStart = new Date(chainStart);
@@ -58,7 +58,8 @@ export function useGanttAutoGen() {
             start_date: taskStart.toISOString().split('T')[0],
             end_date: taskEnd.toISOString().split('T')[0],
             linked_item_id: item.id,
-          });
+            template_key: template.key,
+          } as any);
 
           // Next task in chain starts after this one
           chainStart = taskEnd;
