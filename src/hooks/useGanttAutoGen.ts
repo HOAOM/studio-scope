@@ -133,15 +133,17 @@ export async function syncTaskFromLifecycleChange(
   // Find candidate tasks for this item; filter in JS by title prefix
   const { data: candidateTasks, error } = await supabaseClient
     .from('project_tasks')
-    .select('id, status, title, end_date')
+    .select('id, status, title, end_date, template_key')
     .eq('project_id', projectId)
     .eq('linked_item_id', itemId);
 
   if (error || !candidateTasks) return;
 
-  const match = candidateTasks.find((t: any) =>
-    typeof t.title === 'string' && t.title.startsWith(template.label)
-  );
+  const match =
+    candidateTasks.find((t: any) => t.template_key === taskKey) ||
+    candidateTasks.find(
+      (t: any) => typeof t.title === 'string' && t.title.startsWith(template.label)
+    );
 
   if (!match) return; // auto-gen will create it later
 
