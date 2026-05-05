@@ -1,161 +1,323 @@
 /**
- * ItemDocuments — Upload and manage documents for a project item
- * Supports proforma, mail, quotes, and any file type.
+ * ItemDocuments — Manage URL-based document fields on the item plus extra storage attachments.
  */
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Upload, FileText, Trash2, ExternalLink, Download } from 'lucide-react';
+import {
+  Image as ImageIcon,
+  Box,
+  ExternalLink,
+  FileText,
+  Receipt,
+  Paperclip,
+  Pencil,
+  X,
+  Plus,
+  Trash2,
+  Check,
+} from 'lucide-react';
+
+type UrlFieldKey =
+  | 'reference_image_url'
+  | 'image_3d_ref'
+  | 'company_product_url'
+  | 'technical_drawing_url'
+  | 'proforma_url';
+
+const URL_FIELDS: { key: UrlFieldKey; label: string; Icon: any }[] = [
+  { key: 'reference_image_url', label: 'Immagine di Riferimento', Icon: ImageIcon },
+  { key: 'image_3d_ref', label: 'Riferimento 3D', Icon: Box },
+  { key: 'company_product_url', label: 'Link Prodotto', Icon: ExternalLink },
+  { key: 'technical_drawing_url', label: 'Disegno Tecnico', Icon: FileText },
+  { key: 'proforma_url', label: 'Proforma', Icon: Receipt },
+];
 
 interface ItemDocumentsProps {
-  itemId: string;
-  projectId: string;
+  item: any;
+  onUpdate: (patch: Record<string, any>) => void | Promise<void>;
   canEdit?: boolean;
 }
 
-interface DocFile {
-  name: string;
-  path: string;
-  url: string;
-  created_at?: string;
-  size?: number;
+function truncate(s: string, n = 40) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
 }
 
-export function ItemDocuments({ itemId, projectId, canEdit = true }: ItemDocumentsProps) {
+export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsProps) {
   const queryClient = useQueryClient();
-  const [uploading, setUploading] = useState(false);
+  const [editingKey, setEditingKey] = useState<UrlFieldKey | null>(null);
+  const [draft, setDraft] = useState('');
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachName, setAttachName] = useState('');
+  const [attachUrl, setAttachUrl] = useState('');
+
+  const projectId = item?.project_id as string;
+  const itemId = item?.id as string;
   const folderPath = `${projectId}/${itemId}/docs`;
 
-  const { data: documents = [], isLoading } = useQuery({
-    queryKey: ['item-documents', itemId],
+  const startEdit = (key: UrlFieldKey) => {
+    setEditingKey(key);
+    setDraft(item?.[key] ?? '');
+  };
+  const cancelEdit = () => {
+    setEditingKey(null);
+    setDraft('');
+  };
+  const saveEdit = async () => {
+    if (!editingKey) return;
+    try {
+      await onUpdate({ [editingKey]: draft.trim() || null });
+      toast.success('Documento aggiornato');
+      cancelEdit();
+    } catch {
+      toast.error('Errore nel salvataggio');
+    }
+  };
+  const clearField = async (key: UrlFieldKey) => {
+    try {
+      await onUpdate({ [key]: null });
+      toast.success('Campo svuotato');
+    } catch {
+      toast.error('Errore nello svuotamento');
+    }
+  };
+
+  // Extra attachments stored in supabase storage bucket (no item_documents table available)
+  const { data: attachments = [], isLoading: loadingAttachments } = useQuery({
+    queryKey: ['item-attachments', itemId],
     queryFn: async () => {
+      if (!itemId || !projectId) return [];
       const { data, error } = await supabase.storage
         .from('item-files')
         .list(folderPath, { sortBy: { column: 'created_at', order: 'desc' } });
       if (error) return [];
       return (data || [])
-        .filter(f => f.name !== '.emptyFolderPlaceholder')
-        .map(f => {
+        .filter((f) => f.name !== '.emptyFolderPlaceholder')
+        .map((f) => {
           const fullPath = `${folderPath}/${f.name}`;
-          const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(fullPath);
+          const { data: u } = supabase.storage.from('item-files').getPublicUrl(fullPath);
           return {
-            name: f.name,
+            id: fullPath,
             path: fullPath,
-            url: urlData.publicUrl,
+            name: f.name.replace(/^\d+__/, '').replace(/^\d+_/, ''),
+            url: u.publicUrl,
             created_at: f.created_at,
-            size: (f.metadata as any)?.size,
-          } as DocFile;
+          };
         });
     },
-    enabled: !!itemId,
+    enabled: !!itemId && !!projectId,
   });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-        const path = `${folderPath}/${safeName}`;
-        const { error } = await supabase.storage.from('item-files').upload(path, file);
-        if (error) throw error;
-      }
-      queryClient.invalidateQueries({ queryKey: ['item-documents', itemId] });
-      toast.success(`${files.length} file(s) uploaded`);
-    } catch {
-      toast.error('Upload failed');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
+  const handleAddAttachment = async () => {
+    if (!attachUrl.trim()) {
+      toast.error('Inserisci un URL');
+      return;
     }
-  };
-
-  const handleDelete = async (doc: DocFile) => {
     try {
-      const { error } = await supabase.storage.from('item-files').remove([doc.path]);
+      const safeName = `${Date.now()}__${(attachName || 'link').replace(/[^a-zA-Z0-9._-]/g, '_')}.url`;
+      const path = `${folderPath}/${safeName}`;
+      const blob = new Blob([attachUrl.trim()], { type: 'text/uri-list' });
+      const { error } = await supabase.storage.from('item-files').upload(path, blob);
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['item-documents', itemId] });
-      toast.success('File deleted');
+      queryClient.invalidateQueries({ queryKey: ['item-attachments', itemId] });
+      toast.success('Allegato aggiunto');
+      setAttachOpen(false);
+      setAttachName('');
+      setAttachUrl('');
     } catch {
-      toast.error('Failed to delete');
+      toast.error('Errore nell\'aggiunta');
     }
   };
 
-  const getFileIcon = (name: string) => {
-    const ext = name.split('.').pop()?.toLowerCase();
-    if (['pdf'].includes(ext || '')) return '📄';
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) return '🖼️';
-    if (['xls', 'xlsx', 'csv'].includes(ext || '')) return '📊';
-    if (['doc', 'docx'].includes(ext || '')) return '📝';
-    if (['eml', 'msg'].includes(ext || '')) return '✉️';
-    return '📎';
-  };
-
-  const formatSize = (bytes?: number) => {
-    if (!bytes) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  const handleDeleteAttachment = async (path: string) => {
+    try {
+      const { error } = await supabase.storage.from('item-files').remove([path]);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['item-attachments', itemId] });
+      toast.success('Allegato eliminato');
+    } catch {
+      toast.error('Errore nell\'eliminazione');
+    }
   };
 
   return (
-    <div className="space-y-3">
-      {canEdit && (
-        <label className="cursor-pointer">
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleUpload}
-            disabled={uploading}
-          />
-          <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/40 hover:bg-muted/20 transition-colors">
-            <Upload className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-            <p className="text-xs text-muted-foreground">
-              {uploading ? 'Uploading...' : 'Click to upload documents (proforma, quotes, emails, etc.)'}
-            </p>
-          </div>
-        </label>
-      )}
-
-      {isLoading && <p className="text-xs text-muted-foreground">Loading documents...</p>}
-
-      {documents.length === 0 && !isLoading && (
-        <p className="text-xs text-muted-foreground text-center py-3">No documents uploaded yet.</p>
-      )}
-
-      {documents.length > 0 && (
-        <div className="space-y-1.5">
-          {documents.map(doc => (
-            <div key={doc.path} className="flex items-center gap-3 py-2 px-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-              <span className="text-base shrink-0">{getFileIcon(doc.name)}</span>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {URL_FIELDS.map(({ key, label, Icon }) => {
+          const value: string | null = item?.[key] ?? null;
+          const isEditing = editingKey === key;
+          return (
+            <div
+              key={key}
+              className="flex items-center gap-3 py-2 px-3 rounded-lg border border-border bg-card"
+            >
+              <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground truncate">{doc.name.replace(/^\d+_/, '')}</p>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                  {doc.size && <span>{formatSize(doc.size)}</span>}
-                  {doc.created_at && <span>{new Date(doc.created_at).toLocaleDateString()}</span>}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <a href={doc.url} target="_blank" rel="noreferrer">
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                    <Download className="w-3 h-3" />
-                  </Button>
-                </a>
-                {canEdit && (
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(doc)}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                <div className="text-xs text-muted-foreground">{label}</div>
+                {isEditing ? (
+                  <div className="flex items-center gap-1 mt-1">
+                    <Input
+                      autoFocus
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      placeholder="https://…"
+                      className="h-7 text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit();
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                    />
+                    <Button size="sm" className="h-7 px-2" onClick={saveEdit}>
+                      <Check className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 px-2" onClick={cancelEdit}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : value ? (
+                  <a
+                    href={value}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-primary hover:underline break-all"
+                  >
+                    {truncate(value, 40)}
+                  </a>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">Non caricato</span>
                 )}
               </div>
+              {!isEditing && canEdit && (
+                <div className="flex items-center gap-1 shrink-0">
+                  {value ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0"
+                        onClick={() => startEdit(key)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => clearField(key)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-7" onClick={() => startEdit(key)}>
+                      <Plus className="w-3 h-3 mr-1" /> Aggiungi
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-border pt-3">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-semibold text-foreground">Allegati aggiuntivi</h4>
+          {canEdit && (
+            <Button size="sm" variant="outline" className="h-7" onClick={() => setAttachOpen(true)}>
+              <Plus className="w-3 h-3 mr-1" /> Aggiungi allegato
+            </Button>
+          )}
+        </div>
+
+        {loadingAttachments && (
+          <p className="text-xs text-muted-foreground">Caricamento allegati…</p>
+        )}
+        {!loadingAttachments && attachments.length === 0 && (
+          <p className="text-xs text-muted-foreground italic py-2">Nessun allegato.</p>
+        )}
+        <div className="space-y-1.5">
+          {attachments.map((att) => (
+            <div
+              key={att.id}
+              className="flex items-center gap-3 py-2 px-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
+            >
+              <Paperclip className="w-4 h-4 shrink-0 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <a
+                  href={att.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-primary hover:underline break-all"
+                >
+                  {att.name}
+                </a>
+                {att.created_at && (
+                  <div className="text-[10px] text-muted-foreground">
+                    {new Date(att.created_at).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDeleteAttachment(att.path)}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              )}
             </div>
           ))}
         </div>
-      )}
+      </div>
+
+      <Dialog open={attachOpen} onOpenChange={setAttachOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aggiungi allegato</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Descrizione</Label>
+              <Input
+                value={attachName}
+                onChange={(e) => setAttachName(e.target.value)}
+                placeholder="Es. Scheda tecnica"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">URL</Label>
+              <Input
+                value={attachUrl}
+                onChange={(e) => setAttachUrl(e.target.value)}
+                placeholder="https://…"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAttachOpen(false)}>
+              Annulla
+            </Button>
+            <Button onClick={handleAddAttachment}>Salva</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
