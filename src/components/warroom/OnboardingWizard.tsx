@@ -189,9 +189,14 @@ export function OnboardingWizard({ open, settingsId }: Props) {
                   </Card>
                 ))}
               </div>
-              <div className="flex justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep(1)}>← Indietro</Button>
-                <Button onClick={() => setStep(3)}>Avanti →</Button>
+              <div className="flex justify-between items-center pt-2">
+                <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
+                  Salta onboarding
+                </button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(1)}>← Indietro</Button>
+                  <Button onClick={() => setStep(3)}>Avanti →</Button>
+                </div>
               </div>
             </div>
           )}
@@ -220,9 +225,14 @@ export function OnboardingWizard({ open, settingsId }: Props) {
                   </Card>
                 ))}
               </div>
-              <div className="flex justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep(2)}>← Indietro</Button>
-                <Button onClick={handleNextFromTeam}>Avanti →</Button>
+              <div className="flex justify-between items-center pt-2">
+                <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
+                  Salta onboarding
+                </button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(2)}>← Indietro</Button>
+                  <Button onClick={handleNextFromTeam}>Avanti →</Button>
+                </div>
               </div>
             </div>
           )}
