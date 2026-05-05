@@ -1173,7 +1173,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                   <ItemDocuments
                     item={item}
                     canEdit={canSeeProcurement}
-                    onUpdate={(patch) => updateItem.mutateAsync({ id: item.id, ...patch } as any)}
+                    onUpdate={async (patch) => { await updateItem.mutateAsync({ id: item.id, ...patch } as any); }}
                   />
                 </div>
               </TabsContent>
