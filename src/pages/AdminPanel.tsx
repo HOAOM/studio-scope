@@ -24,6 +24,7 @@ import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
 import { SubscriptionTierPanel } from '@/components/admin/SubscriptionTierPanel';
 import { SupplierManagement } from '@/components/admin/SupplierManagement';
+import { AuditLogPanel } from '@/components/admin/AuditLogPanel';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -102,6 +103,7 @@ export default function AdminPanel() {
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="company">Company Settings</TabsTrigger>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
+            <TabsTrigger value="audit">Audit Log</TabsTrigger>
           </TabsList>
 
           <TabsContent value="floors">
@@ -229,6 +231,14 @@ export default function AdminPanel() {
 
           <TabsContent value="subscription">
             <SubscriptionTierPanel />
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <Card className="bg-card border-border">
+              <CardContent className="pt-6">
+                <AuditLogPanel />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
