@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 interface Props {
   open: boolean;
   settingsId: string | null;
+  onSkip?: () => void;
 }
 
 const TEMPLATES = [
@@ -31,7 +32,7 @@ const TEAM_GROUPS = [
   { name: 'Site', roles: 'Site Manager' },
 ];
 
-export function OnboardingWizard({ open, settingsId }: Props) {
+export function OnboardingWizard({ open, settingsId, onSkip }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [step, setStep] = useState(1);
@@ -101,6 +102,11 @@ export function OnboardingWizard({ open, settingsId }: Props) {
     }
   };
 
+  const skipOnboarding = () => {
+    onSkip?.();
+    toast({ title: 'Onboarding saltato' });
+  };
+
   const handleNextFromTeam = () => {
     Object.values(teamEmails).filter(Boolean).forEach((email) => {
       toast({ title: 'Invito inviato', description: email });
@@ -158,7 +164,7 @@ export function OnboardingWizard({ open, settingsId }: Props) {
               <div><Label>Email di contatto</Label><Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} /></div>
               <div><Label>Sito web</Label><Input value={website} onChange={(e) => setWebsite(e.target.value)} /></div>
               <div className="flex justify-between items-center pt-2">
-                <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
+                <button onClick={skipOnboarding} className="text-sm text-muted-foreground underline" disabled={saving}>
                   Salta onboarding
                 </button>
                 <Button disabled={!companyName.trim()} onClick={() => setStep(2)}>Avanti →</Button>
@@ -190,7 +196,7 @@ export function OnboardingWizard({ open, settingsId }: Props) {
                 ))}
               </div>
               <div className="flex justify-between items-center pt-2">
-                <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
+                <button onClick={skipOnboarding} className="text-sm text-muted-foreground underline" disabled={saving}>
                   Salta onboarding
                 </button>
                 <div className="flex gap-2">
@@ -226,7 +232,7 @@ export function OnboardingWizard({ open, settingsId }: Props) {
                 ))}
               </div>
               <div className="flex justify-between items-center pt-2">
-                <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
+                <button onClick={skipOnboarding} className="text-sm text-muted-foreground underline" disabled={saving}>
                   Salta onboarding
                 </button>
                 <div className="flex gap-2">
@@ -246,7 +252,7 @@ export function OnboardingWizard({ open, settingsId }: Props) {
               <div><Label>Cliente</Label><Input value={projectClient} onChange={(e) => setProjectClient(e.target.value)} /></div>
               <div><Label>Data inizio</Label><Input type="date" value={projectStart} onChange={(e) => setProjectStart(e.target.value)} /></div>
               <div className="flex justify-between items-center pt-2">
-                <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
+                <button onClick={skipOnboarding} className="text-sm text-muted-foreground underline" disabled={saving}>
                   Salta onboarding
                 </button>
                 <div className="flex gap-2">
