@@ -23,11 +23,13 @@ export function useGanttAutoGen() {
       // Get existing auto-generated tasks to avoid duplicates
       const { data: existingTasks } = await supabase
         .from('project_tasks')
-        .select('id, linked_item_id, macro_area, title')
+        .select('id, linked_item_id, macro_area, title, template_key')
         .eq('project_id', projectId);
 
       const existingSet = new Set(
-        (existingTasks || []).map(t => `${t.linked_item_id}__${t.macro_area}`)
+        (existingTasks || []).map((t: any) =>
+          `${t.linked_item_id}__${t.template_key ?? t.macro_area}`
+        )
       );
 
       const tasksToCreate: Database['public']['Tables']['project_tasks']['Insert'][] = [];
