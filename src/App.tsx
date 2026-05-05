@@ -45,9 +45,9 @@ function OnboardingGate() {
   const { roles } = useUserRole();
   const { data: settings } = useCompanySettings();
   const isAdmin = roles.includes('admin' as any);
-  const needsOnboarding = isAdmin && settings && !(settings as any).onboarding_completed;
+  const needsOnboarding = isAdmin && settings && !settings.onboarding_completed;
   if (!needsOnboarding) return null;
-  return <OnboardingWizard open={true} settingsId={(settings as any).id} />;
+  return <OnboardingWizard open={true} settingsId={settings.id} />;
 }
 
 const App = () => (
