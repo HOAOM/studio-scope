@@ -1,4 +1,4 @@
-import { utils, writeFile, type WorkSheet } from 'xlsx';
+import ExcelJS from 'exceljs';
 import { getCategoryLabel } from './categories';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -19,13 +19,27 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const HEADER_FILL = 'FF1F2937';
 const ALT_ROW_FILL = 'FFF8FAFC';
+const SUBTOTAL_FILL = 'FF374151';
 const TOTAL_FILL = 'FF111827';
 
 const num = (v: any) => (typeof v === 'number' && isFinite(v) ? v : Number(v) || 0);
 
-function setCell(ws: WorkSheet, addr: string, value: any, style: any) {
-  if (!ws[addr]) ws[addr] = { t: typeof value === 'number' ? 'n' : 's', v: value };
-  ws[addr].s = style;
+function fill(color: string): ExcelJS.Fill {
+  return { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+}
+
+function downloadBuffer(buffer: ArrayBuffer, filename: string) {
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export async function exportBOQToExcel(
@@ -38,7 +52,6 @@ export async function exportBOQToExcel(
     String(a.category || '').localeCompare(String(b.category || ''))
   );
 
-  // Group by category
   const grouped = new Map<string, any[]>();
   for (const it of sorted) {
     const k = it.category || 'uncategorized';
@@ -51,200 +64,210 @@ export async function exportBOQToExcel(
     'Budget Unit. €', 'Costo Unit. €', 'Tot. Budget €', 'Tot. Costo €',
     'Stato', 'Lifecycle',
   ];
+  const NCOLS = headers.length;
+  const lastColLetter = 'L';
 
-  const aoa: any[][] = [];
-  aoa.push([companyName]);
-  aoa.push([`BILL OF QUANTITIES — ${project?.name || ''}`]);
-  aoa.push([
-    `Cliente: ${project?.client || ''} | Data: ${new Date().toLocaleDateString('it-IT')} | Rev.: ${project?.boq_version ?? ''}`,
-  ]);
-  aoa.push([]);
-  aoa.push(headers);
+  const wb = new ExcelJS.Workbook();
+  wb.creator = companyName;
+  wb.created = new Date();
 
-  // track rows for styling
-  const categoryRows: { row: number; category: string }[] = [];
-  const dataRows: number[] = [];
+  const ws = wb.addWorksheet('BOQ Completo');
+
+  // Column widths
+  const widths = [5, 18, 14, 40, 22, 8, 14, 14, 14, 14, 14, 18];
+  widths.forEach((w, i) => {
+    ws.getColumn(i + 1).width = Math.max(10, Math.min(40, w));
+  });
+  // Force narrow ones below min for #/Qtà
+  ws.getColumn(1).width = 6;
+  ws.getColumn(6).width = 8;
+
+  // Row 1: company name
+  ws.mergeCells(`A1:${lastColLetter}1`);
+  const r1 = ws.getCell('A1');
+  r1.value = companyName;
+  r1.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+  r1.fill = fill(HEADER_FILL);
+  r1.alignment = { horizontal: 'left', vertical: 'middle' };
+  ws.getRow(1).height = 22;
+
+  // Row 2: BOQ title
+  ws.mergeCells(`A2:${lastColLetter}2`);
+  const r2 = ws.getCell('A2');
+  r2.value = `BILL OF QUANTITIES — ${project?.name || ''}`;
+  r2.font = { bold: true, size: 12 };
+  r2.alignment = { horizontal: 'left', vertical: 'middle' };
+
+  // Row 3: meta
+  ws.mergeCells(`A3:${lastColLetter}3`);
+  const r3 = ws.getCell('A3');
+  r3.value = `Cliente: ${project?.client || ''} | Data: ${new Date().toLocaleDateString('it-IT')} | Rev.: ${project?.boq_version ?? ''}`;
+  r3.font = { italic: true, size: 10, color: { argb: 'FF6B7280' } };
+
+  // Row 4 empty separator
+  ws.addRow([]);
+
+  // Row 5: header
+  const headerRow = ws.addRow(headers);
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = fill(HEADER_FILL);
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FF374151' } },
+      bottom: { style: 'thin', color: { argb: 'FF374151' } },
+    };
+  });
+  headerRow.height = 20;
 
   let progressive = 0;
   let grandBudget = 0;
   let grandCost = 0;
 
+  const numericCols = new Set([6, 7, 8, 9, 10]); // 1-indexed: Qtà, Budget U, Costo U, Tot Budget, Tot Costo
+  const currencyCols = new Set([7, 8, 9, 10]);
+
   for (const [cat, list] of grouped) {
     const catBudget = list.reduce(
-      (s, it) => s + num(it.budget_unit_cost) * num(it.quantity || 1),
-      0
+      (s, it) => s + num(it.budget_unit_cost) * num(it.quantity || 1), 0
     );
     const catCost = list.reduce(
-      (s, it) => s + num(it.unit_cost) * num(it.quantity || 1),
-      0
+      (s, it) => s + num(it.unit_cost) * num(it.quantity || 1), 0
     );
     grandBudget += catBudget;
     grandCost += catCost;
 
-    aoa.push(['', getCategoryLabel(cat), '', '', '', '', '', '', catBudget, catCost, '', '']);
-    categoryRows.push({ row: aoa.length - 1, category: cat });
+    // Category separator row
+    const catFill = CATEGORY_COLORS[cat] || 'FFE5E7EB';
+    const catRow = ws.addRow(['', getCategoryLabel(cat), '', '', '', '', '', '', '', '', '', '']);
+    catRow.eachCell({ includeEmpty: true }, (cell, col) => {
+      if (col > NCOLS) return;
+      cell.font = { bold: true, size: 11 };
+      cell.fill = fill(catFill);
+    });
 
-    for (const it of list) {
+    // Data rows
+    list.forEach((it, idx) => {
       progressive += 1;
       const qty = num(it.quantity || 1);
       const totBudget = num(it.budget_unit_cost) * qty;
       const totCost = num(it.unit_cost) * qty;
-      aoa.push([
+      const row = ws.addRow([
         progressive,
         getCategoryLabel(it.category),
         it.area || '',
         it.description || '',
         it.supplier || '',
         qty,
-        it.budget_unit_cost ?? '',
-        it.unit_cost ?? '',
-        it.budget_unit_cost ? totBudget : '',
-        it.unit_cost ? totCost : '',
+        it.budget_unit_cost ?? null,
+        it.unit_cost ?? null,
+        it.budget_unit_cost ? totBudget : null,
+        it.unit_cost ? totCost : null,
         it.approval_status || '',
         it.lifecycle_status || '',
       ]);
-      dataRows.push(aoa.length - 1);
-    }
-  }
+      const isAlt = idx % 2 === 1;
+      row.eachCell({ includeEmpty: true }, (cell, col) => {
+        if (col > NCOLS) return;
+        if (isAlt) cell.fill = fill(ALT_ROW_FILL);
+        if (numericCols.has(col)) {
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
+          cell.numFmt = currencyCols.has(col) ? '€ #,##0.00;[Red]-€ #,##0.00;-' : '#,##0.00';
+        } else {
+          cell.alignment = { vertical: 'middle', wrapText: col === 4 };
+        }
+      });
+    });
 
-  aoa.push([]);
-  aoa.push(['', 'TOTALE GENERALE', '', '', '', '', '', '', grandBudget, grandCost, '', '']);
-  const totalRowIdx = aoa.length - 1;
-
-  const ws = utils.aoa_to_sheet(aoa);
-
-  // Column widths
-  ws['!cols'] = [
-    { wch: 5 }, { wch: 18 }, { wch: 14 }, { wch: 40 }, { wch: 22 }, { wch: 6 },
-    { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 },
-  ];
-
-  // Merges for title rows
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } },
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 11 } },
-  ];
-
-  const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
-
-  // Title styles
-  setCell(ws, 'A1', companyName, {
-    font: { bold: true, sz: 14, color: { rgb: 'FFFFFFFF' } },
-    fill: { fgColor: { rgb: HEADER_FILL }, patternType: 'solid' },
-    alignment: { horizontal: 'left', vertical: 'center' },
-  });
-  setCell(ws, 'A2', `BILL OF QUANTITIES — ${project?.name || ''}`, {
-    font: { bold: true, sz: 12 },
-  });
-  setCell(ws, 'A3', aoa[2][0], { font: { italic: true, sz: 10, color: { rgb: 'FF6B7280' } } });
-
-  // Header row (row index 4 → Excel row 5)
-  for (let c = 0; c < headers.length; c++) {
-    const addr = `${colLetters[c]}5`;
-    setCell(ws, addr, headers[c], {
-      font: { bold: true, color: { rgb: 'FFFFFFFF' } },
-      fill: { fgColor: { rgb: HEADER_FILL }, patternType: 'solid' },
-      alignment: { horizontal: 'center', vertical: 'center' },
-      border: {
-        top: { style: 'thin', color: { rgb: 'FF374151' } },
-        bottom: { style: 'thin', color: { rgb: 'FF374151' } },
-      },
+    // Subtotal row per category
+    const subRow = ws.addRow(['', `Subtotale ${getCategoryLabel(cat)}`, '', '', '', '', '', '', catBudget, catCost, '', '']);
+    subRow.eachCell({ includeEmpty: true }, (cell, col) => {
+      if (col > NCOLS) return;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = fill(SUBTOTAL_FILL);
+      if (currencyCols.has(col)) {
+        cell.numFmt = '€ #,##0.00;[Red]-€ #,##0.00;-';
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+      }
     });
   }
 
-  // Category header rows
-  for (const { row, category } of categoryRows) {
-    const fill = CATEGORY_COLORS[category] || 'FFE5E7EB';
-    for (let c = 0; c < headers.length; c++) {
-      const addr = `${colLetters[c]}${row + 1}`;
-      setCell(ws, addr, ws[addr]?.v ?? '', {
-        font: { bold: true, sz: 11 },
-        fill: { fgColor: { rgb: fill }, patternType: 'solid' },
-        numFmt: c === 8 || c === 9 ? '€#,##0.00' : undefined,
-      });
-    }
-  }
+  // Empty separator
+  ws.addRow([]);
 
-  // Data rows alt fill
-  dataRows.forEach((r, i) => {
-    const isAlt = i % 2 === 1;
-    for (let c = 0; c < headers.length; c++) {
-      const addr = `${colLetters[c]}${r + 1}`;
-      setCell(ws, addr, ws[addr]?.v ?? '', {
-        fill: isAlt ? { fgColor: { rgb: ALT_ROW_FILL }, patternType: 'solid' } : undefined,
-        numFmt: c === 6 || c === 7 || c === 8 || c === 9 ? '€#,##0.00' : undefined,
-        alignment: { vertical: 'center', wrapText: c === 3 },
-      });
+  // Grand total
+  const totalRow = ws.addRow(['', 'TOTALE GENERALE', '', '', '', '', '', '', grandBudget, grandCost, '', '']);
+  totalRow.eachCell({ includeEmpty: true }, (cell, col) => {
+    if (col > NCOLS) return;
+    cell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+    cell.fill = fill(TOTAL_FILL);
+    cell.border = { top: { style: 'medium', color: { argb: 'FF000000' } } };
+    if (currencyCols.has(col)) {
+      cell.numFmt = '€ #,##0.00;[Red]-€ #,##0.00;-';
+      cell.alignment = { horizontal: 'right', vertical: 'middle' };
     }
   });
+  totalRow.height = 22;
 
-  // Total row
-  for (let c = 0; c < headers.length; c++) {
-    const addr = `${colLetters[c]}${totalRowIdx + 1}`;
-    setCell(ws, addr, ws[addr]?.v ?? '', {
-      font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 12 },
-      fill: { fgColor: { rgb: TOTAL_FILL }, patternType: 'solid' },
-      numFmt: c === 8 || c === 9 ? '€#,##0.00' : undefined,
-      border: {
-        top: { style: 'medium', color: { rgb: 'FF000000' } },
-      },
-    });
-  }
+  // Freeze top header
+  ws.views = [{ state: 'frozen', ySplit: 5 }];
 
+  // ─────────────────────────────────────────
   // Riepilogo sheet
+  // ─────────────────────────────────────────
+  const ws2 = wb.addWorksheet('Riepilogo');
   const sumHeaders = ['Categoria', 'N. Item', 'Tot. Budget €', 'Tot. Costo €', 'Scostamento €', 'Scostamento %'];
-  const sumAoa: any[][] = [sumHeaders];
+  [20, 10, 16, 16, 16, 14].forEach((w, i) => {
+    ws2.getColumn(i + 1).width = Math.max(10, Math.min(40, w));
+  });
+
+  const sumHeaderRow = ws2.addRow(sumHeaders);
+  sumHeaderRow.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = fill(HEADER_FILL);
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+  });
+
   for (const [cat, list] of grouped) {
     const catBudget = list.reduce((s, it) => s + num(it.budget_unit_cost) * num(it.quantity || 1), 0);
     const catCost = list.reduce((s, it) => s + num(it.unit_cost) * num(it.quantity || 1), 0);
     const delta = catCost - catBudget;
     const deltaPct = catBudget > 0 ? delta / catBudget : 0;
-    sumAoa.push([getCategoryLabel(cat), list.length, catBudget, catCost, delta, deltaPct]);
-  }
-  const totDelta = grandCost - grandBudget;
-  const totDeltaPct = grandBudget > 0 ? totDelta / grandBudget : 0;
-  sumAoa.push([]);
-  sumAoa.push(['TOTALE', sorted.length, grandBudget, grandCost, totDelta, totDeltaPct]);
-
-  const ws2 = utils.aoa_to_sheet(sumAoa);
-  ws2['!cols'] = [{ wch: 20 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
-
-  for (let c = 0; c < sumHeaders.length; c++) {
-    const addr = `${colLetters[c]}1`;
-    setCell(ws2, addr, sumHeaders[c], {
-      font: { bold: true, color: { rgb: 'FFFFFFFF' } },
-      fill: { fgColor: { rgb: HEADER_FILL }, patternType: 'solid' },
-      alignment: { horizontal: 'center' },
+    const row = ws2.addRow([getCategoryLabel(cat), list.length, catBudget, catCost, delta, deltaPct]);
+    const rowColor = deltaPct <= 0 ? 'FFD1FAE5' : deltaPct <= 0.1 ? 'FFFEF3C7' : 'FFFEE2E2';
+    row.eachCell((cell, col) => {
+      if (col >= 5) cell.fill = fill(rowColor);
+      if (col === 3 || col === 4 || col === 5) {
+        cell.numFmt = '€ #,##0.00;[Red]-€ #,##0.00;-';
+        cell.alignment = { horizontal: 'right' };
+      }
+      if (col === 6) {
+        cell.numFmt = '0.0%';
+        cell.alignment = { horizontal: 'right' };
+      }
     });
   }
-  for (let r = 1; r < sumAoa.length; r++) {
-    if (!sumAoa[r] || sumAoa[r].length === 0) continue;
-    const isTotal = sumAoa[r][0] === 'TOTALE';
-    const deltaPct = Number(sumAoa[r][5]) || 0;
-    const rowColor = deltaPct <= 0
-      ? 'FFD1FAE5'
-      : deltaPct <= 0.1
-      ? 'FFFEF3C7'
-      : 'FFFEE2E2';
-    for (let c = 0; c < sumHeaders.length; c++) {
-      const addr = `${colLetters[c]}${r + 1}`;
-      setCell(ws2, addr, ws2[addr]?.v ?? '', {
-        font: { bold: isTotal, color: isTotal ? { rgb: 'FFFFFFFF' } : undefined },
-        fill: {
-          fgColor: { rgb: isTotal ? TOTAL_FILL : (c >= 4 ? rowColor : 'FFFFFFFF') },
-          patternType: 'solid',
-        },
-        numFmt: c === 2 || c === 3 || c === 4 ? '€#,##0.00' : c === 5 ? '0.0%' : undefined,
-      });
+
+  ws2.addRow([]);
+  const totDelta = grandCost - grandBudget;
+  const totDeltaPct = grandBudget > 0 ? totDelta / grandBudget : 0;
+  const totRow = ws2.addRow(['TOTALE', sorted.length, grandBudget, grandCost, totDelta, totDeltaPct]);
+  totRow.eachCell((cell, col) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = fill(TOTAL_FILL);
+    if (col === 3 || col === 4 || col === 5) {
+      cell.numFmt = '€ #,##0.00;[Red]-€ #,##0.00;-';
+      cell.alignment = { horizontal: 'right' };
     }
-  }
+    if (col === 6) {
+      cell.numFmt = '0.0%';
+      cell.alignment = { horizontal: 'right' };
+    }
+  });
 
-  const wb = utils.book_new();
-  utils.book_append_sheet(wb, ws, 'BOQ Completo');
-  utils.book_append_sheet(wb, ws2, 'Riepilogo');
-
+  // Write file
+  const buffer = await wb.xlsx.writeBuffer();
   const date = new Date().toISOString().slice(0, 10);
   const code = project?.code || project?.project_code || 'PROJECT';
-  writeFile(wb, `${code}-BOQ-${date}.xlsx`);
+  downloadBuffer(buffer as ArrayBuffer, `${code}-BOQ-${date}.xlsx`);
 }
