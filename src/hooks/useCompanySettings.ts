@@ -9,6 +9,9 @@ export interface CompanySettings {
   phone: string;
   email: string;
   website: string;
+  contact_email?: string;
+  export_template?: string;
+  onboarding_completed?: boolean;
   vat_number: string;
 }
 
