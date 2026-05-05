@@ -73,7 +73,8 @@ export function OnboardingWizard({ open, settingsId }: Props) {
       ...extra,
     };
     if (logoBase64) payload.logo_url = logoBase64;
-    await (supabase as any).from('company_settings').update(payload).eq('id', settingsId);
+    const { error } = await (supabase as any).from('company_settings').update(payload).eq('id', settingsId);
+    if (error) throw error;
   };
 
   const finish = async (createProject: boolean) => {
@@ -91,8 +92,8 @@ export function OnboardingWizard({ open, settingsId }: Props) {
         } as any);
         toast({ title: 'Progetto creato' });
       }
-      qc.invalidateQueries({ queryKey: ['company_settings'] });
-      qc.invalidateQueries({ queryKey: ['projects'] });
+      await qc.invalidateQueries({ queryKey: ['company_settings'] });
+      await qc.invalidateQueries({ queryKey: ['projects'] });
     } catch (e: any) {
       toast({ title: 'Errore', description: e.message, variant: 'destructive' });
     } finally {
@@ -156,7 +157,10 @@ export function OnboardingWizard({ open, settingsId }: Props) {
               </div>
               <div><Label>Email di contatto</Label><Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} /></div>
               <div><Label>Sito web</Label><Input value={website} onChange={(e) => setWebsite(e.target.value)} /></div>
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-between items-center pt-2">
+                <button onClick={() => finish(false)} className="text-sm text-muted-foreground underline" disabled={saving}>
+                  Salta onboarding
+                </button>
                 <Button disabled={!companyName.trim()} onClick={() => setStep(2)}>Avanti →</Button>
               </div>
             </div>
