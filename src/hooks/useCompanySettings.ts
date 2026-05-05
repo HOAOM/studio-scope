@@ -8,7 +8,7 @@ export interface CompanySettings {
   logo_url: string;
   phone: string;
   email: string;
-  website: string;
+  website?: string;
   contact_email?: string;
   export_template?: string;
   onboarding_completed?: boolean;
