@@ -23,11 +23,13 @@ export function useGanttAutoGen() {
       // Get existing auto-generated tasks to avoid duplicates
       const { data: existingTasks } = await supabase
         .from('project_tasks')
-        .select('id, linked_item_id, macro_area, title')
+        .select('id, linked_item_id, macro_area, title, template_key')
         .eq('project_id', projectId);
 
       const existingSet = new Set(
-        (existingTasks || []).map(t => `${t.linked_item_id}__${t.macro_area}`)
+        (existingTasks || []).map((t: any) =>
+          `${t.linked_item_id}__${t.template_key ?? t.macro_area}`
+        )
       );
 
       const tasksToCreate: Database['public']['Tables']['project_tasks']['Insert'][] = [];
@@ -42,7 +44,7 @@ export function useGanttAutoGen() {
         let chainStart = new Date(startAnchor);
 
         for (const template of ITEM_TASK_CHAIN) {
-          const key = `${item.id}__${template.macroArea}`;
+          const key = `${item.id}__${template.key}`;
           if (existingSet.has(key)) continue; // skip already created
 
           const taskStart = new Date(chainStart);
@@ -56,7 +58,8 @@ export function useGanttAutoGen() {
             start_date: taskStart.toISOString().split('T')[0],
             end_date: taskEnd.toISOString().split('T')[0],
             linked_item_id: item.id,
-          });
+            template_key: template.key,
+          } as any);
 
           // Next task in chain starts after this one
           chainStart = taskEnd;
@@ -130,15 +133,17 @@ export async function syncTaskFromLifecycleChange(
   // Find candidate tasks for this item; filter in JS by title prefix
   const { data: candidateTasks, error } = await supabaseClient
     .from('project_tasks')
-    .select('id, status, title, end_date')
+    .select('id, status, title, end_date, template_key')
     .eq('project_id', projectId)
     .eq('linked_item_id', itemId);
 
   if (error || !candidateTasks) return;
 
-  const match = candidateTasks.find((t: any) =>
-    typeof t.title === 'string' && t.title.startsWith(template.label)
-  );
+  const match =
+    candidateTasks.find((t: any) => t.template_key === taskKey) ||
+    candidateTasks.find(
+      (t: any) => typeof t.title === 'string' && t.title.startsWith(template.label)
+    );
 
   if (!match) return; // auto-gen will create it later
 
