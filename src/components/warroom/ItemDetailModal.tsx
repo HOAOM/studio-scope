@@ -1170,7 +1170,11 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
                 {/* Item Documents */}
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-3">Item Documents</h4>
-                  <ItemDocuments itemId={item.id} projectId={projectId} canEdit={canSeeProcurement} />
+                  <ItemDocuments
+                    item={item}
+                    canEdit={canSeeProcurement}
+                    onUpdate={(patch) => updateItem.mutateAsync({ id: item.id, ...patch } as any)}
+                  />
                 </div>
               </TabsContent>
             )}
