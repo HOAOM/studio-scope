@@ -362,8 +362,19 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
   };
 
   const handleSubmit = async () => {
-    if (!form.floorId || !form.roomId || !form.itemTypeId || !form.subcategoryId) {
-      toast.error('Please fill Floor, Room, Item Type and Subcategory');
+    // Validation: required fields
+    const missing: string[] = [];
+    if (!form.floorId) missing.push('Floor');
+    if (!form.roomId) missing.push('Room');
+    if (!form.itemTypeId) missing.push('Item Type');
+    if (!form.subcategoryId) missing.push('Subcategory');
+    if (!form.description?.trim()) missing.push('Description');
+    if (missing.length > 0) {
+      toast.error(`Missing required fields: ${missing.join(', ')}`);
+      return;
+    }
+    if (!projectId) {
+      toast.error('No project selected');
       return;
     }
 
@@ -378,6 +389,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       ...additionalFinishes.map((f, i) => `[Finish ${i + 2}] ${[f.material, f.color, f.notes].filter(Boolean).join(' | ')}`)
     ].filter(Boolean).join('\n');
 
+    const qtyParsed = parseInt(form.qty, 10);
     const payload: any = {
       project_id: projectId,
       floor_id: form.floorId,
@@ -387,7 +399,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       subcategory_id: form.subcategoryId,
       sequence_number: parseInt(form.sequence) || undefined,
       area: form.zone || form.area || 'General',
-      description: form.description || 'Item',
+      description: form.description.trim(),
       supplier: form.brand || undefined,
       finish_material: primaryFinish.material || form.finishing || undefined,
       finish_color: primaryFinish.color || undefined,
@@ -397,7 +409,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       reference_image_url: form.refImage || undefined,
       technical_drawing_url: form.techDrawings || undefined,
       company_product_url: form.companyLink || undefined,
-      quantity: parseFloat(form.qty) || 1,
+      quantity: Number.isFinite(qtyParsed) && qtyParsed > 0 ? qtyParsed : 1,
       unit_cost: parseFloat(form.unitRate) || undefined,
       notes: form.notes || undefined,
       category,
@@ -408,14 +420,17 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
         await updateItem.mutateAsync({ id: editingItemId, ...payload });
         toast.success('Item updated');
       } else {
-        await createItem.mutateAsync(payload);
-        toast.success('Item added');
+        const created = await createItem.mutateAsync(payload);
+        toast.success(`Item added${created?.item_code ? ` (${created.item_code})` : ''}`);
       }
       clearForm(true);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save item');
+      console.error('[BOQAnalyst] Failed to save item:', err);
+      const msg = err?.message || err?.error_description || err?.hint || 'Failed to save item';
+      toast.error(msg);
     }
   };
+
 
   const handleEdit = (item: ProjectItem) => {
     setEditingItemId(item.id);
@@ -742,7 +757,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
         {/* Action buttons */}
         <div className="flex gap-3 flex-wrap">
-          <Button onClick={handleSubmit} disabled={createItem.isPending || updateItem.isPending}>
+          <Button type="button" onClick={handleSubmit} disabled={createItem.isPending || updateItem.isPending}>
             {(createItem.isPending || updateItem.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             <Plus className="w-4 h-4 mr-2" />
             {editingItemId ? 'Update Item' : 'Add Item'}
