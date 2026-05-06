@@ -81,14 +81,18 @@ function useProjectMembers(projectId: string | undefined) {
   });
 }
 
-export function DirectMessagesPanel({ className }: { className?: string }) {
+export function DirectMessagesPanel({ className, scopedProjectId }: { className?: string; scopedProjectId?: string }) {
   const { user } = useAuth();
   const { data: conversations = [] } = useDirectConversations();
   const { data: profiles = [] } = useAllProfiles();
   const { data: projects = [] } = useProjects();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [showNewChat, setShowNewChat] = useState(false);
-  const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [projectFilter, setProjectFilter] = useState<string>(scopedProjectId || 'all');
+
+  useEffect(() => {
+    if (scopedProjectId) setProjectFilter(scopedProjectId);
+  }, [scopedProjectId]);
 
   const profileMap = useMemo(() => new Map(profiles.map(p => [p.id, p])), [profiles]);
   const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
@@ -109,20 +113,21 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
   // Filter conversations by project membership
   const filteredConversations = useMemo(() => {
     const projectIds = new Set(projects.map(p => p.id));
+    const effectiveFilter = scopedProjectId || projectFilter;
     return conversations.filter(conv => {
       // If message has a project_id, user must be member of that project
       if (conv.lastMessage.project_id && !projectIds.has(conv.lastMessage.project_id)) {
         return false;
       }
-      // Apply project filter
-      if (projectFilter !== 'all') {
-        if (!conv.lastMessage.project_id || conv.lastMessage.project_id !== projectFilter) {
+      // Apply project filter (strict when scoped)
+      if (effectiveFilter !== 'all') {
+        if (conv.lastMessage.project_id !== effectiveFilter) {
           return false;
         }
       }
       return true;
     });
-  }, [conversations, projects, projectFilter]);
+  }, [conversations, projects, projectFilter, scopedProjectId]);
 
   if (selectedPartnerId) {
     return (
@@ -135,6 +140,7 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
         profileMap={profileMap}
         onBack={() => setSelectedPartnerId(null)}
         className={className}
+        scopedProjectId={scopedProjectId}
       />
     );
   }
@@ -149,6 +155,7 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
         onSelectPartner={(id) => { setSelectedPartnerId(id); setShowNewChat(false); }}
         onBack={() => setShowNewChat(false)}
         className={className}
+        scopedProjectId={scopedProjectId}
       />
     );
   }
@@ -165,7 +172,7 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
       </div>
 
       {/* Project filter */}
-      {projects.length > 1 && (
+      {!scopedProjectId && projects.length > 1 && (
         <div className="px-3 pt-2">
           <Select value={projectFilter} onValueChange={setProjectFilter}>
             <SelectTrigger className="h-7 text-[10px]">
@@ -232,7 +239,7 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
 }
 
 // New Message composition view with multi-recipient support
-function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPartner, onBack, className }: {
+function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPartner, onBack, className, scopedProjectId }: {
   profiles: { id: string; display_name: string | null; email: string | null; avatar_url: string | null }[];
   profileMap: Map<string, any>;
   projects: any[];
@@ -240,12 +247,13 @@ function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPa
   onSelectPartner: (id: string) => void;
   onBack: () => void;
   className?: string;
+  scopedProjectId?: string;
 }) {
   const { user } = useAuth();
   const sendMessage = useSendDirectMessage();
   const [search, setSearch] = useState('');
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(scopedProjectId || '');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
@@ -417,7 +425,7 @@ function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPa
   );
 }
 
-function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMap, profileMap, onBack, className }: {
+function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMap, profileMap, onBack, className, scopedProjectId }: {
   partnerId: string;
   partnerName: string;
   partnerInitials: string;
@@ -426,15 +434,21 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
   profileMap: Map<string, any>;
   onBack: () => void;
   className?: string;
+  scopedProjectId?: string;
 }) {
   const { user } = useAuth();
-  const { data: messages = [] } = useDirectMessages(partnerId);
+  const { data: allMessages = [] } = useDirectMessages(partnerId);
   const sendMessage = useSendDirectMessage();
   const [body, setBody] = useState('');
   const [subject, setSubject] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(scopedProjectId || '');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const messages = useMemo(
+    () => scopedProjectId ? allMessages.filter(m => m.project_id === scopedProjectId) : allMessages,
+    [allMessages, scopedProjectId]
+  );
 
   const { data: projectItems = [] } = useProjectItemsForSelect(selectedProjectId || undefined);
 
@@ -447,11 +461,12 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
   const handleSend = () => {
     const trimmed = body.trim();
     if (!trimmed) return;
+    const projectId = scopedProjectId || selectedProjectId || undefined;
     sendMessage.mutate({
       recipientIds: [partnerId],
       body: trimmed,
       subject: subject.trim() || undefined,
-      projectId: selectedProjectId || undefined,
+      projectId,
       itemId: selectedItemId || undefined,
     });
     setBody('');
@@ -516,17 +531,19 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
 
       <div className="border-t border-border p-2 space-y-1.5">
         <div className="flex gap-1.5">
-          <Select value={selectedProjectId} onValueChange={v => setSelectedProjectId(v === 'none' ? '' : v)}>
-            <SelectTrigger className="h-7 text-[10px] flex-1">
-              <SelectValue placeholder="Project (optional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none" className="text-[10px]">No project</SelectItem>
-              {projects.map(p => (
-                <SelectItem key={p.id} value={p.id} className="text-[10px]">{p.code} - {p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!scopedProjectId && (
+            <Select value={selectedProjectId} onValueChange={v => setSelectedProjectId(v === 'none' ? '' : v)}>
+              <SelectTrigger className="h-7 text-[10px] flex-1">
+                <SelectValue placeholder="Project (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" className="text-[10px]">No project</SelectItem>
+                {projects.map(p => (
+                  <SelectItem key={p.id} value={p.id} className="text-[10px]">{p.code} - {p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {selectedProjectId && selectedProjectId !== 'none' && (
             <Select value={selectedItemId} onValueChange={v => setSelectedItemId(v === 'none' ? '' : v)}>
               <SelectTrigger className="h-7 text-[10px] flex-1">

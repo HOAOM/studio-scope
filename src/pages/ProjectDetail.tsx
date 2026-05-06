@@ -800,7 +800,7 @@ export default function ProjectDetail() {
 
           {/* CHAT TAB */}
           <TabsContent value="chat">
-            <DirectMessagesPanel />
+            <DirectMessagesPanel scopedProjectId={projectId} />
           </TabsContent>
 
         </Tabs>
