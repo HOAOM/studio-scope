@@ -425,7 +425,7 @@ function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPa
   );
 }
 
-function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMap, profileMap, onBack, className }: {
+function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMap, profileMap, onBack, className, scopedProjectId }: {
   partnerId: string;
   partnerName: string;
   partnerInitials: string;
@@ -434,15 +434,21 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
   profileMap: Map<string, any>;
   onBack: () => void;
   className?: string;
+  scopedProjectId?: string;
 }) {
   const { user } = useAuth();
-  const { data: messages = [] } = useDirectMessages(partnerId);
+  const { data: allMessages = [] } = useDirectMessages(partnerId);
   const sendMessage = useSendDirectMessage();
   const [body, setBody] = useState('');
   const [subject, setSubject] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(scopedProjectId || '');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const messages = useMemo(
+    () => scopedProjectId ? allMessages.filter(m => m.project_id === scopedProjectId) : allMessages,
+    [allMessages, scopedProjectId]
+  );
 
   const { data: projectItems = [] } = useProjectItemsForSelect(selectedProjectId || undefined);
 
@@ -455,11 +461,12 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
   const handleSend = () => {
     const trimmed = body.trim();
     if (!trimmed) return;
+    const projectId = scopedProjectId || selectedProjectId || undefined;
     sendMessage.mutate({
       recipientIds: [partnerId],
       body: trimmed,
       subject: subject.trim() || undefined,
-      projectId: selectedProjectId || undefined,
+      projectId,
       itemId: selectedItemId || undefined,
     });
     setBody('');
