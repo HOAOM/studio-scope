@@ -531,17 +531,19 @@ function ChatView({ partnerId, partnerName, partnerInitials, projects, projectMa
 
       <div className="border-t border-border p-2 space-y-1.5">
         <div className="flex gap-1.5">
-          <Select value={selectedProjectId} onValueChange={v => setSelectedProjectId(v === 'none' ? '' : v)}>
-            <SelectTrigger className="h-7 text-[10px] flex-1">
-              <SelectValue placeholder="Project (optional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none" className="text-[10px]">No project</SelectItem>
-              {projects.map(p => (
-                <SelectItem key={p.id} value={p.id} className="text-[10px]">{p.code} - {p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!scopedProjectId && (
+            <Select value={selectedProjectId} onValueChange={v => setSelectedProjectId(v === 'none' ? '' : v)}>
+              <SelectTrigger className="h-7 text-[10px] flex-1">
+                <SelectValue placeholder="Project (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" className="text-[10px]">No project</SelectItem>
+                {projects.map(p => (
+                  <SelectItem key={p.id} value={p.id} className="text-[10px]">{p.code} - {p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {selectedProjectId && selectedProjectId !== 'none' && (
             <Select value={selectedItemId} onValueChange={v => setSelectedItemId(v === 'none' ? '' : v)}>
               <SelectTrigger className="h-7 text-[10px] flex-1">
