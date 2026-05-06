@@ -214,6 +214,18 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
   const handleTransition = useCallback(async (toStatus: ItemLifecycleStatus) => {
     if (!item) return;
+    // Gate: "Propose Finishes" requires Material + Color + Reference Image
+    if (toStatus === 'finishes_proposed') {
+      const sel = (childOptions || []).find((o: any) => o.is_selected_option);
+      const src: any = sel || item;
+      const hasMaterial = !!(src.finish_material && String(src.finish_material).trim());
+      const hasColor = !!(src.finish_color && String(src.finish_color).trim());
+      const hasImage = !!(src.reference_image_url && String(src.reference_image_url).trim());
+      if (!hasMaterial || !hasColor || !hasImage) {
+        toast.error('Impossibile procedere: compila Material, Color e carica almeno un\'immagine prima di approvare le finishes');
+        return;
+      }
+    }
     try {
       await updateItem.mutateAsync({ id: item.id, lifecycle_status: toStatus as any });
       queryClient.invalidateQueries({ queryKey: ['item-detail', item.id] });
@@ -222,7 +234,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     } catch {
       toast.error('Failed to update status');
     }
-  }, [item, updateItem, queryClient, projectId]);
+  }, [item, childOptions, updateItem, queryClient, projectId]);
+
 
   const handleEnterEdit = () => {
     if (!item) return;
