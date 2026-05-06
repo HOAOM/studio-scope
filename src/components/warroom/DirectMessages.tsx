@@ -81,14 +81,18 @@ function useProjectMembers(projectId: string | undefined) {
   });
 }
 
-export function DirectMessagesPanel({ className }: { className?: string }) {
+export function DirectMessagesPanel({ className, scopedProjectId }: { className?: string; scopedProjectId?: string }) {
   const { user } = useAuth();
   const { data: conversations = [] } = useDirectConversations();
   const { data: profiles = [] } = useAllProfiles();
   const { data: projects = [] } = useProjects();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [showNewChat, setShowNewChat] = useState(false);
-  const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [projectFilter, setProjectFilter] = useState<string>(scopedProjectId || 'all');
+
+  useEffect(() => {
+    if (scopedProjectId) setProjectFilter(scopedProjectId);
+  }, [scopedProjectId]);
 
   const profileMap = useMemo(() => new Map(profiles.map(p => [p.id, p])), [profiles]);
   const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
@@ -109,20 +113,21 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
   // Filter conversations by project membership
   const filteredConversations = useMemo(() => {
     const projectIds = new Set(projects.map(p => p.id));
+    const effectiveFilter = scopedProjectId || projectFilter;
     return conversations.filter(conv => {
       // If message has a project_id, user must be member of that project
       if (conv.lastMessage.project_id && !projectIds.has(conv.lastMessage.project_id)) {
         return false;
       }
-      // Apply project filter
-      if (projectFilter !== 'all') {
-        if (!conv.lastMessage.project_id || conv.lastMessage.project_id !== projectFilter) {
+      // Apply project filter (strict when scoped)
+      if (effectiveFilter !== 'all') {
+        if (conv.lastMessage.project_id !== effectiveFilter) {
           return false;
         }
       }
       return true;
     });
-  }, [conversations, projects, projectFilter]);
+  }, [conversations, projects, projectFilter, scopedProjectId]);
 
   if (selectedPartnerId) {
     return (
@@ -135,6 +140,7 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
         profileMap={profileMap}
         onBack={() => setSelectedPartnerId(null)}
         className={className}
+        scopedProjectId={scopedProjectId}
       />
     );
   }
@@ -149,6 +155,7 @@ export function DirectMessagesPanel({ className }: { className?: string }) {
         onSelectPartner={(id) => { setSelectedPartnerId(id); setShowNewChat(false); }}
         onBack={() => setShowNewChat(false)}
         className={className}
+        scopedProjectId={scopedProjectId}
       />
     );
   }
