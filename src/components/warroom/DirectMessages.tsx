@@ -172,7 +172,7 @@ export function DirectMessagesPanel({ className, scopedProjectId }: { className?
       </div>
 
       {/* Project filter */}
-      {projects.length > 1 && (
+      {!scopedProjectId && projects.length > 1 && (
         <div className="px-3 pt-2">
           <Select value={projectFilter} onValueChange={setProjectFilter}>
             <SelectTrigger className="h-7 text-[10px]">
