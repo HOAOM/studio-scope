@@ -239,7 +239,7 @@ export function DirectMessagesPanel({ className, scopedProjectId }: { className?
 }
 
 // New Message composition view with multi-recipient support
-function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPartner, onBack, className }: {
+function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPartner, onBack, className, scopedProjectId }: {
   profiles: { id: string; display_name: string | null; email: string | null; avatar_url: string | null }[];
   profileMap: Map<string, any>;
   projects: any[];
@@ -247,12 +247,13 @@ function NewMessageView({ profiles, profileMap, projects, projectMap, onSelectPa
   onSelectPartner: (id: string) => void;
   onBack: () => void;
   className?: string;
+  scopedProjectId?: string;
 }) {
   const { user } = useAuth();
   const sendMessage = useSendDirectMessage();
   const [search, setSearch] = useState('');
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(scopedProjectId || '');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
