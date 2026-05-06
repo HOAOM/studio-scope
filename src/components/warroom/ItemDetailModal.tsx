@@ -734,6 +734,20 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             </div>
           </div>
 
+          {/* Finishes gate hint */}
+          {!editMode && forwardTransitions.some(t => t.to === 'finishes_proposed') && (() => {
+            const missing: string[] = [];
+            if (!designChecks.hasMaterial) missing.push('Material');
+            if (!designChecks.hasColor) missing.push('Color');
+            if (!designChecks.hasReferenceImage) missing.push('Reference Image');
+            if (missing.length === 0) return null;
+            return (
+              <div className="mt-3 px-3 py-2 rounded border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-700 dark:text-amber-300">
+                <strong>Missing for "Propose Finishes":</strong> {missing.join(', ')}
+              </div>
+            );
+          })()}
+
           {/* ALL transition buttons with distinct colors */}
           {!editMode && availableTransitions.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4 items-start">
