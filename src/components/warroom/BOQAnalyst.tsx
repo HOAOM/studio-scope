@@ -757,7 +757,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
         {/* Action buttons */}
         <div className="flex gap-3 flex-wrap">
-          <Button onClick={handleSubmit} disabled={createItem.isPending || updateItem.isPending}>
+          <Button type="button" onClick={handleSubmit} disabled={createItem.isPending || updateItem.isPending}>
             {(createItem.isPending || updateItem.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             <Plus className="w-4 h-4 mr-2" />
             {editingItemId ? 'Update Item' : 'Add Item'}
