@@ -417,8 +417,16 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
 
     try {
       if (editingItemId) {
-        await updateItem.mutateAsync({ id: editingItemId, ...payload });
-        toast.success('Item updated');
+        // Strip project_id (not updatable) and any undefined keys to keep payload minimal
+        const { project_id: _pid, ...rest } = payload;
+        const updates: Record<string, any> = {};
+        for (const [k, v] of Object.entries(rest)) {
+          if (v !== undefined) updates[k] = v;
+        }
+        console.log('[BOQAnalyst] Updating item', editingItemId, updates);
+        const updated = await updateItem.mutateAsync({ id: editingItemId, ...updates });
+        console.log('[BOQAnalyst] Update result', updated);
+        toast.success('Item aggiornato');
       } else {
         const created = await createItem.mutateAsync(payload);
         toast.success(`Item added${created?.item_code ? ` (${created.item_code})` : ''}`);
