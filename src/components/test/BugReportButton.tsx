@@ -57,7 +57,7 @@ export function BugReportButton() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from('bug_reports').insert({
+    const { error } = await (supabase as any).from('bug_reports').insert({
       user_id: user.id,
       title: title.trim(),
       description: description.trim() || null,

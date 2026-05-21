@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v2.5.2',
+    date: '2026-05-21',
+    summary: 'Bug tracker interno + decisioni roadmap',
+    details: [
+      'Pulsante "Segnala bug" sempre visibile in basso a destra',
+      'Le segnalazioni finiscono in una tabella visibile agli admin',
+      'Decisione: onboarding studio verrà spostato sul sito di vendita',
+      'Decisione: brand del prodotto sarà un nome inventato breve (in scelta)',
+      'Ordine lavori: pulizia bug + test interno prima del multi-studio',
+    ],
+  },
+  {
     version: 'v2.5.1',
     date: '2026-05-21',
     summary: 'Versioning automatico + changelog visibile',
