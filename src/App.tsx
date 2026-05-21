@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import { Loader2 } from "lucide-react";
+import { BugReportButton } from "@/components/test/BugReportButton";
 import { useState } from "react";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     <>
       <OnboardingGate />
       {children}
+      <BugReportButton />
     </>
   );
 }
