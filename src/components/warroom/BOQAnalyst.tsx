@@ -260,7 +260,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
           case 'area': va = a.area; vb = b.area; break;
           case 'brand': va = a.supplier || ''; vb = b.supplier || ''; break;
           case 'qty': va = a.quantity || 0; vb = b.quantity || 0; break;
-          case 'unitRate': va = a.unit_cost || 0; vb = b.unit_cost || 0; break;
+          case 'unitRate': va = a.budget_unit_cost || 0; vb = b.budget_unit_cost || 0; break;
           case 'amount': va = (a.unit_cost || 0) * (a.quantity || 1); vb = (b.unit_cost || 0) * (b.quantity || 1); break;
         }
         if (typeof va === 'number' && typeof vb === 'number') return sortAsc ? va - vb : vb - va;
@@ -410,7 +410,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       technical_drawing_url: form.techDrawings || undefined,
       company_product_url: form.companyLink || undefined,
       quantity: Number.isFinite(qtyParsed) && qtyParsed > 0 ? qtyParsed : 1,
-      unit_cost: parseFloat(form.unitRate) || undefined,
+      budget_unit_cost: parseFloat(form.unitRate) || undefined,
       notes: form.notes || undefined,
       category,
     };
@@ -480,7 +480,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
       companyLink: item.company_product_url || '',
       qty: (item.quantity || 1).toString(),
       unit: 'pcs',
-      unitRate: item.unit_cost?.toString() || '',
+      unitRate: item.budget_unit_cost?.toString() || '',
       notes: item.notes || '',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -869,8 +869,8 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                   
                   // For parent rows with a selected option, show selected option's data
                   const displayItem = (hasOptions && selectedData) ? selectedData : item;
-                  const amount = (displayItem.unit_cost || 0) * (displayItem.quantity || 1);
-                  const isMissingPrice = !displayItem.unit_cost || displayItem.unit_cost === 0;
+                  const amount = (displayItem.budget_unit_cost || 0) * (displayItem.quantity || 1);
+                  const isMissingPrice = !displayItem.budget_unit_cost || displayItem.budget_unit_cost === 0;
                   const isCustom = item.item_code?.includes('-CF');
 
                   return (
@@ -969,7 +969,7 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       <TableCell className="text-xs">pcs</TableCell>
                       {isCol('unitRate') && canSeeCosts && (
                         <TableCell className={cn('text-xs font-mono text-right', isMissingPrice && !isOption && 'bg-destructive/10 font-bold text-destructive')}>
-                          {displayItem.unit_cost ? `€${Number(displayItem.unit_cost).toFixed(2)}` : '-'}
+                          {displayItem.budget_unit_cost ? `€${Number(displayItem.budget_unit_cost).toFixed(2)}` : '-'}
                         </TableCell>
                       )}
                       {isCol('amount') && canSeeCosts && (
