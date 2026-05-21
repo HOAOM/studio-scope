@@ -1,137 +1,101 @@
-## Analisi dei 10 file Revit ricevuti
+## Dove siamo oggi (stima realistica: ~70-75%, non 80%)
 
-I file sono **Revit Schedules** esportati in Excel — ognuno copre una categoria diversa. Sono utilizzabili **al 60%**: il dato c'è ma il formato è "human-readable" (header decorativi, righe di raggruppamento per stanza, immagini come placeholder vuoti) e va normalizzato prima dell'import.
+**Fatto bene**
+- Core funzionale: BOQ Analyst, Item Detail Modal, Gantt, Procurement, Client Boards, Presentation Builder, Supplier Exports
+- Auth Supabase + 11 ruoli + RLS sulle tabelle principali
+- Workflow.ts come engine unificato del ciclo di vita item
+- 3 tier definiti in `subscriptionTiers.ts` (ma solo localStorage, nessun billing reale)
+- Lovable Cloud configurato, edge function `admin-users`
 
-### Mappatura file → categoria StudioScope
-
-| File Revit | Categoria BOQ StudioScope | Codice | Righe utili |
-|---|---|---|---|
-| Joinery_Schedule | `joinery` | JOI | 10 |
-| Loose_Furniture_Schedule | `loose-furniture` | LF | ~35 |
-| Lighting_Fixture | `lighting` | LT | ~20 |
-| Floor_Schedule | `finishes` (FL) | FL | 4 |
-| Office_Wall_Schedule | `finishes` (CL/WF) | CL/WF | 2 |
-| Skirting_Schedule | `finishes` (SK) | SK | 2 |
-| Door_Schedule | `joinery` (DR) | DR | 9 |
-| Appliances | `appliances` | KA/TV | 6 |
-| Office_Equipment | `ffe` | OA | 2 |
-| Workstations | `electrical` (PC) | EL | 21 |
-
-**Totale: ~110 item importabili** per il progetto ufficio.
-
-### Cosa c'è (recuperabile)
-
-- **Type Mark** → univoco per modello (es. J08, LF11, TL1) → diventa `boq_code`
-- **Room/Area** (header di gruppo) → mappabile a `area` o `Floor/Apartment/Room`
-- **Description / Specification** → `description`
-- **Size / Width / Height / Length** → `dimensions`
-- **Count / QTY** → `quantity`
-- **Top Material / Base Material / Finish** (solo Loose Furniture) → `material` + `finish`
-- **Area in m²** (Floor/Wall/Skirting) → `quantity` con `unit_of_measure`
-
-### Cosa manca (gap rispetto al modello StudioScope)
-
-| Campo richiesto | Presente in Revit? | Soluzione |
-|---|---|---|
-| Floor / Apartment / Room hierarchy | Solo "Room Name" piatto | Default "Ground Floor / Office / [Room]" |
-| Supplier / Manufacturer | Tra parentesi nel testo (es. "Bonaldo") | Estrazione regex |
-| Unit cost / Budget estimate | NO | Compilato dopo dal QS |
-| Reference Image URL | Cella vuota (immagine embedded in Revit) | Il design team deve esportare URL/cartella |
-| Material/Color separati | Mischiati in "Finish" come testo libero | Parser euristico + revisione manuale |
-| Approval status | NO | Default "pending" |
-| Lead time | NO | Default 12 giorni |
-
-### Problemi strutturali del formato attuale
-
-1. **Header di sezione mischiati con i dati**: la riga "CEO Office" è una riga vuota di raggruppamento, non un dato. L'importer deve riconoscerla e propagarla come `area` alle righe seguenti.
-2. **Immagini assenti**: la colonna "Image" è sempre vuota perché Revit incolla immagini embedded che Excel/exceljs non legge come URL.
-3. **Multi-categoria nello stesso file**: Floor/Wall/Skirting sono tutti "finishes" ma in 3 file diversi.
-4. **Type Mark duplicati**: lo stesso `LF21` appare in 4 stanze diverse → diventano 4 item separati con stessa specifica ma quantità/area diverse.
+**Gap critici che bloccano il go-live**
+1. **Nessun billing reale** — i tier sono solo client-side, chiunque può fare `localStorage.setItem` e diventare Enterprise
+2. **Multi-tenancy mancante** — non esiste concetto di "organizzazione/workspace": tutti gli utenti vedono gli stessi suppliers/master data/company_settings. Non si può vendere a più studi senza isolamento
+3. **RLS scoperta su tabelle sensibili** — `suppliers` ha `auth_read_suppliers USING true` e `auth_update_suppliers USING true`: ogni utente legge e modifica fornitori di tutti
+4. **Onboarding zero** — niente signup flow commerciale, niente landing page, niente pagina pricing pubblica
+5. **Branding hard-coded** — `company_settings` è singleton globale, non per-tenant: nessun white-label reale
+6. **Architettura add-on inesistente** — niente sistema di feature flag dinamici per attivare moduli a pagamento
+7. **Email transazionali non configurate** — niente welcome, niente reminder pagamento, niente notifiche scadenza trial
+8. **Test su larga scala mai fatti** — performance, indici DB, paginazione 1000-row limit Supabase non verificati
+9. **Production-readiness** — niente error tracking (Sentry), niente analytics prodotto, niente backup policy documentata, niente Terms/Privacy/GDPR
 
 ---
 
-## Proposta: 3 strade
+## Piano in 5 fasi (6-8 settimane realistiche)
 
-### Strada A — Template CSV Master (consigliata, rapida)
+### FASE 1 — Hardening sicurezza e multi-tenancy (settimana 1-2)
+Senza questo non si vende: oggi un cliente vede i fornitori e i dati dell'altro.
 
-Definire **un unico CSV standard** che il design department compila a mano oppure ottiene dal merge dei loro Revit Schedules. Una riga = un item nel BOQ.
+1. **Migration `organizations`**: nuova tabella `organizations` (id, name, slug, logo_url, primary_color, vat_number, address, subscription_tier, trial_ends_at, paddle_customer_id, paddle_subscription_id). Tabella `organization_members` (org_id, user_id, role).
+2. **Colonna `organization_id`** su: `projects`, `suppliers`, `company_settings` (rinominato `organization_branding`), `master_floors/rooms/item_types/subcategories` (opzionale: master globali vs per-org), `presentations`, `client_boards`, tutti i `*_documents`.
+3. **Refactor RLS**: nuova security definer function `is_org_member(org_id)`. Riscrivere tutte le policy `auth_read_suppliers true` → `is_org_member(suppliers.organization_id)`. Stesso per company_settings, suppliers, cost_categories.
+4. **Backfill**: creare un'org "Default Studio" per ogni owner esistente, agganciare i dati storici.
+5. **Org switcher** nella UI (per chi sta in più org) + onboarding "crea il tuo studio" al primo login.
 
-```text
-project_code,floor,room_type,room_number,room_name,category,subcategory,
-type_mark,description,supplier,quantity,unit,width_cm,depth_cm,height_cm,
-material_top,material_base,finish,reference_image_url,notes
-```
+### FASE 2 — Billing Paddle + tier dinamici (settimana 2-3)
+**Provider: Paddle** (Merchant of Record). Eligibility check già superato. Vantaggio: gestisce IVA EU, fatturazione, compliance — zero burocrazia per te.
 
-Esempio compilato (5 righe estratte dai tuoi file):
+1. **Enable Paddle** via `enable_paddle_payments` (test env immediato, live dopo verifica account).
+2. **Catalogo prodotti su Paddle**:
+   - **Subscription base**: Studio Base 49€/mo, Studio Pro 149€/mo, Enterprise (contact sales). Trial 14 giorni, sconto -20% annuale.
+   - **Add-on a consumo/quantità**: "Progetto extra" 10€/mo cad., "Utente extra" 15€/mo cad.
+   - **Add-on modulari** (feature flag): "Modulo Taglio Marmi" 39€/mo, "Modulo Piano Installazione Piastrelle" 39€/mo (pronti per i moduli futuri).
+   - **One-time**: "Onboarding & Training Pro" 490€ (anche se hai detto training libero per tutti, lo teniamo come upsell premium opzionale).
+3. **Tabella `organization_subscriptions`** in Supabase: org_id, paddle_subscription_id, tier, status (trialing/active/past_due/canceled), addons jsonb (lista feature flag attivi), seats_extra, projects_extra, current_period_end.
+4. **Webhook Paddle** in edge function `paddle-webhook`: gestisce `subscription.created/updated/canceled`, `transaction.completed`, aggiorna `organization_subscriptions`.
+5. **Refactor `useSubscriptionTier`**: legge da DB (org corrente) non più da localStorage. `hasFeature()` controlla sia tier sia `addons[]`.
+6. **Enforcement reale**:
+   - Blocco creazione progetto oltre `maxProjects + projects_extra`
+   - Blocco invito utente oltre `maxTotalUsers + seats_extra`
+   - Banner upgrade contestuale quando un addon è richiesto
+7. **Customer portal** (link Paddle hosted) per gestire subscription/payment method/fatture dalla UI.
 
-```text
-1003,GF,Office,29,CEO Office,loose-furniture,LF,LF12,
-Diver executive desk,Bonaldo,1,pcs,258,135,75,
-Walnut Canaletto veneer,Bronze opaque metal,,
-,
-1003,GF,Office,29,CEO Office,lighting,CL,CL2,Chandelier,,2,pcs,,,,,,,,
-1003,GF,Conference,28,Conference Room,joinery,WC,J11,Wall Cabinet,,1,pcs,370,45,275,,,,,
-1003,GF,Pantry,26,Pantry,appliances,KA,KA1,Side by Side Refrigerator,,1,pcs,,,,,,,,
-1003,GF,Office,22,Working Space,finishes,FL,AF01,Carpet finish,,211.90,m²,,,,,,,,
-```
+### FASE 3 — White-label, onboarding, landing pubblica (settimana 3-4)
+Hai detto: tutti devono poter mettere logo e nome. Quindi il white-label è incluso nel tier base, non upsell.
 
-**Pro**: zero retro-ingegneria, design team usa Excel/Google Sheet, importer pronto in 2h.  
-**Contro**: doppio lavoro per il designer (Revit → CSV).
+1. **Branding per-org** (tabella `organization_branding`): logo_url (Supabase Storage), primary_color, company_name, vat_number, address — usati ovunque oggi `useCompanySettings` è chiamato (PDF, header, client boards, presentation, supplier exports).
+2. **Onboarding wizard post-signup** (5 step): nome studio → logo → colore primario → invita team → crea primo progetto. Già esiste `OnboardingWizard.tsx`, va esteso e legato all'org creation.
+3. **Landing page pubblica** (`/` non autenticato): hero, feature highlights, pricing table dinamica letta da Paddle prices, CTA "Inizia trial 14 giorni", form contatto enterprise. Route `/auth` separata. SEO base (title/meta/JSON-LD).
+4. **Training & docs hub** (`/help` o sottodominio Notion/Mintlify): video, guide, KB. Linkato dall'app. Accesso libero per tutti come da richiesta.
+5. **Pagine legali**: Terms, Privacy, Cookie, DPA. Footer landing + checkout Paddle ne richiede i link.
 
-### Strada B — Multi-Schedule Importer (medio sforzo)
+### FASE 4 — Architettura add-on estensibile (settimana 4-5)
+Per i moduli futuri (taglio marmi, piano installazione piastrelle, etc.) serve un'architettura che NON ti costringa a refactor ogni volta.
 
-Importare direttamente i 10 file Revit così come sono. Per ognuno scrivere un parser specifico che:
-- riconosce le righe-header di stanza (cella su una sola colonna)
-- propaga `Room` alle righe successive
-- mappa la categoria in base al nome del file
-- estrae il supplier dalle parentesi tonde nel testo
-- normalizza Size in width/depth/height
+1. **Feature flag registry** (`src/lib/featureModules.ts`): registro centrale `{ id, label, paddle_price_id, route, component, requiredTier? }`.
+2. **Module loader**: route dinamiche `/project/:id/modules/:moduleId` che si aggiungono ai tab del ProjectDetail solo se `org.addons.includes(moduleId)`.
+3. **Skeleton "Modulo Taglio Marmi"**: tab placeholder con CTA "Attiva modulo (39€/mo)" che apre Paddle checkout overlay. Stessa cosa per "Piano Installazione Piastrelle". Implementazione funzionale dei moduli = fase post-lancio.
+4. **Admin dashboard tier** già esiste (`SubscriptionTierPanel`), va rifatto per leggere/scrivere su DB e mostrare add-on attivi/disponibili.
 
-**Pro**: design team continua a lavorare in Revit.  
-**Contro**: parser fragile (se cambia nome colonna o ordine, si rompe), immagini comunque assenti.
+### FASE 5 — Quality, observability, lancio (settimana 5-6+)
 
-### Strada C — Plugin Revit (lungo termine)
-
-Plugin C# / Dynamo che legge il modello Revit, prende anche le immagini dei tipi, le carica su Lovable Cloud Storage, e fa POST diretto al backend StudioScope tramite endpoint `/api/projects/{id}/import-from-revit`.
-
-**Pro**: vero "single source of truth", aggiornamenti incrementali (solo item modificati), immagini incluse.  
-**Contro**: 2-4 settimane di dev, richiede licenza Revit + ambiente .NET. Va pianificato come progetto a parte dopo il beta.
-
----
-
-## Mia raccomandazione
-
-**Fase 1 (ora, per il test)**: **Strada A** — ti consegno il template CSV ufficiale + un importer dedicato "Revit BOQ CSV" nel BOQ Analyst. Per il progetto 1003 io stesso converto i 10 file in 1 CSV pronto da importare, così testi subito.
-
-**Fase 2 (quando il flusso è validato)**: **Strada B** — importer multi-Excel che legge i Revit Schedules nativi, per evitare il doppio lavoro al design team.
-
-**Fase 3 (roadmap)**: **Strada C** — plugin Revit con sync bidirezionale.
-
----
-
-## Cosa farei concretamente in build mode
-
-1. Creare `docs/REVIT_CSV_TEMPLATE.md` con specifica colonne, valori ammessi e 3 esempi.
-2. Generare `templates/revit_boq_template.csv` scaricabile dal CSVImportDialog.
-3. Convertire i tuoi 10 file in `1003_master_boq.csv` pronto da importare (te lo passo come artifact).
-4. Estendere `CSVImportDialog.tsx` per supportare le **nuove colonne**: floor, room_type, room_number, subcategory, type_mark, supplier, dimensions (W/D/H), material_top, material_base, finish, reference_image_url.
-5. Aggiungere logica di **dedup** su `(project_id, type_mark, room_number)` per consentire re-import senza duplicati (update invece di insert).
-6. Validazione preview: mostrare la tabella prima dell'import con conteggio per categoria/stanza ed evidenziare righe con campi mancanti.
-
-### Tecnico
-
-- I nuovi campi `floor`, `room_type`, `room_number` vanno verificati sullo schema `project_items` — se mancano li aggiungo come migrazione side-by-side (memoria: mai droppare colonne).
-- Parsing `Size` con regex `/W?(\d+\.?\d*)\s*[xX×]\s*D?(\d+\.?\d*)\s*[xX×]\s*H?(\d+\.?\d*)/` per estrarre dimensioni.
-- Estrazione supplier con regex `/\(([^)]+)\)\s*$/` (es. "Diver executive desk (Bonaldo)" → "Bonaldo").
-- Batch insert da 50 righe (memoria progetto: già standard).
-- Per le immagini: aggiungere colonna `reference_image_url` opzionale; il design team può linkare un Drive/Dropbox pubblico per ogni Type Mark.
+1. **Email transazionali** (Lovable Email): welcome, conferma trial, 3gg prima fine trial, payment failed, invito team. Branded con logo org.
+2. **Test su larga scala**: seed 50 progetti, 5000 items, 200 quotations. Verifica paginazione (limite 1000 Supabase), indici su `project_items(project_id, lifecycle_status)`, `direct_messages(project_id, created_at)`. Profiling Gantt con 500 task.
+3. **Error tracking**: Sentry (free tier ok) per FE + edge functions.
+4. **Product analytics**: PostHog o Plausible per funnel signup→trial→paid, feature adoption.
+5. **Backup & DR**: documenta che Lovable Cloud fa snapshot, esponi export CSV per ogni tabella critica dall'admin panel.
+6. **Security scan finale**: `security--run_security_scan` + linter Supabase, fix tutti gli HIGH.
+7. **Dominio custom** (es. app.studioscope.io), HIBP password check attivo, rate limiting consapevolezza (Lovable non offre primitive — accettato).
+8. **Soft launch**: 5-10 studi paganti early adopter scontati -50% primi 3 mesi in cambio di feedback intensivo.
 
 ---
 
-## Decisione richiesta
+## Dettagli tecnici chiave
 
-Conferma:
-1. **Procedo con Strada A** (template CSV + conversione del tuo progetto 1003)?
-2. **Vuoi anche che generi adesso** (qui in chat, senza modificare il codice) il `1003_master_boq.csv` consolidato dai 10 file, così lo guardi prima?
+- **Stack billing**: Paddle Billing (non Classic), webhook con signature verification HMAC-SHA256 in edge function.
+- **Trial gestito da Paddle** (non da noi) → semplifica logica, status `trialing` sincronizzato via webhook.
+- **Seats add-on**: usare Paddle "quantity" su un price ricorrente, sincronizzato a `seats_extra` quando admin invita utente oltre limite (chiama `paddle.subscriptions.update`).
+- **Currency**: EUR default, multi-currency Paddle gestisce automaticamente al checkout.
+- **Migrations**: ogni step DB side-by-side (mantieni colonna vecchia + nuova fino a backfill ok, poi drop) come da memoria `database-migration-strategy`.
+- **Niente rate limiting backend**: noto gap Lovable, OK così.
 
-Se OK su entrambi, in build mode faccio il template + estendo l'importer + ti consegno il CSV pronto del progetto ufficio.
+## Cosa NON è in questo piano (deliberatamente)
+- Mobile app nativa (PWA installabile è già ok da preview)
+- Implementazione funzionale completa moduli Taglio Marmi / Piano Piastrelle (solo skeleton + billing pronto — li costruisci dopo il lancio)
+- Marketplace template/preset (post v3)
+- Integrazione Revit/AutoCAD nativa (oggi solo import CSV)
+
+## Output finale
+
+Alla fine delle 5 fasi avrai: app multi-tenant sicura, billing Paddle live con 3 tier + 5 add-on, white-label per ogni cliente, landing + pricing pubbliche, onboarding guidato, email branded, observability di base, 5-10 studi paganti reali in beta.
+
+**Procediamo dalla Fase 1 (sicurezza + multi-tenancy)?** È il prerequisito assoluto: senza non puoi nemmeno mostrare l'app a un secondo studio.
