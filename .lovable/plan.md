@@ -1,152 +1,190 @@
 
-# Piano riorganizzazione StudioScope — linguaggio semplice
+# Brief per lo sviluppatore del sito di vendita — v3
 
-## 1. VPS vs Lovable — la spiegazione che ti serve
-
-Hosting = il "computer sempre acceso" su cui gira il tuo software.
-
-**Hosting Lovable (consigliato per partire)**
-- Pro: zero manutenzione, backup automatici, sicurezza gestita, scala da sola se domani hai 100 studi, certificato HTTPS automatico, aggiornamenti istantanei quando modifichi qualcosa qui in chat.
-- Contro: paghi un canone Lovable mensile (cresce col traffico), il codice "vive" sui loro server.
-- Costo realistico fase beta: 0-50€/mese.
-
-**VPS tua (es. quella su cui gira amz.ee)**
-- Pro: controllo totale, canone fisso basso (5-20€/mese), dati fisicamente tuoi.
-- Contro: TU sei sysadmin. Significa: configurare server, database PostgreSQL, certificati SSL che scadono, backup, patch di sicurezza ogni settimana, monitoraggio uptime. Se cade alle 23:00 di sabato, lo ripari tu. E ogni modifica fatta qui in Lovable va esportata e ri-deployata a mano.
-- In fase di lancio commerciale è un freno enorme: stai vendendo a studi che si aspettano affidabilità, non puoi permetterti downtime mentre impari ad amministrare un server.
-
-**Raccomandazione concreta**: usa **amz.ee puntato all'hosting Lovable** per il test. Zero lavoro di sistemistica, dominio tuo, fra 6 mesi quando hai 20 clienti paganti decidiamo se spostare. Lo spostamento futuro è possibile ma costoso — non è una decisione da prendere ora.
+Aggiornamenti rispetto a v2: **ruoli custom solo lato nostro** (lo studio può solo rinominare), **niente trial — rimborso 15 giorni su annuale**, **sistema referral + codici sconto** completo.
 
 ---
 
-## 2. Architettura: due progetti, un unico database utenti
+## 1. Cosa è il prodotto
+
+Software SaaS per studi di interior design e contractor di hospitality. Gestisce un progetto dal preventivo (BOQ) all'installazione: BOQ Analyst, Gantt, Procurement, Supplier Exports, Costi/Margini, Messaging interno, 11 ruoli granulari. 3 tier + addon componibili.
+
+Nome prodotto: in scelta tra Nooka / Velvo / Krate / Lumio. Software interno = StudioScope. Dominio di test: `amz.ee` + `app.amz.ee`.
+
+---
+
+## 2. Tier e limiti
+
+| | **Starter** | **Pro** | **Business** |
+|---|---|---|---|
+| Prezzo ipotesi mensile | 29 € | 89 € | 199 € |
+| Prezzo ipotesi annuale (−15%) | 296 €/anno | 908 €/anno | 2.030 €/anno |
+| Progetti **attivi** in parallelo | 2 | 8 | illimitati |
+| Progetti archiviati | illimitati (read-only) | illimitati | illimitati |
+| Utenti **per ruolo** | 1 | 5 | illimitati |
+| Rinomina ruoli (label custom) | ✓ | ✓ | ✓ |
+| Creazione ruoli custom da zero | ✗ | ✗ | ✗ |
+| Supplier Exports (RFQ/PO/Proforma) | ✓ | ✓ | ✓ |
+| BOQ + Gantt + Procurement | ✓ | ✓ | ✓ |
+| Branding custom + dominio proprio | base | ✓ | ✓ |
+| Import Excel massivo | — | ✓ | ✓ |
+| Audit log | 30 gg | 12 mesi | illimitato |
+| Retention dopo mancato pagamento | 15 gg | 30 gg | 90 gg |
+
+Addon componibili (qualsiasi tier): Client Boards 19 €/mese, Presentation Builder 19 €/mese, Progetto extra 8 €/mese, Slot ruolo extra 12 €/mese.
+
+Addon nascosto (su richiesta): Disaster Recovery — fee di recupero una tantum (~290 €) + opzionale 19 €/mese.
+
+---
+
+## 3. Ruoli — regole rigide
+
+**Solo NOI possiamo creare nuovi ruoli o capability packs.** Distribuiamo gli aggiornamenti via release del software.
+
+Lo studio cliente può **solo rinominare l'etichetta visualizzata** di ogni ruolo del proprio account. Il ruolo tecnico sottostante (e i suoi permessi) restano invariati.
+
+Esempio: lo studio cambia "Project Manager" → "Andrew", "COO" → "Marco". L'utente Marco resta tecnicamente un `coo` con i permessi del COO; cambia solo il label nell'UI e nei PDF di quello studio.
+
+Motivazione (anti-abuso): se i clienti potessero creare ruoli, uno studio Business potrebbe sottoscrivere Starter e gonfiare permessi/utenti aggirando il modello commerciale.
+
+Implementazione: tabella `organization_role_labels` con `(organization_id, base_role, custom_label)`. Nessuna tabella `organization_roles` con permessi liberi.
+
+I 11 ruoli base attuali restano fissi (admin, coo, ceo, designer, head_of_design, architectural_dept, qs, accountant, head_of_payments, procurement_manager, project_manager, site_engineer, mep_engineer, client). Espansioni future le rilasciamo NOI.
+
+---
+
+## 4. Modello pagamento — no trial, rimborso 15 giorni
+
+**Niente "free trial".** Il cliente paga subito.
+
+Due piani:
+- **Mensile** — addebito ricorrente. Nessun rimborso retroattivo, cancellabile in qualsiasi momento (resta attivo fino a fine periodo pagato).
+- **Annuale** (−15%) — addebito unico. **Money-back guarantee 15 giorni**: se l'admin dello studio chiede rimborso entro 15 giorni dalla data di pagamento, ottiene il 100% indietro e l'account passa subito in `data_retention`.
+
+Pulsante "Richiedi rimborso" visibile in `Billing` solo se: piano annuale + giorni dal pagamento ≤ 15. Stripe/Paddle hanno API native per il rimborso programmato.
+
+Stati abbonamento (invariato vs v2): `active` / `past_due` (3 gg di tolleranza) / `suspended` (app bloccata, pagina solo per aggiornare il metodo) / `data_retention` (15/30/90 gg in base al tier) / `purged`.
+
+---
+
+## 5. Programma Referral
+
+### Fase 1 — apertura mercato (chiunque può referenziare)
+
+- Ogni utente registrato (anche **senza** subscription attiva) ottiene un **referral code univoco** alla signup. URL: `https://[sito]/?ref=ABCD1234`.
+- Quando un nuovo cliente paga usando quel referral code, il referrer riceve **10% di ogni pagamento andato a buon fine** del referred, **finché entrambi gli account restano attivi**.
+- Payout mensile via Stripe/Paddle Connect (bonifico o PayPal), soglia minima 50 €.
+- Il referrer vede in dashboard: codice, link condivisibile, n. referred attivi, commissioni maturate / pagate / in attesa.
+
+### Fase 2 — restrizione (decisione futura nostra)
+
+Stesso meccanismo ma il referrer deve avere un abbonamento attivo per ricevere commissioni. **Eccezioni manuali decise da te** (es. partner strategici grandfathered). Implementazione: flag `referral_grandfathered = true` sulla riga utente.
+
+### Codici sconto (separati dal referral)
+
+Tre tipi di codici, gestiti in pagina admin nostra (`/admin/discount-codes`):
+
+1. **% sconto per N mesi/cicli** — es. `LAUNCH50` = 50% per i primi 3 mesi.
+2. **Codice agente referral** — al checkout il cliente lo inserisce, l'agente collegato a quel codice riceve la commissione (alternativa al link `?ref=`, utile per agenti offline). Es. `MARCO2026`.
+3. **Accesso gratuito totale** — 100% sconto a tempo indeterminato o per N mesi. Da usare per partner strategici, beta tester, influencer iniziali. Es. `BETA-VIP-001`.
+
+Ogni codice ha: `code`, `kind` (`percent` | `agent` | `free_access`), `value`, `valid_from`, `valid_until`, `max_uses`, `usage_count`, `applies_to_tier`, `linked_agent_id` (per kind `agent`), `notes`. Tracciato uso per codice → cliente.
+
+### Tabelle DB nuove
+
+- `referral_codes` — id, user_id, code (univoco, generato), created_at, total_referred, total_earned_eur.
+- `referrals` — id, referrer_user_id, referred_organization_id, status (`pending|active|churned|grandfathered`), first_payment_at, last_commission_at.
+- `referral_commissions` — id, referral_id, invoice_id, amount_eur, status (`accrued|paid|reversed`), paid_at, payout_method.
+- `discount_codes` — id, code, kind, value, valid_from, valid_until, max_uses, usage_count, applies_to_tier, linked_agent_id, notes, created_at.
+- `discount_code_usages` — id, code_id, organization_id, applied_at, stripe_coupon_id.
+
+Tutti coperti da RLS: l'utente vede solo i suoi referral e commissioni; admin nostro (super-admin) vede tutto.
+
+---
+
+## 6. Onboarding sul sito (5 step)
+
+Invariato vs v2, con due modifiche:
+- Step 3 "Ruoli": lo studio vede gli 11 ruoli **già attivi**, può solo cliccare "Rinomina" per ognuno. Niente "crea nuovo ruolo".
+- Checkout: campo "Codice promo" opzionale + auto-rilevamento `?ref=` da URL.
 
 ```text
-amz.ee  (Progetto A — Sito vendita)        app.amz.ee  (Progetto B — Software)
-┌─────────────────────────────┐             ┌──────────────────────────────┐
-│ Landing pubblica            │             │ Login dello studio           │
-│ Pagina pricing (3 tier)     │             │ Dashboard progetti           │
-│ Scelta addon                │             │ BOQ / Gantt / Procurement    │
-│ Checkout (Stripe/Paddle)    │ ─ stesso ─► │ Onboarding wizard            │
-│ Form contatto enterprise    │   database  │ Gestione utenti & ruoli      │
-│ Blog / Help center          │             │ Moduli addon attivati        │
-└─────────────────────────────┘             └──────────────────────────────┘
+Step 1 — Studio (nome, paese, P.IVA, logo, colore)
+Step 2 — Dominio (sottodominio nostro / dominio proprio via DNS / acquisto)
+Step 3 — Rinomina ruoli (opzionale)
+Step 4 — Invita team (email + ruolo, magic link)
+Step 5 — Conferma → app.dominio-studio
 ```
 
-**Flusso utente unico**:
-1. Lo studio arriva su `amz.ee` → sceglie tier + addon → paga
-2. Pagamento conferma → si crea automaticamente lo "spazio" dello studio nel database
-3. Riceve email con link a `app.amz.ee` per il primo accesso
-4. Onboarding: nome studio, logo, colori → invita utenti e assegna ruoli
-5. Da quel momento usa solo `app.amz.ee`
+---
 
-I due progetti condividono **lo stesso backend Lovable Cloud** (un solo database utenti, abbonamenti, ecc.). Modificare uno non rompe l'altro.
+## 7. Pagine sito
+
+Landing, Features (1 per macro-area), **Pricing** (3 tier + addon, toggle Mensile/Annuale, banner "Annuale: 15 gg di rimborso garantito"), Per chi è, Demo/video, Login, Signup/Checkout, Onboarding wizard, Billing/Account (fatture, rimborso annuale, dominio, addon, **referral dashboard**, **codice promo**), Legali, Help center vuoto.
+
+Niente pagina "Training/Academy". Training su canale YouTube esterno non sponsorizzato.
 
 ---
 
-## 3. Modello commerciale — 3 tier + addon
+## 8. Stack tecnico
 
-**Tier base (prezzi da rivedere insieme, queste sono ipotesi)**
+- Sito: a scelta dell'esperto (Next.js + Stripe o Paddle è lo standard).
+- Pagamenti: **Paddle** consigliato (gestisce IVA EU, rimborsi, fatturazione globale). Stripe accettabile alternativa.
+- Database: condiviso con il software (Lovable Cloud / Postgres + RLS).
+- Auth: condivisa (signup nel checkout, login funziona ovunque).
+- Domini studio: wildcard `*.[nostro-dominio]` + CNAME custom + SSL Let's Encrypt automatico.
 
-| | Studio Starter ~29€/mese | Studio Pro ~89€/mese | Studio Business ~199€/mese |
-|---|---|---|---|
-| Progetti attivi | 2 | 10 | 30 |
-| Utenti totali | 3 | 10 | 25 |
-| BOQ + Gantt + Procurement | ✓ | ✓ | ✓ |
-| Branding custom (logo + nome) | ✓ | ✓ | ✓ |
-| Onboarding & training | ✓ | ✓ | ✓ |
-| Import Excel massivo | — | ✓ | ✓ |
-| Audit log esteso | 30gg | 12 mesi | illimitato |
-| Supporto | email | email prioritaria | dedicato |
+Webhook critici da gestire sul sito (oltre a quelli di v2):
+- `invoice.paid` → calcola commissione referral 10% e crea riga `referral_commissions`.
+- `charge.refunded` (entro 15 gg, annuale) → status → `data_retention`, reversione commissione referral.
+- `customer.subscription.deleted` → marca referral come `churned`.
 
-**Addon a pagamento (attivabili da chiunque, indipendenti dal tier)**
+### Tabelle multi-tenant (DB lavoro lato nostro)
 
-| Addon | Prezzo ipotesi | Cosa fa |
-|---|---|---|
-| Client Boards | 19€/mese | Tavole A3 firmate dal cliente |
-| Presentation Builder | 19€/mese | Slide builder con accept/reject diretto |
-| Supplier Exports | 19€/mese | RFQ, PO, Proforma PDF+Excel |
-| Progetto extra | 8€/mese cad. | Sblocca 1 progetto oltre il limite del tier |
-| Utente extra | 12€/mese cad. | Sblocca 1 utente oltre il limite |
-| Modulo Taglio Marmi | 39€/mese | (da costruire) |
-| Modulo Piano Installazione Piastrelle | 39€/mese | (da costruire) |
-| Onboarding & Training Pro | 490€ una tantum | Sessione 1:1 con te |
-
-Vantaggio chiave: **clienti che oggi non userebbero Client Boards/Presentation pagano meno** e tu monetizzi di più chi le usa davvero. Aggiungere un nuovo modulo (es. "Piani luce") in futuro = nuovo addon, zero impatto sui clienti esistenti.
+`organizations`, `organization_members`, `organization_role_labels` *(NON `organization_roles`)*, `organization_subscriptions`, `organization_domains`, `organization_invoices`, `organization_backups`, + `referral_*` e `discount_*` di §5. Colonna `organization_id` + RLS `is_org_member()` su ogni tabella dati.
 
 ---
 
-## 4. Versioning automatico — risolto
+## 9. Cosa resta a noi in Lovable
 
-Da subito, ogni modifica fatta qui bumperà la versione (2.5.0 → 2.5.1 → 2.5.2 …) e aggiornerà un mini-changelog visibile nel pannello admin. Vedi versione in alto a destra, clicchi e leggi cosa è cambiato e quando.
+- Multi-tenancy (organizations + RLS riscritta + organization_id ovunque)
+- Sistema stati abbonamento + splash blocco app
+- `organization_role_labels` + UI rinomina ruoli in onboarding e admin
+- Sistema feature flag (Client Boards, Presentation = addon attivabili)
+- `projects.is_archived` + edge function conteggio attivi + regola riapertura
+- Job notturno backup → NAS
+- Endpoint server-to-server per il sito: create-org, read-subscription, validate-invite, register-domain, **validate-discount-code**, **register-referral-attribution**
+- Pannello admin `/admin/referrals` (lista referrer, commissioni, payout) + `/admin/discount-codes` (CRUD codici)
+- Dashboard referral per utente finale dentro `/account`
 
-Funziona così:
-- File `src/lib/version.ts` aggiornato ad ogni mio cambio
-- Tabella `changelog` nel database con: versione, data, sintesi modifica, autore
-- Pannello admin "Cronologia versioni" per consultarla
-- Te lo metto nei prossimi cambiamenti come prima cosa, indipendentemente dal resto del piano
-
----
-
-## 5. Test interno con account finti — come lo facciamo bene
-
-Già hai 11 account `*@test.it` (password `Def@ult01`). Costruiamo un **kit di test scenario** che simula 4 settimane di vita di un progetto reale in 1 ora:
-
-1. **Seed automatico**: pulsante "Crea progetto demo completo" che genera 1 progetto con 200 item finti, 50 quotazioni, 30 task Gantt, milestone, board firmate, presentation.
-2. **Checklist scenari critici** (PDF stampabile):
-   - Signup studio nuovo → onboarding → primo progetto
-   - Designer crea item → Senior approva → HoD approva → Client firma board
-   - Procurement riceve 3 quotazioni → accetta una → genera PO → registra pagamenti
-   - Gantt: task in ritardo → notifica → riassegnazione
-   - Tentativo di violare i limiti del tier (creare 4° progetto con tier Starter)
-   - Test isolamento: studio A non deve mai vedere dati studio B
-3. **Bug tracker integrato**: pulsante "Segnala bug" in basso a destra che apre form e salva su tabella `bug_reports` con screenshot automatico.
-
-Lo facciamo dopo aver completato l'isolamento multi-studio (è il prerequisito assoluto).
+Prerequisito: multi-tenancy + sistema abbonamenti + referral/discount devono esistere PRIMA che l'esperto del sito implementi il checkout.
 
 ---
 
-## 6. Ordine operativo proposto (8 settimane realistiche)
+## 10. Cosa NON fare
 
-| Sett. | Cosa | Perché ora |
-|---|---|---|
-| 1 | Versioning + changelog + isolamento multi-studio (Fase 1 già avviata) | Senza isolamento non puoi mostrare a 2 studi |
-| 2 | Architettura addon dinamica (sistema feature flag) + spostare Client Boards/Presentation/Supplier Exports come addon | Cambia il modello commerciale, va fatto prima dei prezzi |
-| 3 | Progetto B (software) finito + bug tracker + seed demo + kit test scenario | Test interno serio |
-| 4 | Test interno intensivo con i 11 account, fix bug, performance | Quality gate |
-| 5 | Progetto A (sito vendita amz.ee): landing, pricing, checkout Stripe/Paddle | Solo dopo che il software è solido |
-| 6 | Onboarding post-pagamento (creazione studio automatica) + email branded | Esperienza professionale |
-| 7 | White-label per-studio (logo, colori in PDF e UI) + admin panel finale | Differenziatore commerciale |
-| 8 | Dominio amz.ee + app.amz.ee live, monitoring, primi 3 studi reali invitati | Soft launch controllato |
+- Niente trial gratuito.
+- Niente possibilità per il cliente di creare ruoli da zero.
+- Niente promozione pubblica del backup/recupero dati.
+- Niente pagina training/academy sul sito.
+- Niente prezzi "fittizi" tipo "da 9€": mostrare il prezzo reale del tier.
 
 ---
 
-## 7. Cosa NON faremo in questo piano
+## 11. Cosa fornire all'esperto
 
-- Spostamento su VPS (rimandato a quando ha senso economico)
-- Moduli Taglio Marmi e Piastrelle implementati (solo skeleton + addon attivabile, li costruisci dopo il lancio)
-- Mobile app nativa (la web app è già usabile da mobile)
-- Integrazioni Revit/AutoCAD avanzate
-
----
-
-## 8. Domande aperte che decideremo strada facendo
-
-- Prezzi esatti dei 3 tier e degli addon (oggi sono ipotesi, li tariamo dopo i primi feedback)
-- Provider pagamenti definitivo (Stripe seamless vs Paddle — decidiamo in settimana 5 con dati alla mano)
-- Se l'onboarding 1:1 a 490€ è davvero opzionale o lo regaliamo ai primi 10 studi
+1. Questo brief.
+2. Demo del software in sola lettura.
+3. Screenshot HQ.
+4. Brand finale (quando scelto nome).
+5. Lista partner registrar (Namecheap, Gandi, OpenSRS, Cloudflare).
+6. **Specifica completa schema referral + discount** (questa sezione 5 + tabelle DB).
+7. Feature matrix Excel definitiva.
 
 ---
 
-## Sezione tecnica (puoi saltarla)
+**Quando approvi v3, posso:**
+1. Esportare in PDF/Word per l'esperto, oppure
+2. Iniziare l'implementazione lato software dei prerequisiti (multi-tenancy + role labels + tabelle referral/discount + stati abbonamento + archivio progetti).
 
-- Bump versione: pre-commit hook + tabella `app_versions(version, label, summary, released_at)`.
-- Multi-tenancy: tabella `organizations` + `organization_members` (già creata in Fase 1.1), aggiunta colonna `organization_id` su `projects`, `suppliers`, `company_settings`, `client_boards`, `presentations`, `*_documents`. RLS riscritta con `is_org_member()`.
-- Addon: registry `src/lib/featureModules.ts`, gate `useFeature('client_boards')` letto da `organization_subscriptions.addons` jsonb.
-- Sito vendita: secondo progetto Lovable che usa lo stesso Supabase project ref via API key dedicata, scrive su `organizations` e `organization_subscriptions` post-webhook pagamento.
-- Dominio: amz.ee A-record → Lovable (Progetto A), app.amz.ee CNAME → Lovable (Progetto B).
-- Test: edge function `seed-demo-project` invocabile da admin; tabella `bug_reports` con upload screenshot via storage bucket.
-
----
-
-**Quando approvi questo piano**, parto da: (1) sistema di versioning automatico, (2) completamento isolamento multi-studio già iniziato in Fase 1.1. Niente sito vendita né addon finché il software non è multi-studio sicuro — è il prerequisito di tutto il resto.
+Dimmi quale.
