@@ -1416,9 +1416,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_org_role_labels: {
+        Args: { p_org: string }
+        Returns: {
+          base_role: string
+          label: string
+        }[]
+      }
       get_org_subscription_status: {
         Args: { p_org: string }
         Returns: Database["public"]["Enums"]["subscription_status"]
+      }
+      get_role_label: {
+        Args: { p_org: string; p_role: Database["public"]["Enums"]["app_role"] }
+        Returns: string
       }
       get_user_org: { Args: never; Returns: string }
       has_role: {
