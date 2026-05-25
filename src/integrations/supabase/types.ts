@@ -645,6 +645,59 @@ export type Database = {
           },
         ]
       }
+      organization_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string
+          grace_until: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          purge_at: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          suspend_at: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end: string
+          grace_until?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          purge_at?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          suspend_at?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string
+          grace_until?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          purge_at?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          suspend_at?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           branding: Json
@@ -1363,6 +1416,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_org_subscription_status: {
+        Args: { p_org: string }
+        Returns: Database["public"]["Enums"]["subscription_status"]
+      }
       get_user_org: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1376,6 +1433,14 @@ export type Database = {
       is_org_owner: { Args: { p_org: string }; Returns: boolean }
       is_project_member: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
+      tick_subscription_lifecycle: {
+        Args: never
+        Returns: {
+          new_status: Database["public"]["Enums"]["subscription_status"]
+          old_status: Database["public"]["Enums"]["subscription_status"]
+          org_id: string
+        }[]
+      }
     }
     Enums: {
       app_role:
@@ -1443,6 +1508,13 @@ export type Database = {
         | "closed"
         | "cancelled"
       payment_scheme: "single" | "split_50_50" | "installments_3"
+      subscription_status:
+        | "active"
+        | "grace"
+        | "suspended"
+        | "purge_pending"
+        | "purged"
+      subscription_tier: "starter" | "pro" | "business"
       task_macro_area:
         | "planning"
         | "design_validation"
@@ -1648,6 +1720,14 @@ export const Constants = {
         "cancelled",
       ],
       payment_scheme: ["single", "split_50_50", "installments_3"],
+      subscription_status: [
+        "active",
+        "grace",
+        "suspended",
+        "purge_pending",
+        "purged",
+      ],
+      subscription_tier: ["starter", "pro", "business"],
       task_macro_area: [
         "planning",
         "design_validation",
