@@ -578,6 +578,103 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_members: {
+        Row: {
+          id: string
+          is_owner: boolean
+          joined_at: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_owner?: boolean
+          joined_at?: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_owner?: boolean
+          joined_at?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_role_labels: {
+        Row: {
+          base_role: string
+          created_at: string
+          custom_label: string
+          id: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_role: string
+          created_at?: string
+          custom_label: string
+          id?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_role?: string
+          created_at?: string
+          custom_label?: string
+          id?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_labels_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          branding: Json
+          created_at: string
+          custom_domain: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          branding?: Json
+          created_at?: string
+          custom_domain?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          branding?: Json
+          created_at?: string
+          custom_domain?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       presentations: {
         Row: {
           created_at: string
@@ -1053,6 +1150,7 @@ export type Database = {
           last_update_date: string | null
           location: string | null
           name: string
+          organization_id: string | null
           owner_id: string
           project_manager: string | null
           start_date: string
@@ -1069,6 +1167,7 @@ export type Database = {
           last_update_date?: string | null
           location?: string | null
           name: string
+          organization_id?: string | null
           owner_id: string
           project_manager?: string | null
           start_date: string
@@ -1085,13 +1184,22 @@ export type Database = {
           last_update_date?: string | null
           location?: string | null
           name?: string
+          organization_id?: string | null
           owner_id?: string
           project_manager?: string | null
           start_date?: string
           target_completion_date?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supplier_comments: {
         Row: {
@@ -1255,6 +1363,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_org: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1263,6 +1372,8 @@ export type Database = {
         Returns: boolean
       }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
+      is_org_member: { Args: { p_org: string }; Returns: boolean }
+      is_org_owner: { Args: { p_org: string }; Returns: boolean }
       is_project_member: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
     }
