@@ -1,120 +1,119 @@
-# Piano implementazione — Software prerequisiti per il sito di vendita
+# Brief non-tecnico — Cosa stiamo per costruire
 
-L'implementazione è divisa in **6 fasi atomiche**. Ogni fase è auto-contenuta, testabile, e non rompe le funzionalità esistenti. Eseguiamo una fase per volta, con verifica prima della successiva.
-
----
-
-## FASE 1 — Multi-tenancy foundation (DB + RLS)
-
-**Obiettivo**: introdurre il concetto di "organizzazione" (studio) senza modificare le funzionalità esistenti.
-
-Tabelle nuove:
-- `organizations` (id, name, slug, custom_domain, branding jsonb, created_at)
-- `organization_members` (org_id, user_id, joined_at, is_owner)
-- `organization_role_labels` (org_id, base_role app_role, custom_label) — **solo rename**, no permessi custom
-
-Funzione security definer:
-- `is_org_member(org_id uuid)` → bool
-- `get_user_org()` → uuid (organizzazione attiva dell'utente corrente)
-
-Migrazione dati esistenti:
-- Creo 1 organizzazione di default "Studio Scope" e ci attacco tutti gli utenti correnti come membri
-- Aggiungo colonna `organization_id` a `projects` (nullable inizialmente, poi backfill, poi NOT NULL)
-- **Non tocco RLS esistenti in questa fase** — solo aggiungo strutture
-
-Output: DB pronto per multi-tenancy, app continua a funzionare identica.
+Prima di mettere mano al codice, ecco in parole semplici **cosa cambia nel software** dopo le 6 fasi. Niente termini tecnici: solo cosa vedrai tu, cosa vedranno i tuoi clienti, e perché serve.
 
 ---
 
-## FASE 2 — Subscription state machine
+## Il punto di partenza
 
-Tabella `organization_subscriptions`:
-- org_id, tier (`starter`|`pro`|`business`), billing_cycle (`monthly`|`annual`)
-- status (`active`|`past_due`|`data_retention`|`purged`|`cancelled`)
-- current_period_end, retention_until, cancelled_at
-- stripe_customer_id, stripe_subscription_id (preparazione)
+Oggi Studio Scope è **un'unica casa condivisa**: tutti gli utenti vedono tutto, esiste un solo "studio". Va benissimo per la beta interna, ma non possiamo venderlo a clienti esterni così — finirebbero per vedersi i dati a vicenda.
 
-Edge function `check-subscription-status` (cron giornaliero):
-- past_due → data_retention dopo X giorni (15/30/90 per tier)
-- data_retention → purged dopo periodo
-- emit notifiche email
-
-Hook `useSubscription()` lato client + componente **`SubscriptionGate`** che blocca l'accesso al software se status ≠ active. Mostra splash "Pagamento sospeso — riprendi su [link]".
+L'obiettivo delle 6 fasi è trasformare il software in un **condominio**: ogni studio cliente ha il suo appartamento privato, con la sua porta, le sue chiavi, il suo abbonamento. Tu (proprietario del palazzo) hai le chiavi master e vedi tutto dall'alto.
 
 ---
 
-## FASE 3 — Capability packs + role labels custom
+## FASE 1 — Creiamo gli "appartamenti separati"
 
-`src/lib/capabilities.ts`: 11 ruoli base con capability fissi (`view_costs`, `approve_design`, `manage_suppliers`, `manage_team`, ecc.). Sostituisce il check `roles.includes('admin')` sparso nel codice con `hasCapability('manage_team')`.
+**Cosa cambia per te:** nulla di visibile. Lavoro di fondamenta invisibile.
 
-UI in `/admin/roles`: l'admin dello studio può **rinominare** un ruolo base (es. "Project Manager" → "Andrew"). Nessun pulsante "crea ruolo nuovo".
+**Cosa facciamo dietro le quinte:** introduciamo il concetto di "Organizzazione" (= studio cliente). Ogni utente d'ora in poi appartiene a un'organizzazione, ogni progetto appartiene a un'organizzazione. I dati esistenti li mettiamo tutti in un'organizzazione di default chiamata "Studio Scope" così non si rompe nulla.
 
-Refactor minimo: `useUserRole` aggiunge `getLabel(role)` che legge `organization_role_labels`.
-
----
-
-## FASE 4 — Archived projects + tier limits
-
-Aggiunge a `projects`:
-- `is_archived` boolean default false
-- `archived_at` timestamp
-- `archived_reason` text
-
-Logica:
-- Tier limits su progetti **attivi** (Starter 2, Pro 8, Business unlimited) — archiviati illimitati
-- Archive = read-only (RLS blocca INSERT/UPDATE su `project_items` se progetto archiviato)
-- Riaprire un archiviato consuma uno slot attivo; trigger conta riaperture/mese → se >2 richiede addon
-
-Aggiornamento `src/lib/subscriptionTiers.ts` con i nuovi limiti definiti.
-
-UI: pulsanti Archive/Unarchive nella card progetto, filtro "Attivi/Archiviati/Tutti" nella dashboard.
+**Perché serve:** è la base. Senza questo, tutte le fasi successive non funzionano. È come gettare le fondamenta di un palazzo prima di costruire i piani.
 
 ---
 
-## FASE 5 — Referral + discount codes
+## FASE 2 — Il "semaforo" dell'abbonamento
 
-Tabelle:
-- `referral_codes` (user_id, code, created_at, is_active)
-- `referrals` (referrer_user_id, referred_org_id, attributed_at, status)
-- `referral_commissions` (referral_id, amount, period, paid_at, payout_method)
-- `discount_codes` (code, type `percent_off`|`free_access`|`agent_ref`, value, max_uses, valid_until, created_by)
-- `discount_code_usages` (code_id, org_id, applied_at)
+**Cosa cambia per te:** vedrai un pannello "Stato abbonamento" per ogni cliente. Verde = paga, giallo = in ritardo, rosso = bloccato, nero = dati cancellati.
 
-Onboarding form (per ora solo nel software, poi migrerà al sito):
-- Campo opzionale "Codice promo" + auto-detect `?ref=ABCD` dall'URL
-- Edge function `validate-discount-code` + `register-referral-attribution`
+**Cosa cambia per il cliente:** se smette di pagare, il software entra in **modalità protezione**:
+- Per i primi giorni di ritardo: avviso giallo "rinnova entro X giorni"
+- Scaduto il termine (15 giorni Base / 30 Pro / 90 Business): accesso bloccato, schermata "Pagamento sospeso — riprendi qui"
+- Scaduta la finestra di conservazione: dati cancellati dal sistema attivo (ma noi ne teniamo una copia sul NAS, recuperabile a pagamento)
 
-Dashboard utente `/profile/referral`: codice personale, link condivisibile, totale commissioni.
-Admin panel `/admin/referrals` + `/admin/discount-codes`.
+**Perché serve:** è il meccanismo che protegge il tuo fatturato. Senza pagamento, niente accesso. Senza ambiguità.
 
 ---
 
-## FASE 6 — Edge functions server-to-server per il sito esterno
+## FASE 3 — Rinominare i ruoli (ma non inventarli)
 
-Edge functions con API key dedicata (`SITE_INTEGRATION_KEY`):
-- `POST /create-organization` — chiamata da onboarding sito
-- `GET /read-subscription/:org_id`
-- `POST /update-subscription-status` (webhook Stripe/Paddle)
-- `POST /validate-invite-token`
-- `POST /register-domain` (CNAME setup)
-- `POST /validate-discount-code` (pubblica, per il sito)
+**Cosa cambia per il cliente:** nell'area admin del suo studio, può rinominare i ruoli a piacere. Esempio: "Project Manager" diventa "Andrew", "COO" diventa "Marco". Le **funzioni e i permessi restano fissi** — cambia solo l'etichetta che lui vede.
 
-Documentazione `docs/SITE_INTEGRATION_API.md` da consegnare al web expert.
+**Cosa NON può fare il cliente:** creare ruoli nuovi. Se potesse, comprerebbe il piano Base e poi creerebbe 50 ruoli per non pagare il Pro. Blindato.
+
+**Cosa puoi fare solo tu:** in futuro, aggiungere ruoli nuovi al sistema (lato codice).
+
+**Perché serve:** personalizzazione per il cliente senza aprire una falla nel modello a tier.
 
 ---
 
-## Note tecniche trasversali
+## FASE 4 — Progetti attivi vs archiviati
 
-- **Non si tocca** `src/integrations/supabase/client.ts` né `types.ts` (rigenerati da Lovable).
-- Ogni fase ha la sua migrazione SQL separata e idempotente.
-- Tutte le RLS nuove usano security definer functions per evitare ricorsioni.
-- `LOVABLE_API_KEY` già presente → ok per le edge functions.
-- Manteniamo `localStorage` di `subscriptionTiers.ts` come fallback dev finché Stripe non è collegato.
+**Cosa cambia per il cliente:** ogni progetto ha un pulsante "Archivia". Un progetto archiviato:
+- Resta consultabile in sola lettura
+- Non conta nel limite dei progetti attivi del suo tier
+- Non si possono più modificare items, costi, gantt
+
+Limiti per tier (sui soli **attivi**):
+- **Starter**: 2 progetti attivi
+- **Pro**: 8 progetti attivi
+- **Business**: illimitati
+
+**Anti-furbetti:** riaprire un progetto archiviato consuma uno slot attivo. Se uno fa più di 2 riaperture al mese, deve comprare un addon. Così evitiamo che "studio business infiniti progetti" archivi e riapra a ciclo continuo per restare nel piano Base.
+
+**Perché serve:** è il principale vincolo commerciale che differenzia i tier.
 
 ---
 
-## Cosa propongo ora
+## FASE 5 — Programma referral + codici sconto
 
-Comincio con la **FASE 1** (foundation multi-tenancy): è la base di tutto e a livello utente non cambia nulla di visibile. Ti chiedo conferma prima di partire con la migrazione SQL — una volta create le tabelle e fatto il backfill, le fasi successive scorrono in cascata.
+**Cosa cambia per chiunque (anche senza abbonamento):**
+- Ha un codice referral personale e un link condivisibile
+- Vede in dashboard quanti clienti ha portato e quanto ha guadagnato
+- Riceve 10% su ogni pagamento andato a buon fine del cliente portato
 
-Confermi di partire con FASE 1?
+**Cosa puoi fare tu (admin globale):**
+- Creare codici sconto generici (es. -20% per 3 mesi)
+- Creare codici sconto **accesso totale gratuito** (per i primi clienti chiave / influencer)
+- Vedere il pannello commissioni e marcare i pagamenti come "pagati"
+
+**Perché serve:** è il motore di crescita organica nei primi 6-12 mesi, prima di investire in adv.
+
+---
+
+## FASE 6 — La "porta sul retro" per il sito esterno
+
+**Cosa cambia per te:** ti consegno un documento tecnico (`SITE_INTEGRATION_API.md`) da dare al web expert che farà il sito. Dentro c'è la lista di "chiamate" che il sito potrà fare al software, con esempi:
+- "Crea una nuova organizzazione per questo cliente che ha appena pagato"
+- "Verifica se questo codice sconto è valido"
+- "Aggiorna lo stato abbonamento perché Stripe dice che è stato pagato"
+- "Registra questo dominio custom per lo studio X"
+
+**Cosa cambia per il cliente finale:** l'onboarding (registrazione, scelta tier, pagamento, scelta dominio) avviene **sul sito**, non nel software. Quando finisce, viene loggato direttamente nel suo "appartamento" già configurato.
+
+**Perché serve:** è il ponte tra il sito di vendita (che farà l'esperto) e il software (che gestisci tu). Senza questo, il sito non può "creare" clienti.
+
+---
+
+## Tempi e modalità
+
+Procediamo **una fase alla volta**. Dopo ogni fase ti chiedo conferma, verifichi che nulla si sia rotto e si va alla successiva. Stimato:
+
+- Fase 1: ~1 sessione (fondamenta)
+- Fase 2: ~1 sessione (semaforo + cron)
+- Fase 3: ~1 sessione (etichette ruoli)
+- Fase 4: ~1 sessione (archivio + limiti)
+- Fase 5: ~2 sessioni (referral + codici sconto sono ricchi)
+- Fase 6: ~1 sessione (solo edge functions + doc)
+
+**Totale: ~7 sessioni di lavoro.** Nessuna funzionalità esistente viene rimossa o stravolta. Si aggiungono solo strati nuovi.
+
+---
+
+## Due cose da decidere ora (prima di Fase 1)
+
+1. **Nome dell'organizzazione di default** in cui metto tutti gli utenti e progetti esistenti: ti propongo **"Studio Scope"**. Va bene o preferisci un altro nome (es. il nome del tuo studio reale)?
+
+2. **Stripe vs Paddle vs nessuno per ora**: in Fase 2 prevedo i campi `stripe_customer_id` ma lascio lo switch manuale (tu cambi tier dal pannello admin) finché il sito non è pronto. Confermi questa scelta o vuoi già collegare Stripe?
+
+Confermando queste due cose parto subito con Fase 1.
