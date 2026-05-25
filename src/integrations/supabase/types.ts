@@ -1116,6 +1116,30 @@ export type Database = {
           },
         ]
       }
+      project_reopen_log: {
+        Row: {
+          id: string
+          organization_id: string
+          project_id: string
+          reopened_at: string
+          reopened_by: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          project_id: string
+          reopened_at?: string
+          reopened_by?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          project_id?: string
+          reopened_at?: string
+          reopened_by?: string | null
+        }
+        Relationships: []
+      }
       project_tasks: {
         Row: {
           assignee_id: string | null
@@ -1194,6 +1218,8 @@ export type Database = {
       }
       projects: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           boq_master_ref: string | null
           boq_version: string | null
           client: string
@@ -1211,6 +1237,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           boq_master_ref?: string | null
           boq_version?: string | null
           client: string
@@ -1228,6 +1256,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           boq_master_ref?: string | null
           boq_version?: string | null
           client?: string
@@ -1444,6 +1474,9 @@ export type Database = {
       is_org_owner: { Args: { p_org: string }; Returns: boolean }
       is_project_member: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
+      org_active_project_count: { Args: { p_org: string }; Returns: number }
+      org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
+      org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
       tick_subscription_lifecycle: {
         Args: never
         Returns: {
@@ -1451,6 +1484,10 @@ export type Database = {
           old_status: Database["public"]["Enums"]["subscription_status"]
           org_id: string
         }[]
+      }
+      tier_project_limit: {
+        Args: { t: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: number
       }
     }
     Enums: {
