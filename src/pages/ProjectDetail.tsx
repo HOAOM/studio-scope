@@ -859,6 +859,9 @@ export default function ProjectDetail() {
           canSeeCosts={effectiveCanSeeCosts}
         />
       )}
-    </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
+
