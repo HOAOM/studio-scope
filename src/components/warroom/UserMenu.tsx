@@ -102,6 +102,12 @@ export function UserMenu() {
             <Shield className="w-4 h-4 mr-2" />
             Admin
           </DropdownMenuItem>
+          {isAdmin && (
+            <DropdownMenuItem onClick={() => navigate('/super-admin')} className="cursor-pointer">
+              <Crown className="w-4 h-4 mr-2 text-yellow-500" />
+              Super-Admin
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
             <LogOut className="w-4 h-4 mr-2" />
