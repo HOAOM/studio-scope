@@ -80,7 +80,7 @@ export function ProjectSidebar({ value, onChange, badges = {} }: Props) {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      tooltip={item.label}
+                      tooltip={{ children: item.label, className: 'z-[60]', sideOffset: 8 }}
                     >
                       <button
                         type="button"
