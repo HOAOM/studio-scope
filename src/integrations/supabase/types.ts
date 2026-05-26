@@ -261,6 +261,84 @@ export type Database = {
           },
         ]
       }
+      discount_codes: {
+        Row: {
+          amount_off: number | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          max_redemptions: number | null
+          percent_off: number | null
+          scope_org_id: string | null
+          scope_tier: Database["public"]["Enums"]["subscription_tier"] | null
+          total_redemptions: number
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          amount_off?: number | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          percent_off?: number | null
+          scope_org_id?: string | null
+          scope_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          total_redemptions?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          amount_off?: number | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          percent_off?: number | null
+          scope_org_id?: string | null
+          scope_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          total_redemptions?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      discount_redemptions: {
+        Row: {
+          discount_code_id: string
+          id: string
+          organization_id: string
+          redeemed_at: string
+          redeemed_by: string | null
+        }
+        Insert: {
+          discount_code_id: string
+          id?: string
+          organization_id: string
+          redeemed_at?: string
+          redeemed_by?: string | null
+        }
+        Update: {
+          discount_code_id?: string
+          id?: string
+          organization_id?: string
+          redeemed_at?: string
+          redeemed_by?: string | null
+        }
+        Relationships: []
+      }
       item_costs: {
         Row: {
           amount: number | null
@@ -1284,6 +1362,60 @@ export type Database = {
           },
         ]
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          total_redemptions: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          total_redemptions?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          total_redemptions?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referral_redemptions: {
+        Row: {
+          id: string
+          redeemed_at: string
+          redeemed_by: string | null
+          referral_code_id: string
+          referred_org_id: string
+        }
+        Insert: {
+          id?: string
+          redeemed_at?: string
+          redeemed_by?: string | null
+          referral_code_id: string
+          referred_org_id: string
+        }
+        Update: {
+          id?: string
+          redeemed_at?: string
+          redeemed_by?: string | null
+          referral_code_id?: string
+          referred_org_id?: string
+        }
+        Relationships: []
+      }
       supplier_comments: {
         Row: {
           author_id: string | null
@@ -1446,6 +1578,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_referral: {
+        Args: { p_code: string; p_org: string }
+        Returns: boolean
+      }
+      gen_referral_slug: { Args: never; Returns: string }
       get_org_role_labels: {
         Args: { p_org: string }
         Returns: {
@@ -1477,6 +1614,10 @@ export type Database = {
       org_active_project_count: { Args: { p_org: string }; Returns: number }
       org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
       org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
+      redeem_discount: {
+        Args: { p_code: string; p_org: string }
+        Returns: boolean
+      }
       tick_subscription_lifecycle: {
         Args: never
         Returns: {
@@ -1488,6 +1629,19 @@ export type Database = {
       tier_project_limit: {
         Args: { t: Database["public"]["Enums"]["subscription_tier"] }
         Returns: number
+      }
+      validate_discount: {
+        Args: {
+          p_code: string
+          p_org: string
+          p_tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Returns: {
+          amount_off: number
+          percent_off: number
+          reason: string
+          valid: boolean
+        }[]
       }
     }
     Enums: {
