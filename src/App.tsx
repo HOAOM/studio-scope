@@ -102,6 +102,14 @@ const App = () => (
               }
             />
             <Route
+              path="/super-admin"
+              element={
+                <ProtectedRoute>
+                  <SuperAdmin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/messages"
               element={
                 <ProtectedRoute>
