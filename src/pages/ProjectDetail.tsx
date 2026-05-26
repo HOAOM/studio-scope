@@ -148,6 +148,7 @@ export default function ProjectDetail() {
 
   const effectiveCanSeeCosts = canSeeCosts;
   
+  const [activeTab, setActiveTab] = useState<ProjectSection>('overview');
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ProjectItem | null>(null);
