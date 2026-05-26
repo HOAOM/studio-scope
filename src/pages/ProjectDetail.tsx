@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/table';
 import { ConfirmDeleteDialog } from '@/components/warroom/ConfirmDeleteDialog';
 import { 
-  ArrowLeft, 
+  Calendar, 
   Calendar, 
   User, 
   MapPin, 
