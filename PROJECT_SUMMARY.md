@@ -217,7 +217,8 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 | Data | Modifica |
 |------|----------|
 | 2026-05-26 | Versione iniziale, post-Fase 6 + storage limits (Fase 7) |
-| 2026-05-26 | **Blocco 1 — Navigation refresh**: introdotta `ProjectSidebar` (`src/components/layout/ProjectSidebar.tsx`) che sostituisce la `TabsList` orizzontale in `ProjectDetail`. Layout responsive: desktop sidebar espansa, tablet icon-only, mobile offcanvas via `SidebarTrigger`. Header reso più compatto e responsive. |
+| 2026-05-26 | **Blocco 1 — Navigation refresh**: introdotta `ProjectSidebar` (`src/components/layout/ProjectSidebar.tsx`) che sostituisce la `TabsList` orizzontale in `ProjectDetail`. Layout responsive: desktop sidebar espansa, tablet icon-only, mobile offcanvas via `SidebarTrigger`. Header reso più compatto. Fix tooltip z-index quando la sidebar è collassata. |
+| 2026-05-26 | **Blocco 2 — Server-side tier hardening**: il controllo dei limiti del piano non è più solo client/localStorage. Aggiunti in DB: `tier_storage_limit_bytes`, `get_org_effective_tier(org)`, `get_org_active_project_count(org)`, trigger `trg_enforce_project_tier_limit` su `public.projects` (BEFORE INSERT) che blocca la creazione oltre il limite, RPC `get_my_org_subscription_summary()`. Nuovo hook `useOrgSubscription` (`src/hooks/useOrgSubscription.ts`) consuma la RPC. Migration applicata via edge function `run-migration-block2`. La tier 'business' usa bigint-max per gli storage limits. |
 
 ---
 
