@@ -242,40 +242,45 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background war-room-grid">
-      {/* Header — compact on scroll */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border group/header transition-all duration-200 [&.compact]:py-0" id="project-header">
-        <div className="container py-3 group-[.compact]/header:py-1.5 transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link to="/" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm hidden group-[.compact]/header:hidden sm:inline">War Room</span>
-              </Link>
-              <div className="h-5 w-px bg-border" />
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-muted-foreground">{project.code}</span>
-                <span className="text-muted-foreground">·</span>
-                <h1 className="text-base font-bold text-foreground group-[.compact]/header:text-sm transition-all duration-200 truncate max-w-[300px]">{project.name}</h1>
-                <VersionBadge className="ml-1 hidden md:inline-flex" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background war-room-grid">
+        <ProjectSidebar
+          value={activeTab}
+          onChange={setActiveTab}
+          badges={{ items: urgentTasks.length || undefined }}
+        />
+        <SidebarInset className="flex-1 min-w-0">
+          {/* Header — compact on scroll */}
+          <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border group/header transition-all duration-200 [&.compact]:py-0" id="project-header">
+            <div className="px-3 sm:px-4 lg:px-6 py-3 group-[.compact]/header:py-1.5 transition-all duration-200">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <SidebarTrigger className="shrink-0" />
+                  <div className="h-5 w-px bg-border hidden sm:block" />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-xs text-muted-foreground hidden sm:inline">{project.code}</span>
+                    <span className="text-muted-foreground hidden sm:inline">·</span>
+                    <h1 className="text-base font-bold text-foreground group-[.compact]/header:text-sm transition-all duration-200 truncate max-w-[180px] sm:max-w-[300px]">{project.name}</h1>
+                    <VersionBadge className="ml-1 hidden lg:inline-flex" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
+                    <Upload className="w-3.5 h-3.5 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Import</span>
+                  </Button>
+                  <Button size="sm" onClick={() => { setEditingItem(null); setItemDialogOpen(true); }}>
+                    <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Add Item</span>
+                  </Button>
+                  <UserMenu />
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
-                <Upload className="w-3.5 h-3.5 mr-1.5" />
-                <span className="hidden sm:inline">Import</span>
-              </Button>
-              <Button size="sm" onClick={() => { setEditingItem(null); setItemDialogOpen(true); }}>
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
-                <span className="hidden sm:inline">Add Item</span>
-              </Button>
-              <UserMenu />
-            </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      <main className="py-8 px-[3%] sm:px-[4%] lg:px-[5%] xl:px-[4%]">
+          <main className="py-6 px-3 sm:px-4 lg:px-6">
+
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectSection)} className="space-y-6">
 
 
