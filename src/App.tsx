@@ -15,8 +15,10 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import AcceptInvite from "./pages/AcceptInvite";
+import SuperAdmin from "./pages/SuperAdmin";
 import { Loader2 } from "lucide-react";
 import { BugReportButton } from "@/components/test/BugReportButton";
+import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
 import { useState } from "react";
 
 const queryClient = new QueryClient();
