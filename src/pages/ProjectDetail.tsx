@@ -18,7 +18,9 @@ import { MilestonesPanel } from '@/components/warroom/MilestonesPanel';
 import { BudgetOverview } from '@/components/warroom/BudgetOverview';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { ProjectSidebar, type ProjectSection } from '@/components/layout/ProjectSidebar';
 import {
   Select,
   SelectContent,
