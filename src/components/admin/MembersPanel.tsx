@@ -140,8 +140,13 @@ export function MembersPanel() {
   if (!activeOrg) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          No active organization selected.
+        <CardContent className="py-8 text-center text-sm text-muted-foreground space-y-3">
+          <p>No active organization selected.</p>
+          <p className="text-xs">
+            If you are a StudioScope super-admin, use{' '}
+            <a href="/super-admin" className="text-primary underline">Super-Admin → Organizations</a>{' '}
+            to create or impersonate a client organization. Otherwise, ask your studio owner for an invite.
+          </p>
         </CardContent>
       </Card>
     );

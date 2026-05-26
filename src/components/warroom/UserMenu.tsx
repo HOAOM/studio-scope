@@ -11,11 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, MessageSquare, LogOut, Shield } from 'lucide-react';
+import { User, MessageSquare, LogOut, Shield, Crown } from 'lucide-react';
 import { NotificationBell } from '@/components/warroom/NotificationBell';
 import { OrgSwitcher } from '@/components/layout/OrgSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 
 function useMyProfile() {
@@ -40,7 +41,8 @@ export function UserMenu() {
   const navigate = useNavigate();
   const { data: profile } = useMyProfile();
   const { data: conversations = [] } = useDirectConversations();
-  // removed sheet state - now navigates to /messages
+  const { roles } = useUserRole();
+  const isAdmin = roles.includes('admin' as any);
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, c) => sum + c.unreadCount, 0),
@@ -100,6 +102,12 @@ export function UserMenu() {
             <Shield className="w-4 h-4 mr-2" />
             Admin
           </DropdownMenuItem>
+          {isAdmin && (
+            <DropdownMenuItem onClick={() => navigate('/super-admin')} className="cursor-pointer">
+              <Crown className="w-4 h-4 mr-2 text-yellow-500" />
+              Super-Admin
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
             <LogOut className="w-4 h-4 mr-2" />

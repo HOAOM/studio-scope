@@ -223,3 +223,13 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 ---
 
 *Documento mantenuto vivo. Ogni nuova fase/feature significativa verrà annotata qui sotto al rilascio.*
+
+
+## Blocco 4 — Super-Admin Console (2026-05-26)
+- Migration block4: RPC admin_list_all_orgs, admin_set_org_tier, admin_set_org_status, admin_global_metrics, admin_get_org (tutte SECURITY DEFINER + guard has_role admin).
+- Edge function `bootstrap-client-org`: crea user + org + owner membership + subscription + magic link, applica eventuale discount.
+- Pagina `/super-admin` (solo app_role=admin) con 4 tab: Organizations, Metrics, Discount codes, Referral codes.
+- Componenti: OrganizationsTable (inline tier/status edit + "View as"), CreateOrgDialog, DiscountCodesPanel (CRUD), ReferralCodesPanel (read-only), GlobalMetricsPanel (MRR stimato, at-risk, top org).
+- ImpersonateBanner globale + helper setImpersonatedOrg (localStorage `studioscope.impersonateOrgId`).
+- UserMenu: voce "Super-Admin" visibile solo per admin.
+- MembersPanel: fallback se admin senza org propria.
