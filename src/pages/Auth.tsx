@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,12 +21,14 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const returnTo = params.get('returnTo') ?? '/';
 
   useEffect(() => {
     if (user && !loading) {
-      navigate('/');
+      navigate(returnTo);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, returnTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +54,7 @@ export default function Auth() {
           }
         } else {
           toast.success('Welcome back!');
-          navigate('/');
+          navigate(returnTo);
         }
       } else {
         const { error } = await signUp(email, password);

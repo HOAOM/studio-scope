@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, MessageSquare, LogOut, Shield } from 'lucide-react';
 import { NotificationBell } from '@/components/warroom/NotificationBell';
+import { OrgSwitcher } from '@/components/layout/OrgSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -56,6 +57,7 @@ export function UserMenu() {
 
   return (
     <div className="flex items-center gap-2">
+      <OrgSwitcher />
       <NotificationBell />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

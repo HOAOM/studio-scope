@@ -14,6 +14,7 @@ import MessagesPage from "./pages/MessagesPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
+import AcceptInvite from "./pages/AcceptInvite";
 import { Loader2 } from "lucide-react";
 import { BugReportButton } from "@/components/test/BugReportButton";
 import { useState } from "react";
@@ -72,6 +73,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/accept-invite" element={<AcceptInvite />} />
             <Route
               path="/"
               element={
