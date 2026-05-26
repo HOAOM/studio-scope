@@ -217,6 +217,7 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 | Data | Modifica |
 |------|----------|
 | 2026-05-26 | Versione iniziale, post-Fase 6 + storage limits (Fase 7) |
+| 2026-05-26 | **Blocco 1 — Navigation refresh**: introdotta `ProjectSidebar` (`src/components/layout/ProjectSidebar.tsx`) che sostituisce la `TabsList` orizzontale in `ProjectDetail`. Layout responsive: desktop sidebar espansa, tablet icon-only, mobile offcanvas via `SidebarTrigger`. Header reso più compatto e responsive. |
 
 ---
 
