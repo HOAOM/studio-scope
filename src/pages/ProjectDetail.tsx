@@ -39,7 +39,6 @@ import {
 import { ConfirmDeleteDialog } from '@/components/warroom/ConfirmDeleteDialog';
 import { 
   Calendar, 
-  Calendar, 
   User, 
   MapPin, 
   FileText,
