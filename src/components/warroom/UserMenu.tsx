@@ -41,7 +41,8 @@ export function UserMenu() {
   const navigate = useNavigate();
   const { data: profile } = useMyProfile();
   const { data: conversations = [] } = useDirectConversations();
-  // removed sheet state - now navigates to /messages
+  const { roles } = useUserRole();
+  const isAdmin = roles.includes('admin' as any);
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, c) => sum + c.unreadCount, 0),
