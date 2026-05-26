@@ -11,11 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, MessageSquare, LogOut, Shield } from 'lucide-react';
+import { User, MessageSquare, LogOut, Shield, Crown } from 'lucide-react';
 import { NotificationBell } from '@/components/warroom/NotificationBell';
 import { OrgSwitcher } from '@/components/layout/OrgSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 
 function useMyProfile() {
