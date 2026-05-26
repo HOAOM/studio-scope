@@ -20,7 +20,7 @@ const json = (body: unknown, status = 200) =>
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SITE_API_KEY = Deno.env.get("SITE_API_KEY")!;
+const SITE_API_KEY = (Deno.env.get("SITE_API_KEY") ?? "").trim().replace(/^["']|["']$/g, "");
 
 const admin = () =>
   createClient(SUPABASE_URL, SERVICE_ROLE, {
