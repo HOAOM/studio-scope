@@ -258,9 +258,8 @@ async function lookupOrg(url: URL) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Auth
+  // Auth: shared secret
   const key = req.headers.get("x-site-api-key");
-  console.log("auth check", { hasEnvKey: !!SITE_API_KEY, envLen: SITE_API_KEY?.length, hdrLen: key?.length });
   if (!SITE_API_KEY || key !== SITE_API_KEY) {
     return json({ error: "unauthorized" }, 401);
   }
