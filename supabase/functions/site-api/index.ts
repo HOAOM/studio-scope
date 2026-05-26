@@ -260,7 +260,14 @@ Deno.serve(async (req) => {
 
   // Auth
   const key = req.headers.get("x-site-api-key");
-  console.log("auth check", { hasEnvKey: !!SITE_API_KEY, envLen: SITE_API_KEY?.length, hdrLen: key?.length });
+  console.log("auth check", {
+    envLen: SITE_API_KEY?.length,
+    envHead: SITE_API_KEY?.slice(0, 6),
+    envTail: SITE_API_KEY?.slice(-6),
+    hdrLen: key?.length,
+    hdrHead: key?.slice(0, 6),
+    hdrTail: key?.slice(-6),
+  });
   if (!SITE_API_KEY || key !== SITE_API_KEY) {
     return json({ error: "unauthorized" }, 401);
   }
