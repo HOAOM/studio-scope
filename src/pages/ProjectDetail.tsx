@@ -275,18 +275,8 @@ export default function ProjectDetail() {
       </header>
 
       <main className="py-8 px-[3%] sm:px-[4%] lg:px-[5%] xl:px-[4%]">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="flex justify-start w-full">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="boq">BOQ Analyst</TabsTrigger>
-            <TabsTrigger value="gantt">Gantt & Tasks</TabsTrigger>
-            <TabsTrigger value="approval">Approval Gates</TabsTrigger>
-            <TabsTrigger value="items">Item Tracker</TabsTrigger>
-            <TabsTrigger value="client-boards">Client Boards</TabsTrigger>
-            <TabsTrigger value="supplier-docs">Supplier Docs</TabsTrigger>
-            <TabsTrigger value="presentation">Presentation</TabsTrigger>
-            <TabsTrigger value="chat">Chat</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectSection)} className="space-y-6">
+
 
           {/* BOQ ANALYST TAB */}
           <TabsContent value="boq" className="space-y-6">
