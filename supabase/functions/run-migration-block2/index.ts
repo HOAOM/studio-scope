@@ -112,7 +112,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     o.id,
     o.name,
     public.get_org_effective_tier(o.id),
-    COALESCE(s.status, 'inactive'::public.subscription_status),
+    COALESCE(s.status, 'suspended'::public.subscription_status),
     s.current_period_end,
     public.tier_project_limit(public.get_org_effective_tier(o.id)),
     public.get_org_active_project_count(o.id),
