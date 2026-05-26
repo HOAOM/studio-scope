@@ -1630,6 +1630,14 @@ export type Database = {
         Args: { t: Database["public"]["Enums"]["subscription_tier"] }
         Returns: number
       }
+      tier_storage_limit_bytes: {
+        Args: { t: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: number
+      }
+      tier_storage_limit_gb: {
+        Args: { t: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: number
+      }
       validate_discount: {
         Args: {
           p_code: string
