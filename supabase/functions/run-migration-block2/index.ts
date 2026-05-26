@@ -105,7 +105,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     SELECT m.organization_id
     FROM public.organization_members m
     WHERE m.user_id = auth.uid()
-    ORDER BY m.created_at ASC
+    ORDER BY m.joined_at ASC, m.is_owner DESC
     LIMIT 1
   )
   SELECT
