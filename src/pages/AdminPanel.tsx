@@ -25,6 +25,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { SubscriptionTierPanel } from '@/components/admin/SubscriptionTierPanel';
 import { SupplierManagement } from '@/components/admin/SupplierManagement';
 import { AuditLogPanel } from '@/components/admin/AuditLogPanel';
+import { MembersPanel } from '@/components/admin/MembersPanel';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -92,8 +93,9 @@ export default function AdminPanel() {
       </header>
 
       <main className="container py-8">
-        <Tabs defaultValue="floors" className="space-y-6">
-          <TabsList className="bg-secondary">
+        <Tabs defaultValue="members" className="space-y-6">
+          <TabsList className="bg-secondary flex-wrap h-auto">
+            <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="floors">Floors</TabsTrigger>
             <TabsTrigger value="rooms">Rooms</TabsTrigger>
             <TabsTrigger value="types">Item Types</TabsTrigger>
@@ -105,6 +107,11 @@ export default function AdminPanel() {
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="members">
+            <MembersPanel />
+          </TabsContent>
+
 
           <TabsContent value="floors">
             <Card className="bg-card border-border">

@@ -1583,6 +1583,27 @@ export type Database = {
         Returns: boolean
       }
       gen_referral_slug: { Args: never; Returns: string }
+      get_my_org_subscription_summary: {
+        Args: never
+        Returns: {
+          current_period_end: string
+          organization_id: string
+          organization_name: string
+          project_limit: number
+          projects_used: number
+          status: Database["public"]["Enums"]["subscription_status"]
+          storage_limit_bytes: number
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }[]
+      }
+      get_org_active_project_count: {
+        Args: { _org_id: string }
+        Returns: number
+      }
+      get_org_effective_tier: {
+        Args: { _org_id: string }
+        Returns: Database["public"]["Enums"]["subscription_tier"]
+      }
       get_org_role_labels: {
         Args: { p_org: string }
         Returns: {

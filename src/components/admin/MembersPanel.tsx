@@ -1,0 +1,302 @@
+/**
+ * MembersPanel — manage members and invites of the active organization.
+ * Shown in AdminPanel under the "Members" tab.
+ *
+ * Capabilities:
+ *  - List current members
+ *  - Invite by email (calls edge function invite-member)
+ *  - Revoke pending invites
+ *  - Remove members (owner only; cannot remove the only owner)
+ */
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useActiveOrg } from '@/hooks/useMyOrganizations';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Loader2, Mail, Trash2, Copy, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface OrgMemberRow {
+  id: string;
+  user_id: string;
+  is_owner: boolean;
+  joined_at: string;
+  email?: string;
+  display_name?: string;
+}
+
+interface OrgInviteRow {
+  id: string;
+  email: string;
+  base_role: string;
+  status: string;
+  expires_at: string;
+  token: string;
+  created_at: string;
+}
+
+export function MembersPanel() {
+  const { activeOrg, isLoading } = useActiveOrg();
+  const qc = useQueryClient();
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('member');
+
+  const { data: members = [] } = useQuery<OrgMemberRow[]>({
+    queryKey: ['org-members', activeOrg?.organization_id],
+    enabled: !!activeOrg,
+    queryFn: async () => {
+      const { data: m, error } = await (supabase as any)
+        .from('organization_members')
+        .select('id, user_id, is_owner, joined_at')
+        .eq('organization_id', activeOrg!.organization_id);
+      if (error) throw error;
+      // best-effort profile join
+      const ids = (m ?? []).map((x: any) => x.user_id);
+      if (ids.length === 0) return [];
+      const { data: profiles } = await (supabase as any)
+        .from('profiles').select('id, display_name, email').in('id', ids);
+      const map = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      return (m as any[]).map((row) => ({
+        ...row,
+        email: (map.get(row.user_id) as any)?.email,
+        display_name: (map.get(row.user_id) as any)?.display_name,
+      }));
+    },
+  });
+
+  const { data: invites = [] } = useQuery<OrgInviteRow[]>({
+    queryKey: ['org-invites', activeOrg?.organization_id],
+    enabled: !!activeOrg,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('organization_invites')
+        .select('id, email, base_role, status, expires_at, token, created_at')
+        .eq('organization_id', activeOrg!.organization_id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const invite = useMutation({
+    mutationFn: async () => {
+      if (!activeOrg) throw new Error('No active organization');
+      const { data, error } = await supabase.functions.invoke('invite-member', {
+        body: {
+          organization_id: activeOrg.organization_id,
+          email: email.trim().toLowerCase(),
+          base_role: role,
+        },
+      });
+      if (error) throw error;
+      return data as { accept_url: string; email_sent: boolean; existing_user: boolean };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['org-invites'] });
+      setEmail('');
+      if (data.email_sent) {
+        toast.success('Invite email sent');
+      } else {
+        toast.success('Invite created', {
+          description: 'User already exists — share the link manually.',
+        });
+        navigator.clipboard?.writeText(data.accept_url).catch(() => {});
+      }
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Invite failed'),
+  });
+
+  const revoke = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from('organization_invites').update({ status: 'revoked' }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['org-invites'] });
+      toast.success('Invite revoked');
+    },
+  });
+
+  const removeMember = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await (supabase as any)
+        .from('organization_members').delete().eq('id', memberId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['org-members'] });
+      toast.success('Member removed');
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Remove failed'),
+  });
+
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin" />;
+  if (!activeOrg) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          No active organization selected.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isOwner = activeOrg.is_owner;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <UserPlus className="w-4 h-4" /> Invite a member to {activeOrg.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!isOwner ? (
+            <p className="text-sm text-muted-foreground">
+              Only the organization owner can invite members.
+            </p>
+          ) : (
+            <form
+              className="flex flex-col md:flex-row gap-3 items-end"
+              onSubmit={(e) => { e.preventDefault(); if (email) invite.mutate(); }}
+            >
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="invite-email">Email</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  placeholder="person@studio.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="w-full md:w-48 space-y-1.5">
+                <Label htmlFor="invite-role">Role label</Label>
+                <Input
+                  id="invite-role"
+                  placeholder="member, designer, ..."
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                />
+              </div>
+              <Button type="submit" disabled={invite.isPending || !email}>
+                {invite.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Mail className="w-4 h-4 mr-2" /> Send invite
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Pending invites</CardTitle></CardHeader>
+        <CardContent>
+          {invites.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No invites yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Expires</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invites.map((inv) => {
+                  const url = `${window.location.origin}/accept-invite?token=${inv.token}`;
+                  return (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-medium">{inv.email}</TableCell>
+                      <TableCell>{inv.base_role}</TableCell>
+                      <TableCell>
+                        <Badge variant={inv.status === 'pending' ? 'default' : 'secondary'}>
+                          {inv.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(inv.expires_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button
+                          size="sm" variant="ghost"
+                          onClick={() => {
+                            navigator.clipboard.writeText(url);
+                            toast.success('Invite link copied');
+                          }}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                        {inv.status === 'pending' && isOwner && (
+                          <Button
+                            size="sm" variant="ghost"
+                            onClick={() => revoke.mutate(inv.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Current members</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {members.map((m) => (
+                <TableRow key={m.id}>
+                  <TableCell className="font-medium">{m.display_name ?? '—'}</TableCell>
+                  <TableCell className="text-xs">{m.email ?? '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant={m.is_owner ? 'default' : 'secondary'}>
+                      {m.is_owner ? 'owner' : 'member'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {new Date(m.joined_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isOwner && !m.is_owner && (
+                      <Button
+                        size="sm" variant="ghost"
+                        onClick={() => removeMember.mutate(m.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
