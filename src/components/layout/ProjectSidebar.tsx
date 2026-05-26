@@ -109,7 +109,7 @@ export function ProjectSidebar({ value, onChange, badges = {} }: Props) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Back to projects">
+            <SidebarMenuButton asChild tooltip={{ children: 'Back to projects', className: 'z-[60]', sideOffset: 8 }}>
               <Link to="/" className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>Back to projects</span>}
