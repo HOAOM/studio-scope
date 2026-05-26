@@ -1,164 +1,96 @@
+## Blocco 4 — Console Super-Admin StudioScope
 
-# Piano di riordino e consolidamento Studio Scope
-
-Obiettivo: prendere tutto ciò che già esiste, **riorganizzarlo**, **sistemare le criticità** e **rendere l'app realmente utilizzabile da uno studio reale**. Niente onboarding in-app (sta sul sito di vendita). Focus su: navigazione, responsive, sicurezza tier, gestione account/inviti, e audit feature-per-feature.
-
-Il piano è diviso in **6 blocchi** che eseguiremo in ordine. Ogni blocco è autonomo: alla fine di ognuno hai una versione usabile e si può fermare/riprendere.
+Obiettivo: separare nettamente **te (super-admin di StudioScope)** dai **tuoi clienti (org owner)**, abilitare i 3 domini di test, e dare la UI per gestire tier/codici/metriche senza toccare il DB a mano.
 
 ---
 
-## Blocco 1 — Navigazione: sidebar collassabile + responsive (la base visiva)
+### 1. Modello & gerarchia (no schema changes — usa quello che c'è)
 
-Riorganizziamo l'app intorno a una **sidebar sinistra** invece dei tab in alto. La sidebar:
-- Si **collassa a icone** (modalità mini, sempre visibile su desktop/tablet).
-- Si **nasconde in offcanvas** su mobile, richiamabile con bottone hamburger.
-- Mostra la sezione attiva evidenziata.
-- Include badge di notifica (chat, approvazioni in attesa, items in ritardo).
-
-**Struttura sidebar dentro un progetto:**
-```
-[Logo studio]
-─ Overview
-─ BOQ Analyst
-─ Gantt & Tasks
-─ Approval Gate
-─ Item Tracker
-─ Client Boards
-─ Supplier Docs
-─ Presentation
-─ Chat                 [● 3]
-─────────────
-─ ← Torna ai progetti
-```
-
-**Header in alto** (sempre visibile, sottile): nome progetto + breadcrumb + avatar utente + notifiche globali + bottone collapse sidebar.
-
-**Responsive:**
-- **Desktop ≥1280px**: sidebar espansa di default (240px), contenuto fluido.
-- **Tablet 768–1279px**: sidebar collassata a icone (64px), espandibile al click.
-- **Mobile <768px**: sidebar nascosta, hamburger nell'header, sheet a scomparsa. Tabelle BOQ con scroll orizzontale + colonne essenziali; modali a tutto schermo.
-
-**Cosa tocchiamo:**
-- Nuovo `src/components/layout/AppShell.tsx` con `SidebarProvider`.
-- Nuovo `src/components/layout/ProjectSidebar.tsx`.
-- `ProjectDetail.tsx` passa da tab a `<Outlet/>` con sotto-route (`/projects/:id/boq`, `/gantt`, ecc.).
-- Header compatto in `src/components/layout/AppHeader.tsx`.
-- Audit `index.css` / `tailwind.config.ts` per breakpoint coerenti.
+- **Super-admin StudioScope** = utente con `user_roles.role = 'admin'`. Vede TUTTO, può impersonare, gestisce tier/codici/metriche globali.
+- **Org Owner** (cliente che compra) = `organization_members.is_owner = true`. Vede solo la sua org, invita membri, vede la propria subscription.
+- **Org Member** = riga in `organization_members` senza is_owner; lavora nei progetti dell'org.
+- **Bootstrap** scelto: NESSUNA auto-creazione. Le org nascono solo da: (a) super-admin che crea per un cliente, (b) checkout sul sito marketing (futuro), (c) invito in org esistente.
 
 ---
 
-## Blocco 2 — Hardening tier & limiti server-side (sicurezza)
+### 2. Cosa costruisco (Blocco 4a — questa iterazione)
 
-Oggi `useSubscriptionTier` legge da `localStorage` → un utente può cambiare tier da devtools e bypassare i limiti. Da rifare correttamente.
+#### A. Pagina `/super-admin` (solo `app_role = admin`)
 
-**Cosa cambiamo:**
-- `useSubscriptionTier` legge da `organization_subscriptions` via Supabase, con React Query e cache.
-- Aggiunto nuovo hook `useCurrentOrg()` (un utente può stare in più org → serve un selettore in header).
-- **Enforcement storage pre-upload**: edge function `storage-quota-check` che, prima di firmare un upload, verifica `SUM(file size) < tier_storage_limit_bytes`. Calcolo via `storage.objects` filtrato per `organization_id`.
-- **Cron daily** per `tick_subscription_lifecycle()` via pg_cron.
-- RLS rafforzata: nuove policy che bloccano scritture su `project_items`, `project_tasks`, ecc. quando subscription è `suspended` o `purge_pending`.
-- Rimosso lo switch tier "fake" da `SubscriptionTierPanel` per utenti non-admin globali.
+Quattro tab, tutti dietro guard `has_role('admin')`:
 
----
+1. **Organizations** — tabella con: nome, slug, owner email, tier, status, progetti attivi/limite, storage usato/limite, data creazione. Azioni inline:
+   - cambia tier (starter/pro/business)
+   - cambia status (active/grace/suspended)
+   - "Impersonate" → setta `activeOrgId` su quella org e apre l'app come se fossi membro (read-aware: nel `OrgSwitcher` appare un badge giallo "VIEW-AS")
+   - "Create organization for client" → dialog con nome, slug, email owner, tier iniziale, eventuale discount code
 
-## Blocco 3 — Account, organizzazioni, inviti (il giro che oggi è incompleto)
+2. **Discount Codes** — CRUD su `discount_codes`: code, % off o amount off, scope tier/org, validità, max redemptions, redemptions totali.
 
-Oggi un utente loggato non sa "in quale org sta", e gli inviti non hanno un flusso end-to-end visibile.
+3. **Referral Codes** — lista `referral_codes` con redemptions per org (read-only, generati automaticamente dal trigger `auto_create_referral_code` quando nasce un'org).
 
-**Cosa aggiungiamo:**
-- **Org switcher** in header (avatar dropdown): mostra le org dell'utente, click per cambiare contesto attivo. Salvato in `localStorage` come ultima selezione.
-- **Pagina "Members"** per owner org: lista membri, ruolo (etichette personalizzate via `organization_role_labels`), pulsanti "Invita" / "Rimuovi" / "Cambia ruolo".
-- **Flusso invito**:
-  1. Owner inserisce email + ruolo.
-  2. Edge function `invite-member` crea utente in `auth.users` (se non esiste) via service role, crea riga in `organization_members` come pending, invia email con magic link.
-  3. Nuovo utente atterra su `/accept-invite?token=...` → setta password → entra direttamente nell'org giusta.
-- **Pagina "Profile"** unificata (`/profile`): avatar, nome, password, lingua, fuso orario, notifiche email on/off.
-- **Pagina "Org Settings"** per owner: nome studio, logo, dominio custom, branding (colori PDF), etichette ruoli.
-- **Audit log visibile**: nuova vista `/audit` per admin org (filtri per utente/entità/data), legge `audit_log`.
+4. **Global Metrics** — card con: org totali per tier, MRR stimato (price × org attive per tier), org in grace/suspended (alert), nuove org ultimi 30gg, top 5 org per progetti attivi.
 
----
+#### B. Bootstrap per i 3 domini di test
 
-## Blocco 4 — Revisione feature-per-feature (audit ordinato)
+Edge function `bootstrap-client-org` (richiamata dal tab Organizations o via CLI):
+- input: `{ owner_email, org_name, slug, tier, discount_code? }`
+- crea `auth.users` se non esiste (password temporanea), inserisce `organization_members(is_owner=true)`, `organization_subscriptions(tier)`, applica eventuale referral/discount, ritorna magic link.
+- usato dal dialog "Create organization for client" del super-admin.
 
-Per ogni sezione facciamo: **(a) cosa esiste, (b) cosa è rotto/incompleto, (c) cosa fixiamo**. Andiamo in ordine, una sezione per turno, così il diff è leggibile e testabile.
+#### C. Impersonate (view-as)
 
-Ordine proposto (ogni voce = un passaggio dedicato):
+Niente JWT swap (rischioso). Strategia leggera:
+- super-admin imposta `activeOrgId` su qualunque org → RLS continua a permettere SELECT perché ha `has_role('admin')` su quasi tutte le tabelle.
+- Banner globale fisso in alto: "🟡 VIEW-AS: {org name} — Exit" che resetta a una sua org.
+- `useActiveOrg` accetta org di cui non sei membro **se sei admin**.
 
-1. **Overview / Dashboard**
-   - Fix KPI con dati reali (oggi alcuni mock).
-   - Quick-filter "Waiting for me" funzionante anche cross-progetto.
-   - Bottone "Crea progetto" rispetta `org_can_activate_project`.
+#### D. Fix UX immediato per il tuo caso attuale
 
-2. **BOQ Analyst**
-   - Sticky header verificato su tutti i breakpoint.
-   - Bulk-edit (selezione multipla → cambio stato/responsabile in massa).
-   - Bottone "Import Excel" con mapping colonne ricordato per org.
-   - Filtri salvabili come "vista" per utente.
-
-3. **Gantt & Tasks**
-   - Rimozione definitiva di `GanttChart.tsx` legacy.
-   - Drag per spostare task (oggi solo zoom/pan).
-   - Dipendenze visibili con frecce sempre, non solo on-hover.
-   - Export PNG/PDF della timeline.
-
-4. **Approval Gate**
-   - Unificare i 4 checklist button con stato "chi ha approvato cosa" sempre visibile.
-   - Notifica automatica al ruolo successivo quando un gate è chiuso.
-
-5. **Item Tracker** (Item Detail Modal)
-   - Verifica lock tech fields post-firma (R+1).
-   - Tab "Documents" con drag&drop reale, non solo selettore file.
-   - Tab "Quotations": pulsante "Confronta" che apre `SupplierComparisonTool` con almeno 2 quote selezionate.
-
-6. **Client Boards**
-   - Firma cliente: aggiunta firma grafica (canvas) oltre alla checkbox.
-   - Link condivisibile firmato (token JWT scadenza 30gg) per cliente che NON ha account → vede il board e firma.
-
-7. **Supplier Docs**
-   - "Invia RFQ" multi-fornitore in 1 click (selezione fornitori → email con link firmato → upload offerta).
-   - Portale fornitore senza account su `/supplier-portal?token=...`.
-
-8. **Presentation Builder**
-   - Salvataggio auto ogni 30s.
-   - Export PDF A3 con vera impaginazione (oggi è approssimativa).
-
-9. **Chat / Messages**
-   - Indicatore "sta scrivendo" via realtime channel.
-   - Allegati visibili inline (immagini → preview, PDF → icona).
-
-Ogni step include test manuale sui ruoli chiave (admin, PM, designer, client) prima di chiudere.
+Sei admin ma senza org. `MembersPanel` mostra "no active organization". Soluzione:
+- Se admin senza org propria, il pannello Members propone "Create your own studio org" + link al tab Organizations del super-admin.
+- L'`OrgSwitcher` per super-admin mostra anche "All client organizations" come opzione.
 
 ---
 
-## Blocco 5 — Pulizia tecnica
+### 3. File da creare/modificare
 
-Cose che non si vedono ma rendono l'app fragile:
+**Nuovi:**
+- `src/pages/SuperAdmin.tsx` — pagina con 4 tab
+- `src/components/super-admin/OrganizationsTable.tsx`
+- `src/components/super-admin/CreateOrgDialog.tsx`
+- `src/components/super-admin/DiscountCodesPanel.tsx`
+- `src/components/super-admin/ReferralCodesPanel.tsx`
+- `src/components/super-admin/GlobalMetricsPanel.tsx`
+- `src/components/layout/ImpersonateBanner.tsx`
+- `src/hooks/useAllOrganizations.ts` (admin-only)
+- `supabase/functions/bootstrap-client-org/index.ts`
+- `supabase/functions/run-migration-block4/index.ts` — aggiunge RPC `admin_list_all_orgs()`, `admin_global_metrics()`, `admin_set_org_tier(org, tier)`, `admin_set_org_status(org, status)` (tutte SECURITY DEFINER con guard `has_role('admin')`)
 
-- Rimuovere `GanttChart.tsx` e ogni import residuo.
-- Centralizzare i toast in un wrapper (oggi mix di `sonner` e `use-toast`).
-- Aggiungere `error.tsx` e `loading.tsx` per ogni route.
-- Centralizzare email template (`supabase/functions/_shared/emails/`).
-- Aggiungere almeno 5 test E2E base (login, crea progetto, crea item, approva, esporta).
-- ESLint: alzare `no-explicit-any` a warning e ripulire i casi più gravi.
+**Modificati:**
+- `src/App.tsx` — route `/super-admin` con guard admin
+- `src/components/warroom/UserMenu.tsx` — voce "Super Admin" visibile solo se admin
+- `src/components/layout/OrgSwitcher.tsx` — admin può selezionare qualsiasi org
+- `src/components/admin/MembersPanel.tsx` — fallback se admin senza org
+- `PROJECT_SUMMARY.md` — sezione Blocco 4
 
 ---
 
-## Blocco 6 — Aggiornamento `PROJECT_SUMMARY.md`
+### 4. Cosa NON faccio in questa iterazione
 
-A fine di ogni blocco aggiorniamo il documento riepilogativo con:
-- Nuove rotte
-- Nuove edge function
-- Nuove tabelle/policy
-- Changelog datato
+- Checkout pubblico sul sito marketing (lo farà il sito esterno; il super-admin per ora crea org a mano).
+- Stripe billing reale (solo `notes` e `tier` manuali per ora — collegheremo Stripe quando deciderai il provider).
+- JWT impersonation vera (basta il view-as via RLS admin).
+- Mobile layout del super-admin (desktop-first, è uno strumento interno).
 
 ---
 
-## Come procediamo
+### 5. Test flow per i 3 domini
 
-Approvando questo piano, partiamo dal **Blocco 1 (sidebar + responsive)** perché:
-- è il cambio più visibile e ti permette subito di "vedere" la differenza,
-- è propedeutico a tutto il resto (le nuove pagine Account/Members/Audit del Blocco 3 vivono dentro la nuova shell).
+1. Logghi come admin StudioScope su preview.
+2. Vai a `/super-admin → Organizations → Create`.
+3. Crei "Studio Alfa" (tier pro, owner alfa@dominio1.com), "Studio Beta" (starter, beta@dominio2.com), "Studio Gamma" (business, gamma@dominio3.com).
+4. Ricevi 3 magic link da condividere ai 3 indirizzi reali.
+5. Da admin puoi "Impersonate" qualsiasi delle 3 per debug.
 
-Poi Blocco 2 (sicurezza tier) perché è invisibile ma critico, e da lì entriamo nel Blocco 4 sezione per sezione.
-
-Se preferisci un ordine diverso (es. prima Blocco 3 inviti, o saltare subito a una sezione specifica del Blocco 4), dimmelo prima di iniziare l'implementazione.
+Procedo?
