@@ -1578,6 +1578,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_org: {
+        Args: { p_org: string }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+          status: string
+          tier: string
+        }[]
+      }
+      admin_global_metrics: { Args: never; Returns: Json }
+      admin_list_all_orgs: {
+        Args: never
+        Returns: {
+          active_projects: number
+          created_at: string
+          current_period_end: string
+          name: string
+          organization_id: string
+          owner_email: string
+          owner_user_id: string
+          project_limit: number
+          slug: string
+          status: string
+          tier: string
+        }[]
+      }
+      admin_set_org_status: {
+        Args: { p_org: string; p_status: string }
+        Returns: undefined
+      }
+      admin_set_org_tier: {
+        Args: { p_org: string; p_tier: string }
+        Returns: undefined
+      }
       apply_referral: {
         Args: { p_code: string; p_org: string }
         Returns: boolean
