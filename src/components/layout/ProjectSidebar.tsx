@@ -17,6 +17,9 @@ import {
   Presentation,
   MessageSquare,
   ArrowLeft,
+  Layers,
+  DoorOpen,
+  AppWindow,
 } from 'lucide-react';
 import {
   Sidebar,
