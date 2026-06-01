@@ -52,6 +52,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Layers,
+  DoorOpen,
+  AppWindow,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
