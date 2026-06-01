@@ -119,6 +119,38 @@ export function ProjectSidebar({ value, onChange, badges = {} }: Props) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          {!collapsed && <SidebarGroupLabel>Addon</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {ADDON_ITEMS.map((item) => {
+                const isActive = value === item.value;
+                return (
+                  <SidebarMenuItem key={item.value}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={{ children: item.label, className: 'z-[60]', sideOffset: 8 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onChange(item.value)}
+                        className={cn(
+                          'flex w-full items-center gap-2',
+                          isActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
