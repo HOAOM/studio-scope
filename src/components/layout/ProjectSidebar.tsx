@@ -55,14 +55,14 @@ const ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDashboar
   { value: 'gantt', label: 'Gantt & Tasks', icon: GanttChart },
   { value: 'approval', label: 'Approval Gates', icon: ShieldCheck },
   { value: 'items', label: 'Item Tracker', icon: Package },
-  { value: 'client-boards', label: 'Client Boards', icon: ClipboardSignature },
   { value: 'supplier-docs', label: 'Supplier Docs', icon: Truck },
-  { value: 'presentation', label: 'Presentation', icon: Presentation },
   { value: 'chat', label: 'Chat', icon: MessageSquare },
 ];
 
 // Addon modules (label "Addon" is provisional — users will see the addons they pay for).
 const ADDON_ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDashboard }[] = [
+  { value: 'client-boards', label: 'Client Boards', icon: ClipboardSignature },
+  { value: 'presentation', label: 'Presentation', icon: Presentation },
   { value: 'marble-slab', label: 'Marble Slab', icon: Layers },
   { value: 'door', label: 'Door', icon: DoorOpen },
   { value: 'windows', label: 'Windows', icon: AppWindow },
