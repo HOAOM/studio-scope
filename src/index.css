@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -190,3 +190,113 @@
     box-shadow: 0 0 20px -5px hsl(var(--status-safe));
   }
 }
+
+/* ============================================================
+   MARKETING — "Silent Luxury" cinematic site
+   Scoped under .marketing so it never touches the app theme.
+   ============================================================ */
+@layer base {
+  .marketing {
+    /* near-black canvas, warm off-white ink, muted brass accent */
+    --m-bg: 24 10% 4%;
+    --m-bg-soft: 24 10% 7%;
+    --m-ink: 36 30% 92%;
+    --m-ink-dim: 36 10% 62%;
+    --m-ink-faint: 36 8% 40%;
+    --m-line: 36 12% 18%;
+    --m-accent: 38 60% 62%;        /* brushed brass */
+    --m-accent-strong: 38 70% 70%;
+    --m-glow: 38 60% 62% / 0.18;
+
+    background-color: hsl(var(--m-bg));
+    color: hsl(var(--m-ink));
+    font-family: 'Manrope', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .marketing ::selection {
+    background: hsl(var(--m-accent) / 0.3);
+    color: hsl(var(--m-ink));
+  }
+}
+
+@layer components {
+  .m-display {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 0.98;
+  }
+  .m-kicker {
+    font-family: 'Manrope', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: hsl(var(--m-accent));
+  }
+  .m-body {
+    font-family: 'Manrope', sans-serif;
+    color: hsl(var(--m-ink-dim));
+    line-height: 1.6;
+  }
+  .m-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--m-line)), transparent);
+  }
+  .m-grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .m-btn {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .m-btn-primary {
+    background: hsl(var(--m-accent));
+    color: hsl(var(--m-bg));
+  }
+  .m-btn-primary:hover {
+    background: hsl(var(--m-accent-strong));
+    box-shadow: 0 0 50px -8px hsl(var(--m-glow));
+    transform: translateY(-2px);
+  }
+  .m-btn-ghost {
+    border: 1px solid hsl(var(--m-line));
+    color: hsl(var(--m-ink));
+  }
+  .m-btn-ghost:hover {
+    border-color: hsl(var(--m-accent));
+    color: hsl(var(--m-accent));
+  }
+  .m-card {
+    background: hsl(var(--m-bg-soft));
+    border: 1px solid hsl(var(--m-line));
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .m-card:hover {
+    border-color: hsl(var(--m-accent) / 0.5);
+    transform: translateY(-4px);
+  }
+  .m-input {
+    background: hsl(var(--m-bg));
+    border: 1px solid hsl(var(--m-line));
+    color: hsl(var(--m-ink));
+    font-family: 'Manrope', sans-serif;
+    transition: border-color 0.3s ease;
+  }
+  .m-input:focus {
+    outline: none;
+    border-color: hsl(var(--m-accent));
+  }
+  .m-input::placeholder { color: hsl(var(--m-ink-faint)); }
+}
+
+.marketing .no-scrollbar::-webkit-scrollbar { display: none; }
+.marketing .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
