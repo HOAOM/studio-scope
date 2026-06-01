@@ -800,6 +800,33 @@ export default function ProjectDetail() {
             <DirectMessagesPanel scopedProjectId={projectId} />
           </TabsContent>
 
+          {/* ADDON: MARBLE SLAB */}
+          <TabsContent value="marble-slab">
+            <AddonPlaceholder
+              icon={Layers}
+              title="Marble Slab"
+              description="Addon per la gestione delle lastre di marmo. Non ancora attivo."
+            />
+          </TabsContent>
+
+          {/* ADDON: DOOR */}
+          <TabsContent value="door">
+            <AddonPlaceholder
+              icon={DoorOpen}
+              title="Door"
+              description="Addon per la gestione delle porte. In arrivo — non ancora attivo."
+            />
+          </TabsContent>
+
+          {/* ADDON: WINDOWS */}
+          <TabsContent value="windows">
+            <AddonPlaceholder
+              icon={AppWindow}
+              title="Windows"
+              description="Addon per la gestione delle finestre. In arrivo — non ancora attivo."
+            />
+          </TabsContent>
+
         </Tabs>
       </main>
 
