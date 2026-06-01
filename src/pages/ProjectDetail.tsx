@@ -52,6 +52,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Layers,
+  DoorOpen,
+  AppWindow,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
@@ -77,6 +80,31 @@ function LifecycleBadge({ status }: { status: string | null }) {
     <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', colors.bg, colors.text)}>
       {label}
     </span>
+  );
+}
+
+function AddonPlaceholder({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Layers;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center bg-card border border-border rounded-lg p-12 gap-4">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+        <Icon className="h-7 w-7 text-primary" />
+      </div>
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">{description}</p>
+      </div>
+      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+        Coming soon
+      </span>
+    </div>
   );
 }
 
@@ -798,6 +826,33 @@ export default function ProjectDetail() {
           {/* CHAT TAB */}
           <TabsContent value="chat">
             <DirectMessagesPanel scopedProjectId={projectId} />
+          </TabsContent>
+
+          {/* ADDON: MARBLE SLAB */}
+          <TabsContent value="marble-slab">
+            <AddonPlaceholder
+              icon={Layers}
+              title="Marble Slab"
+              description="Addon per la gestione delle lastre di marmo. Non ancora attivo."
+            />
+          </TabsContent>
+
+          {/* ADDON: DOOR */}
+          <TabsContent value="door">
+            <AddonPlaceholder
+              icon={DoorOpen}
+              title="Door"
+              description="Addon per la gestione delle porte. In arrivo — non ancora attivo."
+            />
+          </TabsContent>
+
+          {/* ADDON: WINDOWS */}
+          <TabsContent value="windows">
+            <AddonPlaceholder
+              icon={AppWindow}
+              title="Windows"
+              description="Addon per la gestione delle finestre. In arrivo — non ancora attivo."
+            />
           </TabsContent>
 
         </Tabs>
