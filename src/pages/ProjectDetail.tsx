@@ -83,6 +83,31 @@ function LifecycleBadge({ status }: { status: string | null }) {
   );
 }
 
+function AddonPlaceholder({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Layers;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center bg-card border border-border rounded-lg p-12 gap-4">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+        <Icon className="h-7 w-7 text-primary" />
+      </div>
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">{description}</p>
+      </div>
+      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+        Coming soon
+      </span>
+    </div>
+  );
+}
+
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type StatusLevel = 'safe' | 'at-risk' | 'unsafe';
 type BOQCategory = Database['public']['Enums']['boq_category'];
