@@ -44,7 +44,10 @@ export type ProjectSection =
   | 'client-boards'
   | 'supplier-docs'
   | 'presentation'
-  | 'chat';
+  | 'chat'
+  | 'marble-slab'
+  | 'door'
+  | 'windows';
 
 const ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDashboard }[] = [
   { value: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -57,6 +60,14 @@ const ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDashboar
   { value: 'presentation', label: 'Presentation', icon: Presentation },
   { value: 'chat', label: 'Chat', icon: MessageSquare },
 ];
+
+// Addon modules (label "Addon" is provisional — users will see the addons they pay for).
+const ADDON_ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDashboard }[] = [
+  { value: 'marble-slab', label: 'Marble Slab', icon: Layers },
+  { value: 'door', label: 'Door', icon: DoorOpen },
+  { value: 'windows', label: 'Windows', icon: AppWindow },
+];
+
 
 interface Props {
   value: ProjectSection;
