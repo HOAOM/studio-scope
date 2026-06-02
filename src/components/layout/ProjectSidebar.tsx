@@ -48,7 +48,8 @@ export type ProjectSection =
   | 'chat'
   | 'marble-slab'
   | 'door'
-  | 'windows';
+  | 'windows'
+  | 'loading';
 
 const ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDashboard }[] = [
   { value: 'overview', label: 'Overview', icon: LayoutDashboard },
