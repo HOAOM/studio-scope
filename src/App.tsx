@@ -38,31 +38,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ImpersonateBanner />
-      <OnboardingGate />
       {children}
       <BugReportButton />
     </>
   );
 }
 
-function OnboardingGate() {
-  const { roles } = useUserRole();
-  const { data: settings } = useCompanySettings();
-  const [skipped, setSkipped] = useState(() => sessionStorage.getItem('onboarding_skipped') === 'true');
-  const isAdmin = roles.includes('admin' as any);
-  const needsOnboarding = isAdmin && settings && !settings.onboarding_completed && !skipped;
-  if (!needsOnboarding) return null;
-  return (
-    <OnboardingWizard
-      open={true}
-      settingsId={settings.id}
-      onSkip={() => {
-        sessionStorage.setItem('onboarding_skipped', 'true');
-        setSkipped(true);
-      }}
-    />
-  );
-}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
