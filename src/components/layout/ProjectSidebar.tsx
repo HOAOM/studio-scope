@@ -20,6 +20,7 @@ import {
   Layers,
   DoorOpen,
   AppWindow,
+  Container,
 } from 'lucide-react';
 import {
   Sidebar,
