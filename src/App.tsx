@@ -4,9 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { useUserRole } from "@/hooks/useUserRole";
-import { OnboardingWizard } from "@/components/warroom/OnboardingWizard";
 import Index from "./pages/Index";
 import ProjectDetail from "./pages/ProjectDetail";
 import AdminPanel from "./pages/AdminPanel";
@@ -19,7 +16,6 @@ import SuperAdmin from "./pages/SuperAdmin";
 import { Loader2 } from "lucide-react";
 import { BugReportButton } from "@/components/test/BugReportButton";
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
-import { useState } from "react";
 
 const queryClient = new QueryClient();
 
@@ -41,31 +37,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ImpersonateBanner />
-      <OnboardingGate />
       {children}
       <BugReportButton />
     </>
   );
 }
 
-function OnboardingGate() {
-  const { roles } = useUserRole();
-  const { data: settings } = useCompanySettings();
-  const [skipped, setSkipped] = useState(() => sessionStorage.getItem('onboarding_skipped') === 'true');
-  const isAdmin = roles.includes('admin' as any);
-  const needsOnboarding = isAdmin && settings && !settings.onboarding_completed && !skipped;
-  if (!needsOnboarding) return null;
-  return (
-    <OnboardingWizard
-      open={true}
-      settingsId={settings.id}
-      onSkip={() => {
-        sessionStorage.setItem('onboarding_skipped', 'true');
-        setSkipped(true);
-      }}
-    />
-  );
-}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
