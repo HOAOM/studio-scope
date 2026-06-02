@@ -55,6 +55,7 @@ import {
   Layers,
   DoorOpen,
   AppWindow,
+  Container,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
@@ -854,6 +855,16 @@ export default function ProjectDetail() {
               description="Addon per la gestione delle finestre. In arrivo — non ancora attivo."
             />
           </TabsContent>
+
+          {/* ADDON: LOADING / CARICHI */}
+          <TabsContent value="loading">
+            <AddonPlaceholder
+              icon={Container}
+              title="Loading / Carichi"
+              description="Addon per la gestione dei carichi: dai colli genera le scatole, e da scatole e colli calcola il piano di carico del container. In arrivo — non ancora attivo."
+            />
+          </TabsContent>
+
 
         </Tabs>
       </main>
