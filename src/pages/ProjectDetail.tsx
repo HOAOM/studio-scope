@@ -55,6 +55,7 @@ import {
   Layers,
   DoorOpen,
   AppWindow,
+  Container,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
