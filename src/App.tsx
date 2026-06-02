@@ -16,7 +16,6 @@ import SuperAdmin from "./pages/SuperAdmin";
 import { Loader2 } from "lucide-react";
 import { BugReportButton } from "@/components/test/BugReportButton";
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
-import { useState } from "react";
 
 const queryClient = new QueryClient();
 
