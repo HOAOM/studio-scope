@@ -68,6 +68,7 @@ const ADDON_ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDa
   { value: 'marble-slab', label: 'Marble Slab', icon: Layers },
   { value: 'door', label: 'Door', icon: DoorOpen },
   { value: 'windows', label: 'Windows', icon: AppWindow },
+  { value: 'loading', label: 'Loading / Carichi', icon: Container },
 ];
 
 
