@@ -856,6 +856,16 @@ export default function ProjectDetail() {
             />
           </TabsContent>
 
+          {/* ADDON: LOADING / CARICHI */}
+          <TabsContent value="loading">
+            <AddonPlaceholder
+              icon={Container}
+              title="Loading / Carichi"
+              description="Addon per la gestione dei carichi: dai colli genera le scatole, e da scatole e colli calcola il piano di carico del container. In arrivo — non ancora attivo."
+            />
+          </TabsContent>
+
+
         </Tabs>
       </main>
 
