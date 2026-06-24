@@ -21,6 +21,7 @@ import {
   DoorOpen,
   AppWindow,
   Container,
+  Grid2x2,
 } from 'lucide-react';
 import {
   Sidebar,
