@@ -56,6 +56,7 @@ import {
   DoorOpen,
   AppWindow,
   Container,
+  Grid2x2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
@@ -853,6 +854,15 @@ export default function ProjectDetail() {
               icon={AppWindow}
               title="Windows"
               description="Addon per la gestione delle finestre. In arrivo — non ancora attivo."
+            />
+          </TabsContent>
+
+          {/* ADDON: PANELS / PANNELLI */}
+          <TabsContent value="panels">
+            <AddonPlaceholder
+              icon={Grid2x2}
+              title="Pannelli & Piani di Taglio"
+              description="Addon per la gestione dei pannelli e dei piani di taglio: calcola quanti pezzi servono e ottimizza i tagli per lavorazioni custom in cantiere. In arrivo — non ancora attivo."
             />
           </TabsContent>
 
