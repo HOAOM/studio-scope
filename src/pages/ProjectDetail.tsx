@@ -56,6 +56,7 @@ import {
   DoorOpen,
   AppWindow,
   Container,
+  Grid2x2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
