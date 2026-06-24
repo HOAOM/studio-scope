@@ -50,6 +50,7 @@ export type ProjectSection =
   | 'marble-slab'
   | 'door'
   | 'windows'
+  | 'panels'
   | 'loading';
 
 const ITEMS: { value: ProjectSection; label: string; icon: typeof LayoutDashboard }[] = [
