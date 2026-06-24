@@ -857,6 +857,15 @@ export default function ProjectDetail() {
             />
           </TabsContent>
 
+          {/* ADDON: PANELS / PANNELLI */}
+          <TabsContent value="panels">
+            <AddonPlaceholder
+              icon={Grid2x2}
+              title="Pannelli & Piani di Taglio"
+              description="Addon per la gestione dei pannelli e dei piani di taglio: calcola quanti pezzi servono e ottimizza i tagli per lavorazioni custom in cantiere. In arrivo — non ancora attivo."
+            />
+          </TabsContent>
+
           {/* ADDON: LOADING / CARICHI */}
           <TabsContent value="loading">
             <AddonPlaceholder
