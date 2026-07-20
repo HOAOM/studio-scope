@@ -1,61 +1,140 @@
-## Obiettivo
+## Punto di partenza — cosa è già in piedi (verificato)
 
-Un sito vetrina cinematografico (scrollytelling stile Apple/Porsche/A24) che vende il software, con onboarding completo nel sito: il cliente scrolla, sceglie il tier, sceglie come usare il dominio, e si ritrova lo spazio già pronto — senza tuo intervento manuale. Più referral e codici sconto.
+- Studio Scope (questo progetto) gira su **Lovable Cloud** (un solo Supabase). Multi-tenancy è **logica**, via tabelle `organizations`, `organization_members`, RLS.
+- Esiste già un'edge function `site-api` con endpoint per: create org, subscription sync, discount/referral validate & redeem, custom domain, org lookup. Autenticata via header `x-site-api-key` (secret `SITE_API_KEY` già configurato).
+- Esiste documentazione integrazione in `SITE_INTEGRATION_API.md`.
+- Il file `src/marketing/Landing.tsx` è disattivato in `App.tsx`.
 
-## Premessa onesta sull'architettura (da decidere prima di costruire)
+## Nodo critico da chiarire prima di scrivere codice
 
-Le tue tre richieste — **isolamento massimo + automazione totale + hosting autonomo su tua VPS** — al massimo grado non coesistono senza un grosso progetto infrastrutturale separato. Ecco perché, senza giri di parole:
+La tua risposta "**ogni cliente kroneel deve avere un dock separato, compartimenti stagni**" è **in conflitto con l'architettura attuale di Studio Scope**, che è multi-tenant su un singolo DB Supabase. Devo dirti chiaramente cosa comporta, senza inventare.
 
-- **Isolamento fisico per cliente** (un database/istanza separata per ognuno) dà il massimo isolamento, ma per essere **automatico** richiede un orchestratore (container/DB creati al volo, routing dei domini, backup, aggiornamenti su N istanze). Questo **non è un'app**: è infrastruttura DevOps che Lovable **non genera e non deploya**. Su una VPS auto-gestita andrebbe costruita e mantenuta da te/un sysadmin.
-- **Hosting su tua VPS**: questa app gira su Lovable Cloud (frontend Lovable + backend gestito Supabase). Non è un pacchetto "carico sulla VPS e parte". Esportarla in self-hosting è possibile in teoria ma è un altro progetto, e perde gli automatismi di Lovable.
+### Due modelli possibili — non si possono mescolare
 
-### La strada realistica (consigliata) — SaaS multi-tenant
-Ottiene **esattamente** il tuo obiettivo pratico ("nessun rischio di mescolamento dati" + "zero intervento manuale"), che è ciò che il software **già implementa**:
+**Modello A — Multi-tenant logico (l'attuale)**
+- Un'unica app Studio Scope + un solo Postgres.
+- Isolamento cliente = RLS su `organization_id`.
+- Non c'è "container per cliente". Un bug in una policy può teoricamente esporre dati fra clienti (mitigato da audit e test, ma non fisicamente impossibile).
+- Provisioning cliente = 1 chiamata a `site-api/organizations` → istantaneo, zero costi extra.
+- Compatibile con Lovable Cloud e con l'esistente.
 
-- Un'unica app, un unico database. I clienti sono isolati **logicamente** da `organization_id` + Row-Level Security: un cliente non può tecnicamente vedere i dati di un altro. Questo è lo standard dei SaaS seri.
-- Il provisioning è **già automatizzabile**: esiste la edge function `site-api` che crea org + utente owner + abbonamento, applica referral e sconti, e registra il dominio. Niente intervento manuale.
-- I domini cliente funzionano così: dominio proprio (custom domain), oppure sottodominio `cliente.tuosoftware.com`, entrambi puntano alla stessa app che riconosce l'org dal dominio.
+**Modello B — Container per tenant ("compartimenti stagni")**
+- Ogni cliente = **1 container app + 1 database Postgres proprio** sulla tua VPS.
+- Isolamento fisico: un cliente non può leggere l'altro nemmeno con un bug applicativo.
+- Provisioning = crea DB, esegui migrazioni schema Studio Scope, avvia container, configura reverse proxy, crea utente owner. Serve un **orchestratore**.
+- Costi VPS/RAM crescono linearmente col numero di clienti (ogni Postgres consuma memoria).
+- **Non è compatibile con Lovable Cloud in produzione**: Lovable Cloud è un solo Supabase condiviso. Il container-per-tenant esiste solo dopo il deploy sulla tua VPS.
+- Kroneel signup **non può** più chiamare `site-api/organizations` sul progetto Lovable, perché quello inserisce in un DB unico. Deve chiamare un **orchestratore self-hosted sulla tua VPS**.
 
-> Raccomando questa strada. Il piano qui sotto la assume. Se invece vuoi davvero l'isolamento fisico per cliente, va prima impostato un progetto infrastrutturale a parte (fuori Lovable) e il sito si limiterebbe a "ordinare" un provisioning a quel sistema.
+Hai scelto Modello B. Quindi il piano seguente assume compartimenti stagni. La conseguenza importante che devi accettare consapevolmente:
 
-## Cosa costruisco ora (dentro Lovable)
+> **Studio Scope come vive oggi su Lovable Cloud smetterà di essere l'ambiente di produzione.** Rimane lo strumento di sviluppo / staging. La produzione sarà l'immagine Docker di Studio Scope + Postgres, orchestrata sulla VPS. La logica `organizations` interna diventa ridondante (ogni container ha un solo cliente).
 
-### 1. Sito cinematografico scrollytelling (l'effetto WOW)
-Nuova area pubblica del progetto (route `/` marketing, separata dall'app autenticata):
+Se questo non è ciò che intendevi, torna al Modello A e ci fermiamo qui.
 
-- **7 capitoli**, ognuno una sezione pinnata (sticky 100vh) dove lo scroll verticale guida l'animazione frame-by-frame.
-- Profondità 3D reale con `@react-three/fiber` + `@react-three/drei` (R3F v8 per React 18) per i capitoli chiave; resto in Framer Motion + scroll-driven animations.
-- Capitoli 3 e 6 con scroll orizzontale nativo guidato dallo scroll verticale.
-- Direzione visiva: **lusso silenzioso × impatto diretto** — nero/contrasto, tipografia grande, spazi ampi, movimento preciso (no parallax banale).
-- Struttura capitoli proposta: (1) Hero manifesto, (2) Il problema, (3) Il workflow [scroll orizzontale], (4) BOQ/Gantt in azione, (5) Controllo costi & margini, (6) Tier a confronto [scroll orizzontale], (7) Call to action / onboarding.
+---
 
-### 2. Onboarding nel sito (collegato in modo ineccepibile)
-Flusso guidato che termina con lo spazio cliente pronto:
+## Piano (assumendo Modello B confermato)
 
-1. Scelta tier (starter / pro / business) con i limiti reali già definiti.
-2. Inserimento dati org (nome, email owner) + eventuale codice sconto e/o referral, validati live.
-3. Scelta dominio: (a) dominio proprio → mostriamo istruzioni DNS chiare da seguire; (b) sottodominio `cliente.tuosoftware.com`; (c) "comprane uno" → segnaposto per il sistema di affiliazione (fase successiva).
-4. Provisioning automatico via `site-api`: crea org, owner, subscription, applica sconto/referral, registra il dominio. Il cliente riceve l'accesso al suo spazio già configurato.
+### 1. Progetto B "Kroneel" — nuovo progetto Lovable separato
+- Sito bianco senza grafica, solo bottoni: **Home**, **Pricing (3 tier)**, **Signup**, **Login**, pagina **Dashboard cliente** (post-login).
+- Stack Vite/React identico a Studio Scope per omogeneità di build.
+- Deploy target: container Docker sulla VPS, dietro reverse proxy su `kroneel.com` e `www.kroneel.com`.
+- Il progetto B ha il proprio DB (Postgres o Supabase self-hosted sulla VPS) per: utenti Kroneel, subscription, referral, discount, mapping cliente → istanza tenant.
 
-### 3. Referral e codici sconto
-- Già esistono tabelle e RPC (`referral_codes`, `discount_codes`, `validate_discount`, `redeem_discount`, `apply_referral`) e gli endpoint in `site-api`.
-- Aggiungo nel sito la validazione in tempo reale del codice durante l'onboarding e i pannelli di gestione (lato admin esistono già parzialmente in super-admin).
+### 2. Signup senza pagamento
+Flusso:
+```text
+Utente su kroneel.com/signup
+  → sceglie tier (Starter/Pro/Business, dati da tabella locale Kroneel)
+  → sceglie hostname:
+       (a) sottodominio: <slug>.kroneel.com
+       (b) dominio custom: <suo-dominio>
+  → email + password
+  → account Kroneel creato, subscription in stato "trial"
+  → invia richiesta a Orchestratore
+```
 
-### 4. Pagamenti
-Come richiesto: **solo struttura ora**. L'onboarding viene predisposto con uno step "pagamento" disattivato/segnaposto, pronto da collegare poi a Stripe o Paddle (richiede piano Pro di Lovable). Fino ad allora il provisioning resta in modalità test.
+### 3. Orchestratore VPS (nuovo servizio, self-hosted)
+Non è un progetto Lovable. È un piccolo servizio (Node/Deno/Go — sceglierai) che gira sulla VPS con privilegi Docker. API interna chiamata solo dal backend di Kroneel.
 
-## Note tecniche
+Responsabilità:
+1. Ricevere `provision(tenant_slug, tier, owner_email)`.
+2. Creare **Postgres dedicato** (container `postgres:16` con volume `pg-<slug>`) oppure un nuovo schema/DB su una singola istanza Postgres condivisa se preferisci fase 1 più leggera (da decidere insieme).
+3. Applicare le **migrazioni Studio Scope** su quel DB (export dello schema attuale come file SQL versionato in repo).
+4. Avviare container **studio-scope-app:<version>** collegato a quel Postgres, con env `TENANT_SLUG`, `TENANT_TIER`, `POSTGRES_URL`.
+5. Aggiornare la config del reverse proxy (Traefik o Caddy) con label o file di config per instradare `<slug>.kroneel.com` → container.
+6. Creare l'utente owner nel DB del tenant (script SQL / call ad admin API dell'istanza).
+7. Ritornare stato "ready" a Kroneel.
 
-- Il sito vive nello stesso progetto, come sezione pubblica non autenticata; l'app gestionale resta dietro login.
-- L'onboarding chiama `site-api` (che usa il service role lato server) tramite una piccola edge function pubblica intermedia, così la `SITE_API_KEY` non finisce mai nel frontend.
-- 3D: `@react-three/fiber@^8.18`, `@react-three/drei@^9.122.0`, `three@>=0.133` (vincolo React 18).
-- Performance: lazy-load delle scene 3D, fallback statici per mobile, attenzione al peso per non sacrificare lo scroll fluido.
+Note tecniche:
+- **Reverse proxy consigliato: Traefik** con provider Docker + wildcard TLS via Let's Encrypt DNS-01 su `*.kroneel.com`. Motivo: label auto-discovery, TLS wildcard automatico, gestione domini custom on-the-fly.
+- Costo memoria per tenant: circa 150–300 MB Postgres + 100–200 MB app Node = **~400 MB per cliente**. Su VPS 4 GB stimi ~7–8 clienti utili. Se prevedi decine di clienti servirà VPS più grande o passare a "schema per tenant su un solo Postgres" (isolamento logico più forte del RLS ma senza costo per-container Postgres).
 
-## Fuori scope (da valutare a parte)
-- Isolamento fisico per-cliente e auto-provisioning di istanze separate su VPS.
-- Self-hosting dell'intera app sulla tua VPS.
-- Sistema di acquisto domini in affiliazione (fase successiva, come hai indicato).
-- Collegamento reale del provider di pagamento (quando passi a Pro).
+### 4. Wildcard DNS e domini custom
+- Presso il registrar di `kroneel.com`, un record wildcard: `*.kroneel.com A <IP-VPS>` e `kroneel.com A <IP-VPS>`.
+- Certificato wildcard `*.kroneel.com` via DNS-01 (richiede API key del DNS provider passata a Traefik).
+- Domini custom cliente (es. `scope.studiorossi.it`): il cliente fa CNAME/A verso VPS, l'orchestratore aggiunge il dominio alla config Traefik del suo container, Traefik emette cert HTTP-01 al volo.
 
-## Domanda di conferma
-Procedo con la strada **SaaS multi-tenant** (isolamento garantito via RLS + provisioning automatico) e costruisco sito + onboarding + referral/sconti, lasciando pagamenti come struttura? Oppure vuoi prima approfondire lo scenario "istanza fisica per cliente" e le sue implicazioni infrastrutturali?
+### 5. Studio Scope — adattamenti per essere self-hostable per-tenant
+Cambi minimi e circoscritti al deploy, senza toccare le UI:
+- Dockerfile multi-stage per app (build Vite + serve static + eventuale mini-server per `.env` runtime).
+- Le env `VITE_SUPABASE_*` diventano **runtime**, non build-time (perché ogni container punta a un Postgres diverso). Serve un piccolo shim che sostituisce placeholder all'avvio o servire un `/config.js` dinamico.
+- Migrazioni schema esportate da Lovable Cloud in `supabase/migrations/*.sql` versionati (procedura di export una tantum).
+- Supabase Auth: se vuoi Auth per-tenant serve **GoTrue self-hosted** nel bundle del tenant. Se preferisci semplificare, si può passare a **auth locale** (utenti in `public.users`, hash bcrypt, JWT firmato dall'app). Da decidere: è una scelta grossa, mettiamola come sotto-decisione (D1).
+
+### 6. Kroneel ↔ Orchestratore ↔ Tenant
+```text
+Kroneel signup UI
+   │  (POST /api/tenants { slug, tier, owner_email, password_hash })
+   ▼
+Kroneel backend (Deno/Node, self-hosted)
+   │  (POST http://orchestrator:9000/provision, HMAC signed)
+   ▼
+Orchestrator VPS
+   │  docker run postgres-<slug>
+   │  psql < migrations/*.sql
+   │  docker run studio-scope-app-<slug>
+   │  traefik reload
+   │  seed owner user
+   ▼
+<slug>.kroneel.com  (Traefik) → container studio-scope-<slug>
+```
+
+### 7. Dettaglio Progetto B (Lovable) — cosa costruisco qui
+Solo la parte web. Pagine:
+- `/` Home con 3 bottoni (Pricing, Signup, Login) — nessuno stile, HTML puro.
+- `/pricing` — 3 card tier con bottone "Scegli".
+- `/signup?tier=xxx` — form email/password/company + input hostname + submit.
+- `/login` — form email/password.
+- `/dashboard` — mostra stato tenant ("provisioning", "ready", link a `<slug>.kroneel.com`).
+- Backend Kroneel come edge function del progetto B (auth utenti Kroneel + call HMAC verso orchestratore).
+
+Il progetto B **non tocca** il DB di Studio Scope. Vive di vita propria.
+
+### 8. Cosa NON facciamo in questa fase (rimandato)
+- Pagamenti Stripe (rimane placeholder "trial 30 giorni").
+- Grafica cinematografica scrollytelling (arriva dopo, sopra lo scheletro bianco).
+- Migrazione automatica upgrade tier fra container (per ora tier è metadato, non cambia risorse).
+- Backup automatici per-tenant (necessari in produzione, li pianifichiamo separatamente).
+
+---
+
+## Decisioni ancora da prendere prima di partire
+
+**D1. Auth nei tenant.**
+Studio Scope oggi usa Supabase Auth (GoTrue). Nel container-per-tenant hai due strade:
+- **D1a.** Includere GoTrue per tenant (fedele all'attuale, +80 MB RAM/tenant, complessità config invito email SMTP per tenant).
+- **D1b.** Riscrivere auth come locale (`users` table + bcrypt + JWT locale). Meno consumo, più codice da scrivere/testare, si perdono email invite pronte all'uso.
+
+**D2. Un Postgres per tenant vs uno schema per tenant.**
+- **D2a.** Container Postgres dedicato per tenant (compartimenti stagni pieni, ~200 MB/tenant).
+- **D2b.** Un solo Postgres condiviso, uno schema per tenant, connessioni con `search_path` diverso. Isolamento più forte di RLS, molto meno pesante, ma dump/restore/backup indipendenti richiedono più attenzione.
+
+**D3. Orchestratore — linguaggio.**
+Node/Deno (facile riuso codice TS), Go (binario singolo, robusto per gestire Docker), Bash + systemd (semplice ma fragile). Consiglio: **Deno** per omogeneità stack.
+
+**D4. Reverse proxy: Traefik confermato?**
+Alternativa Caddy: config file singolo, ottimo wildcard TLS, meno label-driven. Traefik è più adatto a "container che si aggiungono dinamicamente".
+
+Vuoi rispondere D1–D4 e ripartiamo con un piano operativo di implementazione? Oppure, se preferisci, iniziamo comunque il **Progetto B** (sito bianco + signup UI) mentre queste decisioni si sedimentano — quella parte non dipende da D1–D4.
