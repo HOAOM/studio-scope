@@ -8,3 +8,5 @@ verify_jwt = false
 
 [functions.public-onboarding]
 verify_jwt = false
+[functions.run-migration-security-fix]
+verify_jwt = false
