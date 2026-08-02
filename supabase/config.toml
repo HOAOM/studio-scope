@@ -10,3 +10,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.run-migration-security-fix]
 verify_jwt = false
+
+[functions.run-migration-kroneel-access]
+verify_jwt = false
+
