@@ -17,13 +17,14 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Conferma il tuo indirizzo email',
+  invite: 'Sei stato invitato su Kroneel',
+  magiclink: 'Il tuo link di accesso',
+  recovery: 'Reimposta la tua password',
+  email_change: 'Conferma il tuo nuovo indirizzo email',
+  reauthentication: 'Il tuo codice di verifica',
 }
+
 
 // Template mapping
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
