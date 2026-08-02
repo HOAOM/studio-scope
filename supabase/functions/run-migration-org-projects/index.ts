@@ -43,6 +43,21 @@ GRANT EXECUTE ON FUNCTION public.is_project_member(uuid)     TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_project_owner(uuid)      TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_item_project_owner(uuid) TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.get_my_organizations()
+RETURNS TABLE(organization_id uuid, name text, slug text, is_owner boolean, tier text, status text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $fn$
+  SELECT o.id, o.name, o.slug, m.is_owner,
+         COALESCE(public.get_org_effective_tier(o.id)::text, 'starter'),
+         COALESCE(s.status::text, 'suspended')
+  FROM public.organization_members m
+  JOIN public.organizations o ON o.id = m.organization_id
+  LEFT JOIN public.organization_subscriptions s ON s.organization_id = o.id
+  WHERE m.user_id = auth.uid()
+  ORDER BY m.joined_at ASC
+$fn$;
+GRANT EXECUTE ON FUNCTION public.get_my_organizations() TO authenticated;
+
 DO $$
 BEGIN
   -- PROJECTS: tutti i membri dell'org vedono i progetti dell'org
