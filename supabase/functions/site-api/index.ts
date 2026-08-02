@@ -128,35 +128,198 @@ async function createOrganization(body: any) {
   });
   if (subErr) return json({ error: "subscription create failed", detail: subErr.message }, 500);
 
-  // 5) optional referral
+  // 5) codice unico: prima come sconto, poi come referral; se non esiste, ignorato
+  const rawCode = String(body.discount_code ?? body.referral_code ?? body.code ?? "").trim();
+  let codeApplied: Record<string, unknown> | null = null;
   let referralApplied = false;
-  if (body.referral_code) {
-    const { data: refOk } = await sb.rpc("apply_referral", {
-      p_code: body.referral_code,
-      p_org: org.id,
-    });
-    referralApplied = !!refOk;
-  }
-
-  // 6) optional discount
   let discountApplied = false;
-  if (body.discount_code) {
-    const { data: discOk } = await sb.rpc("redeem_discount", {
-      p_code: body.discount_code,
-      p_org: org.id,
-    });
-    discountApplied = !!discOk;
+
+  if (rawCode) {
+    const code = rawCode.toUpperCase();
+    const { data: disc } = await sb
+      .from("discount_codes")
+      .select("code, percent_off, amount_off")
+      .eq("code", code)
+      .maybeSingle();
+
+    if (disc) {
+      const { data: discOk } = await sb.rpc("redeem_discount", { p_code: code, p_org: org.id });
+      discountApplied = !!discOk;
+      if (discountApplied) {
+        codeApplied = {
+          type: "discount",
+          code,
+          percent: disc.percent_off !== null ? Number(disc.percent_off) : null,
+          amount: disc.amount_off !== null ? Number(disc.amount_off) : null,
+        };
+      }
+    } else {
+      const { data: ref } = await sb
+        .from("referral_codes")
+        .select("code")
+        .eq("code", code)
+        .maybeSingle();
+      if (ref) {
+        const { data: refOk } = await sb.rpc("apply_referral", { p_code: code, p_org: org.id });
+        referralApplied = !!refOk;
+        if (referralApplied) codeApplied = { type: "referral", code };
+      }
+    }
   }
 
   return json({
+    ok: true,
     organization_id: org.id,
     slug: org.slug,
     owner_user_id: userId,
     tier,
+    code_applied: codeApplied,
     referral_applied: referralApplied,
     discount_applied: discountApplied,
   }, 201);
 }
+
+// ─── SSO handoff ──────────────────────────────────────────────────────────
+
+// POST /sso/ticket  — Authorization: Bearer <user access_token>
+// body: { organization_id }
+async function ssoTicket(req: Request, body: any) {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthenticated" }, 401);
+  const token = authHeader.slice(7);
+
+  const sb = admin();
+  const { data: userRes, error: userErr } = await sb.auth.getUser(token);
+  if (userErr || !userRes?.user) return json({ error: "unauthenticated" }, 401);
+  const user = userRes.user;
+
+  let orgId: string | null = body?.organization_id ?? null;
+  if (!orgId) {
+    const { data: firstMem } = await sb
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    orgId = firstMem?.organization_id ?? null;
+  }
+  if (!orgId) return json({ error: "organization_id required" }, 400);
+
+  const { data: member } = await sb
+    .from("organization_members")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!member) return json({ error: "forbidden: not a member of this organization" }, 403);
+
+  const { data: org } = await sb
+    .from("organizations")
+    .select("slug, custom_domain")
+    .eq("id", orgId)
+    .maybeSingle();
+  if (!org) return json({ error: "organization not found" }, 404);
+
+  const bytes = new Uint8Array(48);
+  crypto.getRandomValues(bytes);
+  const ticket = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const tokenHash = await sha256(ticket);
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+
+  const { error: insErr } = await sb.from("sso_tickets").insert({
+    token_hash: tokenHash,
+    user_id: user.id,
+    organization_id: orgId,
+    expires_at: expiresAt,
+  });
+  if (insErr) return json({ error: "ticket create failed", detail: insErr.message }, 500);
+
+  const host = org.custom_domain ?? `${org.slug}.kroneel.com`;
+  return json({
+    url: `https://${host}/sso?ticket=${ticket}`,
+    ticket,
+    expires_at: expiresAt,
+    organization_id: orgId,
+  });
+}
+
+// POST /sso/redeem  body: { ticket }
+async function ssoRedeem(req: Request, body: any) {
+  const sb = admin();
+  const ticket = String(body?.ticket ?? "").trim();
+  const logFail = async (reason: string, tokenHash: string | null) => {
+    await sb.from("sso_redeem_failures").insert({
+      reason,
+      token_hash: tokenHash,
+      ip: req.headers.get("x-forwarded-for"),
+      user_agent: req.headers.get("user-agent"),
+    });
+  };
+
+  if (!ticket) {
+    await logFail("missing_ticket", null);
+    return json({ error: "invalid ticket" }, 401);
+  }
+  const tokenHash = await sha256(ticket);
+
+  // consumo atomico: passa solo se non usato e non scaduto
+  const { data: rows, error: updErr } = await sb
+    .from("sso_tickets")
+    .update({ used_at: new Date().toISOString() })
+    .eq("token_hash", tokenHash)
+    .is("used_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .select("user_id, organization_id");
+
+  if (updErr || !rows || rows.length === 0) {
+    await logFail(updErr ? `db_error:${updErr.message}` : "expired_used_or_unknown", tokenHash);
+    return json({ error: "invalid or expired ticket" }, 401);
+  }
+  const row = rows[0];
+
+  const { data: userRes } = await sb.auth.admin.getUserById(row.user_id);
+  const email = userRes?.user?.email;
+  if (!email) {
+    await logFail("user_without_email", tokenHash);
+    return json({ error: "invalid ticket" }, 401);
+  }
+
+  const { data: link, error: linkErr } = await sb.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (linkErr || !link?.properties?.hashed_token) {
+    await logFail(`link_failed:${linkErr?.message ?? "no_token"}`, tokenHash);
+    return json({ error: "session issue failed" }, 500);
+  }
+
+  const anon = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: verified, error: verifyErr } = await anon.auth.verifyOtp({
+    type: "magiclink",
+    token_hash: link.properties.hashed_token,
+  });
+  if (verifyErr || !verified?.session) {
+    await logFail(`verify_failed:${verifyErr?.message ?? "no_session"}`, tokenHash);
+    return json({ error: "session issue failed" }, 500);
+  }
+
+  return json({
+    ok: true,
+    organization_id: row.organization_id,
+    user_id: row.user_id,
+    session: {
+      access_token: verified.session.access_token,
+      refresh_token: verified.session.refresh_token,
+      expires_in: verified.session.expires_in,
+      expires_at: verified.session.expires_at,
+      token_type: verified.session.token_type,
+    },
+  });
+}
+
 
 // POST /subscription/sync
 // body: { organization_id, tier?, status?, current_period_end?, stripe_customer_id? }
