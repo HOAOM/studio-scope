@@ -428,15 +428,18 @@ async function lookupOrg(url: URL) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Auth: shared secret
-  const key = req.headers.get("x-site-api-key");
-  if (!SITE_API_KEY || key !== SITE_API_KEY) {
-    return json({ error: "unauthorized" }, 401);
-  }
-
   const url = new URL(req.url);
   // strip "/site-api" prefix from path
   const path = url.pathname.replace(/^\/site-api/, "") || "/";
+
+  // Le rotte SSO usano il token utente (ticket) invece della shared secret.
+  const isSsoRoute = path === "/sso/ticket" || path === "/sso/redeem";
+  if (!isSsoRoute) {
+    const key = req.headers.get("x-site-api-key");
+    if (!SITE_API_KEY || key !== SITE_API_KEY) {
+      return json({ error: "unauthorized" }, 401);
+    }
+  }
 
   try {
     if (req.method === "GET" && path === "/health") {
@@ -455,8 +458,11 @@ Deno.serve(async (req) => {
         case "/discount/redeem":    return await redeemDiscount(body);
         case "/referral/apply":     return await applyReferral(body);
         case "/custom-domain":      return await setCustomDomain(body);
+        case "/sso/ticket":         return await ssoTicket(req, body);
+        case "/sso/redeem":         return await ssoRedeem(req, body);
       }
     }
+
 
     return json({ error: "not found", path, method: req.method }, 404);
   } catch (e) {
