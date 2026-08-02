@@ -59,8 +59,13 @@ export default function Auth() {
       } else {
         const { error } = await signUp(email, password);
         if (error) {
-          if (error.message.includes('already registered')) {
+          const msg = error.message.toLowerCase();
+          if (msg.includes('already registered')) {
             toast.error('An account with this email already exists');
+          } else if (msg.includes('pwned') || msg.includes('compromised') || msg.includes('data breach')) {
+            toast.error(
+              'Questa password è comparsa in violazioni di dati note. Scegline una diversa, più lunga e mai usata altrove.'
+            );
           } else {
             toast.error(error.message);
           }
@@ -68,6 +73,7 @@ export default function Auth() {
           toast.success('Account created! Please check your email to verify.');
         }
       }
+
     } finally {
       setIsSubmitting(false);
     }
