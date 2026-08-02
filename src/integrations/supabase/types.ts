@@ -1757,6 +1757,17 @@ export type Database = {
           tier: Database["public"]["Enums"]["subscription_tier"]
         }[]
       }
+      get_my_organizations: {
+        Args: never
+        Returns: {
+          is_owner: boolean
+          name: string
+          organization_id: string
+          slug: string
+          status: string
+          tier: string
+        }[]
+      }
       get_org_active_project_count: {
         Args: { _org_id: string }
         Returns: number
@@ -1791,7 +1802,9 @@ export type Database = {
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
       is_org_owner: { Args: { p_org: string }; Returns: boolean }
+      is_project_in_my_org: { Args: { p_project_id: string }; Returns: boolean }
       is_project_member: { Args: { p_project_id: string }; Returns: boolean }
+      is_project_org_owner: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
