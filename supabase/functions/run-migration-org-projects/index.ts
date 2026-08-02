@@ -39,6 +39,9 @@ $fn$;
 
 GRANT EXECUTE ON FUNCTION public.is_project_in_my_org(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_project_org_owner(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_project_member(uuid)     TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_project_owner(uuid)      TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_item_project_owner(uuid) TO authenticated;
 
 DO $$
 BEGIN
