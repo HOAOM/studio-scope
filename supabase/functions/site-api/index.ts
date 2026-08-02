@@ -20,12 +20,19 @@ const json = (body: unknown, status = 200) =>
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SITE_API_KEY = (Deno.env.get("SITE_API_KEY") ?? "").trim().replace(/^["']|["']$/g, "");
 
 const admin = () =>
   createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+async function sha256(input: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 
 function slugify(s: string) {
   return s
