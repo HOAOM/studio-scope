@@ -1509,6 +1509,63 @@ export type Database = {
         }
         Relationships: []
       }
+      sso_redeem_failures: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          reason: string
+          token_hash: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          reason: string
+          token_hash?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          reason?: string
+          token_hash?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      sso_tickets: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          organization_id: string
+          token_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          organization_id: string
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       supplier_comments: {
         Row: {
           author_id: string | null
