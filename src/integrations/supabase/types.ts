@@ -743,6 +743,53 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          last_checked_at: string | null
+          last_error: string | null
+          organization_id: string
+          status: string
+          updated_at: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          organization_id: string
+          status?: string
+          updated_at?: string
+          verification_token: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          organization_id?: string
+          status?: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           id: string
