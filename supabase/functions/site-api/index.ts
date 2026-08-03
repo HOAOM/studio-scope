@@ -453,7 +453,9 @@ async function ssoTicket(req: Request, body: any) {
   });
   if (insErr) return json({ error: "ticket create failed", detail: insErr.message }, 500);
 
-  const host = org.custom_domain ?? `${org.slug}.kroneel.com`;
+  const activeDomain = await activeDomainFor(sb, orgId);
+  const host = activeDomain ?? org.custom_domain ?? `${org.slug}.kroneel.com`;
+
   return json({
     url: `https://${host}/sso?ticket=${ticket}`,
     ticket,
