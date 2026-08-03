@@ -179,7 +179,225 @@ async function createOrganization(body: any) {
   }, 201);
 }
 
+// ─── TENANT RESOLUTION (pubblico, read-only) ──────────────────────────────
+
+const ROOT_DOMAIN = "kroneel.com";
+
+function normalizeHost(raw: string) {
+  return raw.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0].split(":")[0];
+}
+
+// GET /tenant?host=<hostname>
+async function resolveTenant(url: URL) {
+  const raw = url.searchParams.get("host");
+  if (!raw) return json({ error: "host required" }, 400);
+  const host = normalizeHost(raw);
+  const sb = admin();
+
+  // 1) dominio custom attivo (tabella organization_domains)
+  const { data: dom } = await sb
+    .from("organization_domains")
+    .select("organization_id")
+    .eq("domain", host)
+    .eq("status", "active")
+    .maybeSingle();
+  if (dom) {
+    const { data: org } = await sb
+      .from("organizations")
+      .select("id, slug, name")
+      .eq("id", dom.organization_id)
+      .maybeSingle();
+    if (org) return json({ organization_id: org.id, slug: org.slug, name: org.name });
+  }
+
+  // 2) legacy: organizations.custom_domain
+  const { data: legacy } = await sb
+    .from("organizations")
+    .select("id, slug, name")
+    .eq("custom_domain", host)
+    .maybeSingle();
+  if (legacy) return json({ organization_id: legacy.id, slug: legacy.slug, name: legacy.name });
+
+  // 3) sottodominio <slug>.kroneel.com
+  if (host.endsWith(`.${ROOT_DOMAIN}`)) {
+    const slug = host.slice(0, -1 * (ROOT_DOMAIN.length + 1));
+    if (slug && slug !== "www") {
+      const { data: bySlug } = await sb
+        .from("organizations")
+        .select("id, slug, name")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (bySlug) return json({ organization_id: bySlug.id, slug: bySlug.slug, name: bySlug.name });
+    }
+  }
+
+  return json({ error: "tenant not found", host }, 404);
+}
+
+// ─── CUSTOM DOMAINS ───────────────────────────────────────────────────────
+
+const DOMAIN_RE = /^(?!-)[a-z0-9-]{1,63}(\.[a-z0-9-]{1,63})+$/;
+
+async function authedUser(req: Request) {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return null;
+  const { data } = await admin().auth.getUser(authHeader.slice(7));
+  return data?.user ?? null;
+}
+
+// POST /domains  body: { organization_id, domain }  (Bearer user token, owner-only)
+async function createDomain(req: Request, body: any) {
+  const user = await authedUser(req);
+  if (!user) return json({ error: "unauthenticated" }, 401);
+  const orgId = body?.organization_id;
+  const domain = normalizeHost(String(body?.domain ?? ""));
+  if (!orgId || !domain) return json({ error: "organization_id and domain required" }, 400);
+  if (!DOMAIN_RE.test(domain)) return json({ error: "invalid domain format" }, 400);
+  if (domain === ROOT_DOMAIN || domain.endsWith(`.${ROOT_DOMAIN}`))
+    return json({ error: "kroneel.com subdomains are assigned automatically" }, 400);
+
+  const sb = admin();
+  const { data: owner } = await sb
+    .from("organization_members")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("user_id", user.id)
+    .eq("is_owner", true)
+    .maybeSingle();
+  if (!owner) return json({ error: "forbidden: owner only" }, 403);
+
+  const { data: taken } = await sb
+    .from("organization_domains")
+    .select("organization_id")
+    .eq("domain", domain)
+    .maybeSingle();
+  if (taken && taken.organization_id !== orgId)
+    return json({ error: "domain already in use" }, 409);
+
+  const token = `kroneel-verify=${crypto.randomUUID().replace(/-/g, "")}`;
+  let row = taken
+    ? (await sb.from("organization_domains").select("*").eq("domain", domain).single()).data
+    : null;
+
+  if (!row) {
+    const { data: inserted, error } = await sb
+      .from("organization_domains")
+      .insert({
+        organization_id: orgId,
+        domain,
+        status: "pending",
+        verification_token: token,
+      })
+      .select()
+      .single();
+    if (error) return json({ error: "domain create failed", detail: error.message }, 500);
+    row = inserted;
+  }
+
+  return json({
+    domain: row,
+    dns_instructions: [
+      { type: "TXT", name: `_kroneel.${domain}`, value: row.verification_token,
+        purpose: "verifica di proprietà" },
+      { type: "CNAME", name: domain, value: `${domain.split(".").length > 2 ? "" : "@ → "}app.${ROOT_DOMAIN}`,
+        purpose: "puntamento all'app (usa A record se il tuo DNS non supporta CNAME su root)" },
+    ],
+  }, 201);
+}
+
+// GET /domains?organization_id=...   (Bearer user token, membro)
+async function listDomains(req: Request, url: URL) {
+  const user = await authedUser(req);
+  if (!user) return json({ error: "unauthenticated" }, 401);
+  const orgId = url.searchParams.get("organization_id");
+  if (!orgId) return json({ error: "organization_id required" }, 400);
+
+  const sb = admin();
+  const { data: member } = await sb
+    .from("organization_members")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member) return json({ error: "forbidden" }, 403);
+
+  const { data, error } = await sb
+    .from("organization_domains")
+    .select("id, domain, status, verification_token, last_error, last_checked_at, verified_at, created_at")
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: true });
+  if (error) return json({ error: error.message }, 500);
+  return json({ domains: data ?? [] });
+}
+
+// TXT lookup via DNS-over-HTTPS (Cloudflare)
+async function lookupTxt(name: string): Promise<string[]> {
+  const res = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=TXT`, {
+    headers: { accept: "application/dns-json" },
+  });
+  if (!res.ok) return [];
+  const dns = await res.json();
+  return (dns.Answer ?? []).map((a: any) => String(a.data ?? "").replace(/^"|"$/g, ""));
+}
+
+// POST /domains/verify   (x-site-api-key — chiamato dal cron)
+async function verifyDomains() {
+  const sb = admin();
+  const { data: rows } = await sb
+    .from("organization_domains")
+    .select("id, domain, verification_token, status")
+    .in("status", ["pending", "verifying", "failed"])
+    .limit(50);
+
+  const results: unknown[] = [];
+  for (const row of rows ?? []) {
+    let status = "verifying";
+    let lastError: string | null = null;
+    try {
+      const txt = await lookupTxt(`_kroneel.${row.domain}`);
+      if (txt.some((t) => t === row.verification_token)) {
+        status = "active";
+      } else {
+        lastError = "record TXT _kroneel non trovato o non corrispondente";
+        status = row.status === "pending" ? "verifying" : "failed";
+      }
+    } catch (e) {
+      lastError = String(e);
+      status = "failed";
+    }
+    await sb
+      .from("organization_domains")
+      .update({
+        status,
+        last_error: lastError,
+        last_checked_at: new Date().toISOString(),
+        verified_at: status === "active" ? new Date().toISOString() : null,
+      })
+      .eq("id", row.id);
+
+    if (status === "active") {
+      await sb.from("organizations")
+        .update({ custom_domain: row.domain })
+        .eq("id", (await sb.from("organization_domains").select("organization_id").eq("id", row.id).single()).data!.organization_id);
+    }
+    results.push({ domain: row.domain, status, last_error: lastError });
+  }
+  return json({ checked: results.length, results });
+}
+
+async function activeDomainFor(sb: ReturnType<typeof admin>, orgId: string) {
+  const { data } = await sb
+    .from("organization_domains")
+    .select("domain")
+    .eq("organization_id", orgId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  return data?.domain ?? null;
+}
+
 // ─── SSO handoff ──────────────────────────────────────────────────────────
+
 
 // POST /sso/ticket  — Authorization: Bearer <user access_token>
 // body: { organization_id }
@@ -235,7 +453,9 @@ async function ssoTicket(req: Request, body: any) {
   });
   if (insErr) return json({ error: "ticket create failed", detail: insErr.message }, 500);
 
-  const host = org.custom_domain ?? `${org.slug}.kroneel.com`;
+  const activeDomain = await activeDomainFor(sb, orgId);
+  const host = activeDomain ?? org.custom_domain ?? `${org.slug}.kroneel.com`;
+
   return json({
     url: `https://${host}/sso?ticket=${ticket}`,
     ticket,
@@ -432,9 +652,12 @@ Deno.serve(async (req) => {
   // strip "/site-api" prefix from path
   const path = url.pathname.replace(/^\/site-api/, "") || "/";
 
-  // Le rotte SSO usano il token utente (ticket) invece della shared secret.
+  // Rotte con auth propria: SSO (ticket utente), /tenant (pubblica read-only),
+  // /domains (Bearer access_token dell'utente).
   const isSsoRoute = path === "/sso/ticket" || path === "/sso/redeem";
-  if (!isSsoRoute) {
+  const isPublicRoute = path === "/tenant";
+  const isUserAuthRoute = path === "/domains";
+  if (!isSsoRoute && !isPublicRoute && !isUserAuthRoute) {
     const key = req.headers.get("x-site-api-key");
     if (!SITE_API_KEY || key !== SITE_API_KEY) {
       return json({ error: "unauthorized" }, 401);
@@ -444,6 +667,12 @@ Deno.serve(async (req) => {
   try {
     if (req.method === "GET" && path === "/health") {
       return json({ ok: true, ts: new Date().toISOString() });
+    }
+    if (req.method === "GET" && path === "/tenant") {
+      return await resolveTenant(url);
+    }
+    if (req.method === "GET" && path === "/domains") {
+      return await listDomains(req, url);
     }
     if (req.method === "GET" && path === "/org/lookup") {
       return await lookupOrg(url);
@@ -458,10 +687,13 @@ Deno.serve(async (req) => {
         case "/discount/redeem":    return await redeemDiscount(body);
         case "/referral/apply":     return await applyReferral(body);
         case "/custom-domain":      return await setCustomDomain(body);
+        case "/domains":            return await createDomain(req, body);
+        case "/domains/verify":     return await verifyDomains();
         case "/sso/ticket":         return await ssoTicket(req, body);
         case "/sso/redeem":         return await ssoRedeem(req, body);
       }
     }
+
 
 
     return json({ error: "not found", path, method: req.method }, 404);
