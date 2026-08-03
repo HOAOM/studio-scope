@@ -652,9 +652,12 @@ Deno.serve(async (req) => {
   // strip "/site-api" prefix from path
   const path = url.pathname.replace(/^\/site-api/, "") || "/";
 
-  // Le rotte SSO usano il token utente (ticket) invece della shared secret.
+  // Rotte con auth propria: SSO (ticket utente), /tenant (pubblica read-only),
+  // /domains (Bearer access_token dell'utente).
   const isSsoRoute = path === "/sso/ticket" || path === "/sso/redeem";
-  if (!isSsoRoute) {
+  const isPublicRoute = path === "/tenant";
+  const isUserAuthRoute = path === "/domains";
+  if (!isSsoRoute && !isPublicRoute && !isUserAuthRoute) {
     const key = req.headers.get("x-site-api-key");
     if (!SITE_API_KEY || key !== SITE_API_KEY) {
       return json({ error: "unauthorized" }, 401);
@@ -664,6 +667,12 @@ Deno.serve(async (req) => {
   try {
     if (req.method === "GET" && path === "/health") {
       return json({ ok: true, ts: new Date().toISOString() });
+    }
+    if (req.method === "GET" && path === "/tenant") {
+      return await resolveTenant(url);
+    }
+    if (req.method === "GET" && path === "/domains") {
+      return await listDomains(req, url);
     }
     if (req.method === "GET" && path === "/org/lookup") {
       return await lookupOrg(url);
@@ -678,10 +687,13 @@ Deno.serve(async (req) => {
         case "/discount/redeem":    return await redeemDiscount(body);
         case "/referral/apply":     return await applyReferral(body);
         case "/custom-domain":      return await setCustomDomain(body);
+        case "/domains":            return await createDomain(req, body);
+        case "/domains/verify":     return await verifyDomains();
         case "/sso/ticket":         return await ssoTicket(req, body);
         case "/sso/redeem":         return await ssoRedeem(req, body);
       }
     }
+
 
 
     return json({ error: "not found", path, method: req.method }, 404);
