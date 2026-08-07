@@ -18,3 +18,6 @@ project_id = "grpzbxwafkcvecphnyyb"
 
   [functions.run-migration-security-fix]
     verify_jwt = false
+  [functions.run-migration-secfix2]
+    verify_jwt = false
+
