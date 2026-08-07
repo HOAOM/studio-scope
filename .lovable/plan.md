@@ -1,140 +1,46 @@
-## Punto di partenza — cosa è già in piedi (verificato)
+# Test beta end-to-end — Kroneel → Studio Scope
 
-- Studio Scope (questo progetto) gira su **Lovable Cloud** (un solo Supabase). Multi-tenancy è **logica**, via tabelle `organizations`, `organization_members`, RLS.
-- Esiste già un'edge function `site-api` con endpoint per: create org, subscription sync, discount/referral validate & redeem, custom domain, org lookup. Autenticata via header `x-site-api-key` (secret `SITE_API_KEY` già configurato).
-- Esiste documentazione integrazione in `SITE_INTEGRATION_API.md`.
-- Il file `src/marketing/Landing.tsx` è disattivato in `App.tsx`.
+Obiettivo: percorrere l'intero flusso reale di un cliente nuovo, dal signup su kroneel.com fino al primo progetto dentro Studio Scope, e chiudere i punti che si rompono.
 
-## Nodo critico da chiarire prima di scrivere codice
+## Stato verificato oggi
 
-La tua risposta "**ogni cliente kroneel deve avere un dock separato, compartimenti stagni**" è **in conflitto con l'architettura attuale di Studio Scope**, che è multi-tenant su un singolo DB Supabase. Devo dirti chiaramente cosa comporta, senza inventare.
+- 7 organizzazioni, tutte con subscription `active` (1 business, 2 pro, 4 starter). Fra queste ci sono duplicati di test (`primo-test` e `primo-test-1`, `diag-test-0802`, `test3`).
+- 20 utenti, di cui 3 con email non confermata. 19 membership, 8 progetti.
+- `site-api` espone: `/organizations`, `/subscription/sync`, `/discount/validate`, `/discount/redeem`, `/referral/apply`, `/custom-domain`, `/domains`, `/domains/verify`, `/sso/ticket`, `/sso/redeem`.
+- SSO: 4 ticket già generati, quindi il canale è stato esercitato almeno una volta.
+- `organization_domains` è vuota: nessun dominio custom è mai stato registrato o verificato end-to-end.
+- Email: 24 righe di log, 12 `sent` e 12 `pending`. Ogni `pending` ha un `sent` gemello a pochi secondi di distanza, senza `error_message`. Ultimo invio 3 agosto. Va confermato se i `pending` sono righe di enqueue che restano appese per design o residui non ripuliti — non è ancora diagnosticato.
 
-### Due modelli possibili — non si possono mescolare
+## Fasi del test
 
-**Modello A — Multi-tenant logico (l'attuale)**
-- Un'unica app Studio Scope + un solo Postgres.
-- Isolamento cliente = RLS su `organization_id`.
-- Non c'è "container per cliente". Un bug in una policy può teoricamente esporre dati fra clienti (mitigato da audit e test, ma non fisicamente impossibile).
-- Provisioning cliente = 1 chiamata a `site-api/organizations` → istantaneo, zero costi extra.
-- Compatibile con Lovable Cloud e con l'esistente.
+### Fase 0 — Pulizia dati di prova
+Rimuovere le organizzazioni palesemente di diagnostica (`primo-test-1`, `diag-test-0802`, `test3`, `studio-verifica-rls`) con i relativi membri, progetti e subscription, previa conferma esplicita di quali tenere. Confermare o cancellare i 3 utenti non confermati. Serve per non confondere i risultati del test con residui vecchi.
 
-**Modello B — Container per tenant ("compartimenti stagni")**
-- Ogni cliente = **1 container app + 1 database Postgres proprio** sulla tua VPS.
-- Isolamento fisico: un cliente non può leggere l'altro nemmeno con un bug applicativo.
-- Provisioning = crea DB, esegui migrazioni schema Studio Scope, avvia container, configura reverse proxy, crea utente owner. Serve un **orchestratore**.
-- Costi VPS/RAM crescono linearmente col numero di clienti (ogni Postgres consuma memoria).
-- **Non è compatibile con Lovable Cloud in produzione**: Lovable Cloud è un solo Supabase condiviso. Il container-per-tenant esiste solo dopo il deploy sulla tua VPS.
-- Kroneel signup **non può** più chiamare `site-api/organizations` sul progetto Lovable, perché quello inserisce in un DB unico. Deve chiamare un **orchestratore self-hosted sulla tua VPS**.
+### Fase 1 — Signup pubblico
+Da kroneel.com: registrazione nuovo cliente con tier Starter.
+Verifiche: creazione utente, invio email di conferma dal dominio notify.kroneel.com, conferma, chiamata a `site-api/organizations`, creazione org + membership owner + subscription con tier corretto.
 
-Hai scelto Modello B. Quindi il piano seguente assume compartimenti stagni. La conseguenza importante che devi accettare consapevolmente:
+### Fase 2 — Codice sconto e referral
+Applicare `KRONEEL100` in signup: `/discount/validate` deve accettarlo e `/discount/redeem` registrare la redemption. Ripetere lo stesso codice per confermare che il limite di utilizzo funzioni. Test analogo su `/referral/apply`.
 
-> **Studio Scope come vive oggi su Lovable Cloud smetterà di essere l'ambiente di produzione.** Rimane lo strumento di sviluppo / staging. La produzione sarà l'immagine Docker di Studio Scope + Postgres, orchestrata sulla VPS. La logica `organizations` interna diventa ridondante (ogni container ha un solo cliente).
+### Fase 3 — SSO "Apri Studio Scope"
+Dal pannello cliente su Kroneel: `/sso/ticket` genera il ticket, il redirect atterra su Studio Scope, `/sso/redeem` crea la sessione e l'utente entra già loggato nella sua org. Verificare che un ticket già consumato o scaduto venga rifiutato e finisca in `sso_redeem_failures`.
 
-Se questo non è ciò che intendevi, torna al Modello A e ci fermiamo qui.
+### Fase 4 — Primo uso reale nel software
+Con l'utente appena creato: creazione progetto, verifica che i limiti di tier siano applicati (Starter = 2 progetti, il terzo deve essere bloccato), inserimento di alcuni item BOQ, avanzamento di uno di essi lungo il workflow, controllo che i costi restino nascosti ai ruoli Designer/Client.
 
----
+### Fase 5 — Isolamento fra tenant
+Con l'utente del nuovo tenant, tentare di leggere progetti e item di un'altra organizzazione. Nessun dato deve essere visibile. Verifica sia da UI sia da query diretta con il ruolo authenticated.
 
-## Piano (assumendo Modello B confermato)
+### Fase 6 — Email in scenari reali
+Invito membro, recovery password, notifica messaggio interno. Per ciascuno controllare arrivo effettivo e stato finale nel log. Chiudere qui la diagnosi dei record `pending`.
 
-### 1. Progetto B "Kroneel" — nuovo progetto Lovable separato
-- Sito bianco senza grafica, solo bottoni: **Home**, **Pricing (3 tier)**, **Signup**, **Login**, pagina **Dashboard cliente** (post-login).
-- Stack Vite/React identico a Studio Scope per omogeneità di build.
-- Deploy target: container Docker sulla VPS, dietro reverse proxy su `kroneel.com` e `www.kroneel.com`.
-- Il progetto B ha il proprio DB (Postgres o Supabase self-hosted sulla VPS) per: utenti Kroneel, subscription, referral, discount, mapping cliente → istanza tenant.
+### Fase 7 — Domini custom (parziale)
+Registrare un dominio di test (`amz.ee` o `denardi.eu`) via `/domains`, verificare il record DNS e il passaggio a verificato via `/domains/verify`, e il tenant resolution via `GET /site-api/tenant?host=`. Il routing effettivo del traffico su quel dominio resta fuori portata finché si sta su hosting Lovable: si verifica solo la parte dati e resolution.
 
-### 2. Signup senza pagamento
-Flusso:
-```text
-Utente su kroneel.com/signup
-  → sceglie tier (Starter/Pro/Business, dati da tabella locale Kroneel)
-  → sceglie hostname:
-       (a) sottodominio: <slug>.kroneel.com
-       (b) dominio custom: <suo-dominio>
-  → email + password
-  → account Kroneel creato, subscription in stato "trial"
-  → invia richiesta a Orchestratore
-```
+## Note tecniche
 
-### 3. Orchestratore VPS (nuovo servizio, self-hosted)
-Non è un progetto Lovable. È un piccolo servizio (Node/Deno/Go — sceglierai) che gira sulla VPS con privilegi Docker. API interna chiamata solo dal backend di Kroneel.
-
-Responsabilità:
-1. Ricevere `provision(tenant_slug, tier, owner_email)`.
-2. Creare **Postgres dedicato** (container `postgres:16` con volume `pg-<slug>`) oppure un nuovo schema/DB su una singola istanza Postgres condivisa se preferisci fase 1 più leggera (da decidere insieme).
-3. Applicare le **migrazioni Studio Scope** su quel DB (export dello schema attuale come file SQL versionato in repo).
-4. Avviare container **studio-scope-app:<version>** collegato a quel Postgres, con env `TENANT_SLUG`, `TENANT_TIER`, `POSTGRES_URL`.
-5. Aggiornare la config del reverse proxy (Traefik o Caddy) con label o file di config per instradare `<slug>.kroneel.com` → container.
-6. Creare l'utente owner nel DB del tenant (script SQL / call ad admin API dell'istanza).
-7. Ritornare stato "ready" a Kroneel.
-
-Note tecniche:
-- **Reverse proxy consigliato: Traefik** con provider Docker + wildcard TLS via Let's Encrypt DNS-01 su `*.kroneel.com`. Motivo: label auto-discovery, TLS wildcard automatico, gestione domini custom on-the-fly.
-- Costo memoria per tenant: circa 150–300 MB Postgres + 100–200 MB app Node = **~400 MB per cliente**. Su VPS 4 GB stimi ~7–8 clienti utili. Se prevedi decine di clienti servirà VPS più grande o passare a "schema per tenant su un solo Postgres" (isolamento logico più forte del RLS ma senza costo per-container Postgres).
-
-### 4. Wildcard DNS e domini custom
-- Presso il registrar di `kroneel.com`, un record wildcard: `*.kroneel.com A <IP-VPS>` e `kroneel.com A <IP-VPS>`.
-- Certificato wildcard `*.kroneel.com` via DNS-01 (richiede API key del DNS provider passata a Traefik).
-- Domini custom cliente (es. `scope.studiorossi.it`): il cliente fa CNAME/A verso VPS, l'orchestratore aggiunge il dominio alla config Traefik del suo container, Traefik emette cert HTTP-01 al volo.
-
-### 5. Studio Scope — adattamenti per essere self-hostable per-tenant
-Cambi minimi e circoscritti al deploy, senza toccare le UI:
-- Dockerfile multi-stage per app (build Vite + serve static + eventuale mini-server per `.env` runtime).
-- Le env `VITE_SUPABASE_*` diventano **runtime**, non build-time (perché ogni container punta a un Postgres diverso). Serve un piccolo shim che sostituisce placeholder all'avvio o servire un `/config.js` dinamico.
-- Migrazioni schema esportate da Lovable Cloud in `supabase/migrations/*.sql` versionati (procedura di export una tantum).
-- Supabase Auth: se vuoi Auth per-tenant serve **GoTrue self-hosted** nel bundle del tenant. Se preferisci semplificare, si può passare a **auth locale** (utenti in `public.users`, hash bcrypt, JWT firmato dall'app). Da decidere: è una scelta grossa, mettiamola come sotto-decisione (D1).
-
-### 6. Kroneel ↔ Orchestratore ↔ Tenant
-```text
-Kroneel signup UI
-   │  (POST /api/tenants { slug, tier, owner_email, password_hash })
-   ▼
-Kroneel backend (Deno/Node, self-hosted)
-   │  (POST http://orchestrator:9000/provision, HMAC signed)
-   ▼
-Orchestrator VPS
-   │  docker run postgres-<slug>
-   │  psql < migrations/*.sql
-   │  docker run studio-scope-app-<slug>
-   │  traefik reload
-   │  seed owner user
-   ▼
-<slug>.kroneel.com  (Traefik) → container studio-scope-<slug>
-```
-
-### 7. Dettaglio Progetto B (Lovable) — cosa costruisco qui
-Solo la parte web. Pagine:
-- `/` Home con 3 bottoni (Pricing, Signup, Login) — nessuno stile, HTML puro.
-- `/pricing` — 3 card tier con bottone "Scegli".
-- `/signup?tier=xxx` — form email/password/company + input hostname + submit.
-- `/login` — form email/password.
-- `/dashboard` — mostra stato tenant ("provisioning", "ready", link a `<slug>.kroneel.com`).
-- Backend Kroneel come edge function del progetto B (auth utenti Kroneel + call HMAC verso orchestratore).
-
-Il progetto B **non tocca** il DB di Studio Scope. Vive di vita propria.
-
-### 8. Cosa NON facciamo in questa fase (rimandato)
-- Pagamenti Stripe (rimane placeholder "trial 30 giorni").
-- Grafica cinematografica scrollytelling (arriva dopo, sopra lo scheletro bianco).
-- Migrazione automatica upgrade tier fra container (per ora tier è metadato, non cambia risorse).
-- Backup automatici per-tenant (necessari in produzione, li pianifichiamo separatamente).
-
----
-
-## Decisioni ancora da prendere prima di partire
-
-**D1. Auth nei tenant.**
-Studio Scope oggi usa Supabase Auth (GoTrue). Nel container-per-tenant hai due strade:
-- **D1a.** Includere GoTrue per tenant (fedele all'attuale, +80 MB RAM/tenant, complessità config invito email SMTP per tenant).
-- **D1b.** Riscrivere auth come locale (`users` table + bcrypt + JWT locale). Meno consumo, più codice da scrivere/testare, si perdono email invite pronte all'uso.
-
-**D2. Un Postgres per tenant vs uno schema per tenant.**
-- **D2a.** Container Postgres dedicato per tenant (compartimenti stagni pieni, ~200 MB/tenant).
-- **D2b.** Un solo Postgres condiviso, uno schema per tenant, connessioni con `search_path` diverso. Isolamento più forte di RLS, molto meno pesante, ma dump/restore/backup indipendenti richiedono più attenzione.
-
-**D3. Orchestratore — linguaggio.**
-Node/Deno (facile riuso codice TS), Go (binario singolo, robusto per gestire Docker), Bash + systemd (semplice ma fragile). Consiglio: **Deno** per omogeneità stack.
-
-**D4. Reverse proxy: Traefik confermato?**
-Alternativa Caddy: config file singolo, ottimo wildcard TLS, meno label-driven. Traefik è più adatto a "container che si aggiungono dinamicamente".
-
-Vuoi rispondere D1–D4 e ripartiamo con un piano operativo di implementazione? Oppure, se preferisci, iniziamo comunque il **Progetto B** (sito bianco + signup UI) mentre queste decisioni si sedimentano — quella parte non dipende da D1–D4.
+- Ogni fase produce un esito scritto: passato / rotto + causa. Non si passa alla fase successiva con una rotta aperta, salvo tua decisione.
+- Le fasi 1–3 richiedono azioni tue sul sito Kroneel (progetto separato); io verifico lato Studio Scope stato DB, log edge function e log email dopo ogni tua azione.
+- Le fasi 4–6 le posso guidare o eseguire in autonomia con un account di test.
+- La fase 0 è distruttiva: la eseguo solo dopo tua conferma sull'elenco esatto.
