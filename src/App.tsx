@@ -56,6 +56,8 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />
+            <Route path="/sso" element={<SsoLogin />} />
+
             <Route
               path="/"
               element={
