@@ -123,13 +123,14 @@ export function OptionCard({
     if (!file) return;
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const path = `${projectId}/${option.id}/ref_${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('item-files').upload(path, file);
+      const result = await compressImage(file);
+      const path = `${projectId}/${option.id}/ref_${Date.now()}.${result.ext}`;
+      const { error: upErr } = await supabase.storage.from('item-files').upload(path, result.file);
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       setForm(f => ({ ...f, reference_image_url: urlData.publicUrl }));
-      toast.success('Image uploaded');
+      const saving = describeSaving(result);
+      toast.success(saving ? `Immagine caricata e ottimizzata · ${saving}` : 'Image uploaded');
     } catch {
       toast.error('Upload failed');
     } finally {

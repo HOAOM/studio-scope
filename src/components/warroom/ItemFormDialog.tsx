@@ -307,13 +307,14 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     if (!user) return;
     setUploadingField(field);
     try {
-      const ext = file.name.split('.').pop();
-      const path = `${user.id}/${projectId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, file);
+      const result = await compressImage(file);
+      const path = `${user.id}/${projectId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${result.ext}`;
+      const { error } = await supabase.storage.from('item-files').upload(path, result.file);
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       form.setValue(field, urlData.publicUrl);
-      toast.success('File uploaded');
+      const saving = describeSaving(result);
+      toast.success(saving ? `File caricato e ottimizzato · ${saving}` : 'File uploaded');
     } catch (e: any) {
       toast.error('Upload failed: ' + (e.message || 'Unknown error'));
     } finally {

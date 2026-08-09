@@ -49,13 +49,14 @@ export function FileOrUrlInput({
     if (!file) return;
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'bin';
-      const path = `${storagePath}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error } = await supabase.storage.from(bucket).upload(path, file);
+      const result = await compressImage(file);
+      const path = `${storagePath}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${result.ext}`;
+      const { error } = await supabase.storage.from(bucket).upload(path, result.file);
       if (error) throw error;
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
       onChange(urlData.publicUrl);
-      toast.success('File uploaded');
+      const saving = describeSaving(result);
+      toast.success(saving ? `File caricato e ottimizzato · ${saving}` : 'File uploaded');
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Upload failed');
