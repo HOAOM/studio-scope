@@ -68,8 +68,8 @@ export function useProjectItems(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId) return [];
 
-      const { data, error } = await supabase
-        .from('project_items')
+      const { data, error } = await (supabase as any)
+        .from('project_items_secure')
         .select('*')
         .eq('project_id', projectId)
         .or('is_active.is.null,is_active.eq.true')
@@ -111,8 +111,8 @@ export function useDeletedProjectItems(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId) return [];
 
-      const { data, error } = await supabase
-        .from('project_items')
+      const { data, error } = await (supabase as any)
+        .from('project_items_secure')
         .select('*')
         .eq('project_id', projectId)
         .eq('is_active', false)
@@ -238,7 +238,7 @@ export function useCreateProjectItem() {
       const { data, error } = await supabase
         .from('project_items')
         .insert(item)
-        .select()
+        .select('id, project_id, item_code, description')
         .single();
       
       if (error) throw error;
@@ -259,7 +259,7 @@ export function useUpdateProjectItem() {
         .from('project_items')
         .update(updates)
         .eq('id', id)
-        .select()
+        .select('id, project_id, item_code, description')
         .single();
       
       if (error) throw error;
@@ -375,7 +375,7 @@ export function useBulkCreateProjectItems() {
       const { data, error } = await supabase
         .from('project_items')
         .insert(items)
-        .select();
+        .select('id, project_id, item_code, description');
       
       if (error) throw error;
       return data;
