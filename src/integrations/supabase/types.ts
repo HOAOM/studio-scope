@@ -253,6 +253,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "direct_messages_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "direct_messages_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -469,6 +476,13 @@ export type Database = {
             referencedRelation: "project_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "item_costs_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       item_messages: {
@@ -499,6 +513,13 @@ export type Database = {
             columns: ["project_item_id"]
             isOneToOne: false
             referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_messages_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -554,6 +575,13 @@ export type Database = {
             referencedRelation: "project_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "item_quotations_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       item_revisions: {
@@ -593,6 +621,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_revisions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -1236,6 +1271,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_items_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -1423,6 +1465,13 @@ export type Database = {
             columns: ["linked_item_id"]
             isOneToOne: false
             referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_linked_item_id_fkey"
+            columns: ["linked_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
             referencedColumns: ["id"]
           },
           {
@@ -1699,6 +1748,13 @@ export type Database = {
             referencedRelation: "project_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "supplier_payments_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       suppliers: {
@@ -1796,7 +1852,267 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_items_secure: {
+        Row: {
+          apartment_number: string | null
+          approval_checklist: Json | null
+          approval_status: Database["public"]["Enums"]["approval_status"] | null
+          area: string | null
+          boq_included: boolean | null
+          boxing_cost: number | null
+          budget_estimate: number | null
+          budget_unit_cost: number | null
+          category: Database["public"]["Enums"]["boq_category"] | null
+          company_product_url: string | null
+          created_at: string | null
+          created_by: string | null
+          custom_cost: number | null
+          delivery_cost: number | null
+          delivery_date: string | null
+          description: string | null
+          dimensions: string | null
+          duty_cost: number | null
+          dynamic_finishes: Json | null
+          extra_safe_cost: number | null
+          finish_color: string | null
+          finish_material: string | null
+          finish_notes: string | null
+          floor_id: string | null
+          id: string | null
+          image_3d_ref: string | null
+          installation_cost: number | null
+          installation_start_date: string | null
+          installed: boolean | null
+          installed_date: string | null
+          insurance_cost: number | null
+          is_active: boolean | null
+          is_selected_option: boolean | null
+          item_code: string | null
+          item_type_id: string | null
+          lifecycle_status:
+            | Database["public"]["Enums"]["item_lifecycle_status"]
+            | null
+          locked_fields: string[] | null
+          margin_percentage: number | null
+          notes: string | null
+          parent_item_id: string | null
+          po_number: string | null
+          production_due_date: string | null
+          production_time: string | null
+          proforma_url: string | null
+          project_id: string | null
+          purchase_order_ref: string | null
+          purchased: boolean | null
+          quantity: number | null
+          quotation_ref: string | null
+          received: boolean | null
+          received_date: string | null
+          reference_image_url: string | null
+          revision_number: number | null
+          room_id: string | null
+          room_number: string | null
+          selling_price: number | null
+          sequence_number: number | null
+          shifting_cost: number | null
+          site_movement_date: string | null
+          subcategory_id: string | null
+          supplier: string | null
+          technical_drawing_url: string | null
+          unit_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          apartment_number?: string | null
+          approval_checklist?: Json | null
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          area?: string | null
+          boq_included?: boolean | null
+          boxing_cost?: never
+          budget_estimate?: never
+          budget_unit_cost?: never
+          category?: Database["public"]["Enums"]["boq_category"] | null
+          company_product_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_cost?: never
+          delivery_cost?: never
+          delivery_date?: string | null
+          description?: string | null
+          dimensions?: string | null
+          duty_cost?: never
+          dynamic_finishes?: Json | null
+          extra_safe_cost?: never
+          finish_color?: string | null
+          finish_material?: string | null
+          finish_notes?: string | null
+          floor_id?: string | null
+          id?: string | null
+          image_3d_ref?: string | null
+          installation_cost?: never
+          installation_start_date?: string | null
+          installed?: boolean | null
+          installed_date?: string | null
+          insurance_cost?: never
+          is_active?: boolean | null
+          is_selected_option?: boolean | null
+          item_code?: string | null
+          item_type_id?: string | null
+          lifecycle_status?:
+            | Database["public"]["Enums"]["item_lifecycle_status"]
+            | null
+          locked_fields?: string[] | null
+          margin_percentage?: never
+          notes?: string | null
+          parent_item_id?: string | null
+          po_number?: string | null
+          production_due_date?: string | null
+          production_time?: string | null
+          proforma_url?: string | null
+          project_id?: string | null
+          purchase_order_ref?: string | null
+          purchased?: boolean | null
+          quantity?: number | null
+          quotation_ref?: string | null
+          received?: boolean | null
+          received_date?: string | null
+          reference_image_url?: string | null
+          revision_number?: number | null
+          room_id?: string | null
+          room_number?: string | null
+          selling_price?: never
+          sequence_number?: number | null
+          shifting_cost?: never
+          site_movement_date?: string | null
+          subcategory_id?: string | null
+          supplier?: string | null
+          technical_drawing_url?: string | null
+          unit_cost?: never
+          updated_at?: string | null
+        }
+        Update: {
+          apartment_number?: string | null
+          approval_checklist?: Json | null
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          area?: string | null
+          boq_included?: boolean | null
+          boxing_cost?: never
+          budget_estimate?: never
+          budget_unit_cost?: never
+          category?: Database["public"]["Enums"]["boq_category"] | null
+          company_product_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_cost?: never
+          delivery_cost?: never
+          delivery_date?: string | null
+          description?: string | null
+          dimensions?: string | null
+          duty_cost?: never
+          dynamic_finishes?: Json | null
+          extra_safe_cost?: never
+          finish_color?: string | null
+          finish_material?: string | null
+          finish_notes?: string | null
+          floor_id?: string | null
+          id?: string | null
+          image_3d_ref?: string | null
+          installation_cost?: never
+          installation_start_date?: string | null
+          installed?: boolean | null
+          installed_date?: string | null
+          insurance_cost?: never
+          is_active?: boolean | null
+          is_selected_option?: boolean | null
+          item_code?: string | null
+          item_type_id?: string | null
+          lifecycle_status?:
+            | Database["public"]["Enums"]["item_lifecycle_status"]
+            | null
+          locked_fields?: string[] | null
+          margin_percentage?: never
+          notes?: string | null
+          parent_item_id?: string | null
+          po_number?: string | null
+          production_due_date?: string | null
+          production_time?: string | null
+          proforma_url?: string | null
+          project_id?: string | null
+          purchase_order_ref?: string | null
+          purchased?: boolean | null
+          quantity?: number | null
+          quotation_ref?: string | null
+          received?: boolean | null
+          received_date?: string | null
+          reference_image_url?: string | null
+          revision_number?: number | null
+          room_id?: string | null
+          room_number?: string | null
+          selling_price?: never
+          sequence_number?: number | null
+          shifting_cost?: never
+          site_movement_date?: string | null
+          subcategory_id?: string | null
+          supplier?: string | null
+          technical_drawing_url?: string | null
+          unit_cost?: never
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_items_floor_id_fkey"
+            columns: ["floor_id"]
+            isOneToOne: false
+            referencedRelation: "master_floors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_item_type_id_fkey"
+            columns: ["item_type_id"]
+            isOneToOne: false
+            referencedRelation: "master_item_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "master_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_items_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "master_subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_get_org: {
@@ -1838,6 +2154,7 @@ export type Database = {
         Args: { p_code: string; p_org: string }
         Returns: boolean
       }
+      can_see_costs: { Args: never; Returns: boolean }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
