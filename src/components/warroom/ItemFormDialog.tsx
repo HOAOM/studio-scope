@@ -327,9 +327,9 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     if (!user) return;
     setUploadingProforma(true);
     try {
-      const ext = file.name.split('.').pop();
-      const path = `${user.id}/${projectId}/proforma/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, file);
+      const result = await compressImage(file);
+      const path = `${user.id}/${projectId}/proforma/${Date.now()}-${Math.random().toString(36).slice(2)}.${result.ext}`;
+      const { error } = await supabase.storage.from('item-files').upload(path, result.file);
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       setProformaUrl(urlData.publicUrl);
