@@ -13,9 +13,11 @@ import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import AcceptInvite from "./pages/AcceptInvite";
 import SuperAdmin from "./pages/SuperAdmin";
+import SsoLogin from "./pages/SsoLogin";
 import { Loader2 } from "lucide-react";
 import { BugReportButton } from "@/components/test/BugReportButton";
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
+import { TenantGuard } from "@/components/layout/TenantGuard";
 
 const queryClient = new QueryClient();
 
