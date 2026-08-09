@@ -13,9 +13,11 @@ import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import AcceptInvite from "./pages/AcceptInvite";
 import SuperAdmin from "./pages/SuperAdmin";
+import SsoLogin from "./pages/SsoLogin";
 import { Loader2 } from "lucide-react";
 import { BugReportButton } from "@/components/test/BugReportButton";
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
+import { TenantGuard } from "@/components/layout/TenantGuard";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +39,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ImpersonateBanner />
-      {children}
+      <TenantGuard>{children}</TenantGuard>
       <BugReportButton />
     </>
   );
@@ -54,6 +56,8 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />
+            <Route path="/sso" element={<SsoLogin />} />
+
             <Route
               path="/"
               element={
