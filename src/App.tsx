@@ -39,7 +39,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ImpersonateBanner />
-      {children}
+      <TenantGuard>{children}</TenantGuard>
       <BugReportButton />
     </>
   );
