@@ -102,8 +102,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     queryKey: ['item-detail', initialItem?.id],
     queryFn: async () => {
       if (!initialItem) return null;
-      const { data, error } = await supabase
-        .from('project_items')
+      const { data, error } = await (supabase as any)
+        .from('project_items_secure')
         .select('*')
         .eq('id', initialItem.id)
         .maybeSingle();
@@ -127,8 +127,8 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     queryKey: ['item-options', item?.id],
     queryFn: async () => {
       if (!item) return [];
-      const { data, error } = await supabase
-        .from('project_items')
+      const { data, error } = await (supabase as any)
+        .from('project_items_secure')
         .select('*')
         .eq('parent_item_id', item.id)
         .order('created_at', { ascending: true });
