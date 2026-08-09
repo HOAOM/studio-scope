@@ -3,6 +3,7 @@
  * Clicking the field opens a popover with two options: upload file or paste URL.
  */
 import { useState, useRef } from 'react';
+import { compressImage, describeSaving } from '@/lib/imageCompression';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -4,6 +4,7 @@
  * Supports multiple Material+Color pairs via dynamic_finishes.
  */
 import { useState } from 'react';
+import { compressImage, describeSaving } from '@/lib/imageCompression';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
