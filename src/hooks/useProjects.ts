@@ -238,7 +238,7 @@ export function useCreateProjectItem() {
       const { data, error } = await supabase
         .from('project_items')
         .insert(item)
-        .select('id, project_id')
+        .select('id, project_id, item_code, description')
         .single();
       
       if (error) throw error;
@@ -259,7 +259,7 @@ export function useUpdateProjectItem() {
         .from('project_items')
         .update(updates)
         .eq('id', id)
-        .select('id, project_id')
+        .select('id, project_id, item_code, description')
         .single();
       
       if (error) throw error;
@@ -375,7 +375,7 @@ export function useBulkCreateProjectItems() {
       const { data, error } = await supabase
         .from('project_items')
         .insert(items)
-        .select('id, project_id');
+        .select('id, project_id, item_code, description');
       
       if (error) throw error;
       return data;
