@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { compressImage } from '@/lib/imageCompression';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -486,8 +487,9 @@ function NewMessagePanel({ projects, profiles, profileMap, getName, onSent, onBa
     let attachmentName: string | null = null;
 
     if (attachFile) {
-      const path = `dm-attachments/${Date.now()}-${attachFile.name}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, attachFile);
+      const compressed = await compressImage(attachFile);
+      const path = `dm-attachments/${Date.now()}-${attachFile.name.replace(/\.[^.]+$/, '')}.${compressed.ext}`;
+      const { error } = await supabase.storage.from('item-files').upload(path, compressed.file);
       if (error) { toast.error('Failed to upload file'); return; }
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       attachmentUrl = urlData.publicUrl;
@@ -658,8 +660,9 @@ function ConversationPanel({ thread, messages, profileMap, projectMap, itemInfo,
     let attachmentName: string | null = null;
 
     if (attachFile) {
-      const path = `dm-attachments/${Date.now()}-${attachFile.name}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, attachFile);
+      const compressed = await compressImage(attachFile);
+      const path = `dm-attachments/${Date.now()}-${attachFile.name.replace(/\.[^.]+$/, '')}.${compressed.ext}`;
+      const { error } = await supabase.storage.from('item-files').upload(path, compressed.file);
       if (error) { toast.error('Failed to upload file'); return; }
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       attachmentUrl = urlData.publicUrl;
