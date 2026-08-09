@@ -22,10 +22,18 @@ export function useTenant() {
     let cancelled = false;
     const host = window.location.hostname;
 
-    if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".lovable.app")) {
+    const isLocalOrPreview =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.endsWith(".lovable.app") ||
+      host.endsWith(".lovableproject.com") ||
+      host.endsWith(".lovable.dev");
+
+    if (isLocalOrPreview) {
       setLoading(false);
       return;
     }
+
 
     fetch(`${SITE_API}/tenant?host=${encodeURIComponent(host)}`)
       .then((r) => (r.ok ? r.json() : null))
