@@ -20,4 +20,7 @@ project_id = "grpzbxwafkcvecphnyyb"
     verify_jwt = false
   [functions.run-migration-secfix2]
     verify_jwt = false
+  [functions.run-migration-secfix3]
+    verify_jwt = false
+
 
