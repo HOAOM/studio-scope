@@ -1,43 +1,75 @@
-# Prossimi passi — beta test, ripresa dalla Fase 1
+# Tier, ruoli e posti per ruolo — pianificazione strategica
 
-## Dove siamo (verificato ora sul database)
+## Situazione attuale (verificata)
 
-- Pulizia completata: resta **1 sola organizzazione**, `studio-scope` (tier business, subscription attiva), con 8 progetti e 13 membership.
-- 20 utenti in auth, di cui 3 con email mai confermata (residui vecchi, non legati ad alcuna org attiva).
-- `organization_domains` vuota, 0 riscatti di codici sconto, 1 ticket SSO storico e 2 fallimenti di redeem registrati.
-- Log email: 12 `sent` e 12 `pending`, ultimo invio 3 agosto. I `pending` non sono ancora stati diagnosticati.
+- I tier reali nel database sono **starter / pro / business**. Oggi limitano solo due cose: numero di progetti attivi (2 / 8 / illimitati, imposto da un trigger sul database) e spazio di archiviazione (2 / 10 GB / illimitato, dichiarato ma non ancora bloccante).
+- Esiste un secondo modello di tier **solo di facciata**, salvato nel browser, con nomi diversi (base / pro / enterprise) e campi `maxUsersPerRole` e `maxTotalUsers`. Non è collegato al database e chiunque può modificarlo: oggi non limita nulla.
+- I ruoli sono 14 nell'enum `app_role` e vengono assegnati nella tabella `user_roles`, che **non ha una colonna organizzazione**: il ruolo è globale per utente, non per studio. Attualmente ci sono 13 assegnazioni su un solo studio, quindi la cosa non è ancora emersa come problema, ma con più clienti diventa bloccante.
+- L'invito di un membro (`invite-member`) inserisce la membership senza alcun controllo di capienza.
 
-## Cosa facciamo, in ordine
+Conseguenza: oggi **non esiste alcun limite di posti**, né totale né per ruolo, e non è nemmeno possibile imporlo correttamente finché il ruolo non è legato all'organizzazione.
 
-### Passo A — Signup reale da kroneel.com (Fase 1)
-Tu fai una registrazione vera dal sito, tier Starter, con un indirizzo email che puoi aprire.
-Io controllo subito dopo: utente creato, email di conferma partita da notify.kroneel.com, organizzazione + membership owner + subscription creati con il tier giusto. Se qualcosa non arriva, guardo i log della funzione e ti dico cosa manca.
+## Obiettivo
 
-### Passo B — Codice sconto e referral (Fase 2)
-Ripeti un signup usando `KRONEEL100`. Verifico che la validazione passi, che la redemption venga registrata e che al secondo uso oltre il limite venga rifiutata. Stesso controllo sul referral.
+Definire, per ciascuno dei tre tier, quanti account sono ammessi in totale e quanti per ogni ruolo, e rendere questi limiti reali (imposti dal server, non aggirabili).
 
-### Passo C — SSO "Apri Studio Scope" (Fase 3)
-Dal pannello cliente su Kroneel premi il bottone. Verifico che il ticket venga generato, consumato una sola volta, e che l'utente atterri già loggato nella sua organizzazione. Controllo anche che un ticket riusato finisca fra i fallimenti invece di creare sessione.
+## Modello proposto
 
-### Passo D — Primo uso reale nel software (Fase 4)
-Con l'utente nuovo: creo/creiamo un progetto, verifico che il limite Starter di 2 progetti blocchi il terzo, inserisco qualche voce BOQ, avanzo un item nel workflow e controllo che costi e margini restino invisibili ai ruoli Designer e Client.
+### Principio: tre classi di posto
 
-### Passo E — Isolamento fra tenant (Fase 5)
-Dal nuovo tenant provo a leggere progetti e item di Studio Scope: non deve comparire nulla, né da interfaccia né da query diretta.
+Non tutti i ruoli hanno lo stesso peso commerciale. Proposta di separarli in tre classi, così il prezzo segue il valore d'uso:
 
-### Passo F — Email negli scenari reali (Fase 6)
-Invito membro, recupero password, notifica messaggio interno: per ognuno verifico l'arrivo e lo stato finale. Qui chiudo anche la diagnosi dei 12 record `pending`.
+- **Posti interni (a pagamento)**: ceo, coo, project_manager, head_of_design, designer, architectural_dept, qs, accountant, head_of_payments, procurement_manager, site_engineer, mep_engineer, admin.
+- **Posti esterni gratuiti in sola lettura**: client, supplier. Vedono solo ciò che li riguarda e non consumano posti a pagamento.
+- **Owner**: l'utente che ha creato l'organizzazione, sempre incluso, occupa un posto interno.
 
-### Passo G — Pulizia finale utenti orfani
-Se il test va a buon fine, cancello i 3 utenti mai confermati e gli account auth rimasti senza organizzazione, così l'ambiente resta pulito per i clienti reali.
+### Matrice proposta
+
+| | Starter | Pro | Business |
+|---|---|---|---|
+| Posti interni totali | 5 | 20 | illimitati |
+| Ruoli attivabili | solo il nucleo base | tutti | tutti |
+| Massimo per singolo ruolo | 1 | 5 | illimitato |
+| admin / ceo | 1 | 2 | illimitato |
+| project_manager | 1 | 3 | illimitato |
+| designer + architectural_dept | 2 in totale | 8 in totale | illimitato |
+| qs / accountant / head_of_payments | 1 in totale | 4 in totale | illimitato |
+| procurement_manager | 1 | 3 | illimitato |
+| site_engineer / mep_engineer | 1 in totale | 4 in totale | illimitato |
+| client (esterno, gratis) | 5 | 30 | illimitato |
+| supplier (esterno, gratis) | 5 | 50 | illimitato |
+
+"Nucleo base" per Starter significa: admin, project_manager, designer, qs, client, supplier. Gli altri ruoli richiedono Pro — è la leva di upgrade principale.
+
+### Perché questi numeri
+
+- Starter è per lo studio piccolo con 2 progetti: 5 persone interne coprono titolare, un PM, due designer, un preventivista. Oltre a questo il lavoro non sta in 2 progetti.
+- Pro riflette lo studio strutturato: 20 interni con più designer e la catena procurement/finance separata.
+- Business toglie i limiti e diventa la versione trattata a contratto.
+
+## Come lo rendiamo reale
+
+1. **Legare il ruolo all'organizzazione**: aggiungere l'organizzazione alla tabella dei ruoli, migrando le assegnazioni esistenti sull'unica organizzazione presente. Senza questo passo qualsiasi conteggio per ruolo è privo di senso.
+2. **Definire i limiti nel database**, come già fatto per progetti e storage: una tabella di configurazione tier → ruolo → massimo, così i limiti si cambiano senza toccare il codice.
+3. **Bloccare al momento dell'invito**: controllo lato server sia nella funzione di invito sia con un trigger sull'inserimento della membership/ruolo, così il limite regge anche a chiamate dirette.
+4. **Mostrarlo nell'interfaccia**: nel pannello membri, contatore "posti usati / disponibili" per ruolo e messaggio chiaro di upgrade quando si esaurisce.
+5. **Allineare il sito Kroneel**: la pagina prezzi deve elencare esattamente questi numeri, letti dalla stessa fonte via `site-api`, per evitare divergenze fra promessa commerciale e comportamento del software.
+6. **Rimuovere il vecchio modello nel browser** (base/pro/enterprise), sostituendolo ovunque con i tier reali del database.
+
+## Casi limite da decidere
+
+- **Downgrade con posti in eccesso**: proposta di non cacciare nessuno, ma congelare gli inviti e segnalare l'eccedenza finché non rientra.
+- **Doppio ruolo sulla stessa persona**: proposta di contare un solo posto per persona, e verificare i massimi per ruolo su ogni ruolo assegnato.
+- **Utente disattivato**: libera il posto solo quando la membership viene rimossa, non alla semplice inattività.
+
+## Decisioni che servono da te
+
+1. I numeri della matrice vanno bene o vuoi correggerli (in particolare i 5 posti Starter e i 20 Pro)?
+2. Client e supplier restano gratuiti e illimitati di fatto, o vuoi che consumino posti anche loro?
+3. Su Starter limitiamo davvero i ruoli disponibili al nucleo base, oppure lasciamo tutti i ruoli e limitiamo solo i numeri?
 
 ## Note tecniche
 
-- I passi A, B e C richiedono azioni tue sul sito Kroneel (progetto separato): io verifico lato Studio Scope stato database, log edge function `site-api` e log email dopo ogni tua azione.
-- I passi D, E, F posso eseguirli in autonomia una volta esistente l'utente di test.
-- Il routing effettivo dei domini custom resta fuori portata su hosting Lovable: la Fase 7 la teniamo sospesa fino al passaggio su VPS.
-- Nessuna cancellazione viene eseguita senza tua conferma esplicita sull'elenco esatto.
-
-## Se preferisci non passare dal sito
-
-Posso simulare i passi A–C chiamando direttamente gli endpoint `site-api` con la chiave server: il flusso dati viene verificato lo stesso, ma non copre l'interfaccia di kroneel.com. Dimmi quale delle due strade preferisci.
+- Il conteggio dei posti va calcolato lato server con una funzione dedicata, analoga a `get_org_active_project_count`, e restituito insieme al resto del riepilogo abbonamento (`get_my_org_subscription_summary`).
+- L'aggiunta dell'organizzazione ai ruoli tocca le policy di sicurezza che oggi usano `has_role`: vanno riviste una per una, mantenendo la variante globale per l'amministratore di piattaforma.
+- La migrazione è additiva: nessuna colonna o dato storico viene rimosso.
