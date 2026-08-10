@@ -1,75 +1,108 @@
-# Tier, ruoli e posti per ruolo — pianificazione strategica
+# Tier, posti, referral e super-admin — pianificazione strategica
+
+## Il punto che cambia tutto: si contano le persone, non i ruoli
+
+Nel modello precedente limitavo i posti per singolo ruolo. È sbagliato per lo studio piccolo: lì una persona sola è architetto, preventivista e autorizza i pagamenti.
+
+Nuovo principio: **una persona = un posto, con tutti i ruoli che serve**. Il tier limita **quante persone** ci sono nell'organizzazione, non quanti cappelli porta ciascuna.
+
+Questo apre il software allo studio da 1-2 persone senza regalare nulla allo studio grande: un grande studio ha per forza tante persone, e con 5 posti non ci sta. La leva anti-abuso non è il ruolo, è il numero di teste più il volume di lavoro.
 
 ## Situazione attuale (verificata)
 
-- I tier reali nel database sono **starter / pro / business**. Oggi limitano solo due cose: numero di progetti attivi (2 / 8 / illimitati, imposto da un trigger sul database) e spazio di archiviazione (2 / 10 GB / illimitato, dichiarato ma non ancora bloccante).
-- Esiste un secondo modello di tier **solo di facciata**, salvato nel browser, con nomi diversi (base / pro / enterprise) e campi `maxUsersPerRole` e `maxTotalUsers`. Non è collegato al database e chiunque può modificarlo: oggi non limita nulla.
-- I ruoli sono 14 nell'enum `app_role` e vengono assegnati nella tabella `user_roles`, che **non ha una colonna organizzazione**: il ruolo è globale per utente, non per studio. Attualmente ci sono 13 assegnazioni su un solo studio, quindi la cosa non è ancora emersa come problema, ma con più clienti diventa bloccante.
-- L'invito di un membro (`invite-member`) inserisce la membership senza alcun controllo di capienza.
+- I tier reali nel database sono **starter / pro / business** e oggi limitano solo i progetti attivi (2 / 8 / illimitati, imposto da un trigger) e lo spazio (2 / 10 GB / illimitato, dichiarato ma non bloccante).
+- Non esiste **nessun limite di persone**: `invite-member` inserisce la membership senza alcun controllo di capienza.
+- I ruoli stanno in `user_roles`, che **non ha la colonna organizzazione**: il ruolo è globale per utente. Con più clienti sullo stesso sistema questo è un problema di correttezza, non solo di conteggio.
+- **Conflitto grave sul super-admin**: il ruolo `admin` dell'enum viene usato sia come amministratore dello studio cliente sia come super-admin di piattaforma. La pagina `/super-admin`, le funzioni `admin_list_all_orgs`, `admin_set_org_tier`, `admin_set_org_status`, `admin_global_metrics` e il bypass dei limiti nei trigger si sbloccano tutte con lo stesso `admin`. Oggi c'è una sola organizzazione quindi non è esploso, ma appena un cliente ha un proprio "admin" quel cliente vede e modifica **tutte** le organizzazioni.
+- Referral: ogni organizzazione riceve automaticamente un codice, le redemption vengono registrate, ma **non esiste alcuna ricompensa** — nessuno sconto, nessun credito, nessun collegamento a un pagamento.
+- **Nessun sistema di pagamento è attivo** su questo progetto: nessuna chiave di provider fra i secret. Oggi gli abbonamenti sono impostati a mano.
 
-Conseguenza: oggi **non esiste alcun limite di posti**, né totale né per ruolo, e non è nemmeno possibile imporlo correttamente finché il ruolo non è legato all'organizzazione.
+## 1. Modello posti per tier
 
-## Obiettivo
+### Struttura
 
-Definire, per ciascuno dei tre tier, quanti account sono ammessi in totale e quanti per ogni ruolo, e rendere questi limiti reali (imposti dal server, non aggirabili).
+- **Posti interni (a pagamento)**: chiunque lavori nello studio. Ogni persona può cumulare quanti ruoli vuole senza costi aggiuntivi.
+- **Posti esterni (gratuiti)**: `client` e `supplier`, in sola lettura sul perimetro che li riguarda. Non consumano posti.
 
-## Modello proposto
-
-### Principio: tre classi di posto
-
-Non tutti i ruoli hanno lo stesso peso commerciale. Proposta di separarli in tre classi, così il prezzo segue il valore d'uso:
-
-- **Posti interni (a pagamento)**: ceo, coo, project_manager, head_of_design, designer, architectural_dept, qs, accountant, head_of_payments, procurement_manager, site_engineer, mep_engineer, admin.
-- **Posti esterni gratuiti in sola lettura**: client, supplier. Vedono solo ciò che li riguarda e non consumano posti a pagamento.
-- **Owner**: l'utente che ha creato l'organizzazione, sempre incluso, occupa un posto interno.
-
-### Matrice proposta
+### Matrice
 
 | | Starter | Pro | Business |
 |---|---|---|---|
-| Posti interni totali | 5 | 20 | illimitati |
-| Ruoli attivabili | solo il nucleo base | tutti | tutti |
-| Massimo per singolo ruolo | 1 | 5 | illimitato |
-| admin / ceo | 1 | 2 | illimitato |
-| project_manager | 1 | 3 | illimitato |
-| designer + architectural_dept | 2 in totale | 8 in totale | illimitato |
-| qs / accountant / head_of_payments | 1 in totale | 4 in totale | illimitato |
-| procurement_manager | 1 | 3 | illimitato |
-| site_engineer / mep_engineer | 1 in totale | 4 in totale | illimitato |
-| client (esterno, gratis) | 5 | 30 | illimitato |
-| supplier (esterno, gratis) | 5 | 50 | illimitato |
+| Persone interne | 3 | 15 | illimitate |
+| Ruoli per persona | tutti, cumulabili | tutti, cumulabili | tutti, cumulabili |
+| Progetti attivi | 2 | 8 | illimitati |
+| Archiviazione | 2 GB | 10 GB | illimitata |
+| Client esterni | 5 | 30 | illimitati |
+| Fornitori esterni | 10 | 100 | illimitati |
+| Voci BOQ per progetto | 300 | 3.000 | illimitate |
 
-"Nucleo base" per Starter significa: admin, project_manager, designer, qs, client, supplier. Gli altri ruoli richiedono Pro — è la leva di upgrade principale.
+### Perché non si può barare
 
-### Perché questi numeri
+Lo studio grande non può stare su Starter perché con 3 persone non gestisce il proprio organico: gli utenti dovrebbero condividere le credenziali, e in quel caso perdono tracciabilità delle firme, delle approvazioni e dell'audit — cioè esattamente il valore del software. In più incontra tre muri: 2 progetti attivi, 2 GB, 300 voci per progetto.
 
-- Starter è per lo studio piccolo con 2 progetti: 5 persone interne coprono titolare, un PM, due designer, un preventivista. Oltre a questo il lavoro non sta in 2 progetti.
-- Pro riflette lo studio strutturato: 20 interni con più designer e la catena procurement/finance separata.
-- Business toglie i limiti e diventa la versione trattata a contratto.
+Le tre leve insieme (persone, progetti, volume) rendono il downgrade abusivo scomodo prima ancora che vietato.
 
-## Come lo rendiamo reale
+### Segnalazione, non blocco improvviso
 
-1. **Legare il ruolo all'organizzazione**: aggiungere l'organizzazione alla tabella dei ruoli, migrando le assegnazioni esistenti sull'unica organizzazione presente. Senza questo passo qualsiasi conteggio per ruolo è privo di senso.
-2. **Definire i limiti nel database**, come già fatto per progetti e storage: una tabella di configurazione tier → ruolo → massimo, così i limiti si cambiano senza toccare il codice.
-3. **Bloccare al momento dell'invito**: controllo lato server sia nella funzione di invito sia con un trigger sull'inserimento della membership/ruolo, così il limite regge anche a chiamate dirette.
-4. **Mostrarlo nell'interfaccia**: nel pannello membri, contatore "posti usati / disponibili" per ruolo e messaggio chiaro di upgrade quando si esaurisce.
-5. **Allineare il sito Kroneel**: la pagina prezzi deve elencare esattamente questi numeri, letti dalla stessa fonte via `site-api`, per evitare divergenze fra promessa commerciale e comportamento del software.
-6. **Rimuovere il vecchio modello nel browser** (base/pro/enterprise), sostituendolo ovunque con i tier reali del database.
+Se un'organizzazione Starter supera stabilmente le soglie d'uso (progetti archiviati e riaperti di continuo, voci vicine al tetto, molti client esterni), il super-admin lo vede in una lista "candidati upgrade" e può contattarli. Nessuna sospensione automatica.
 
-## Casi limite da decidere
+## 2. Ruoli legati all'organizzazione
 
-- **Downgrade con posti in eccesso**: proposta di non cacciare nessuno, ma congelare gli inviti e segnalare l'eccedenza finché non rientra.
-- **Doppio ruolo sulla stessa persona**: proposta di contare un solo posto per persona, e verificare i massimi per ruolo su ogni ruolo assegnato.
-- **Utente disattivato**: libera il posto solo quando la membership viene rimossa, non alla semplice inattività.
+Prerequisito tecnico di tutto il resto: aggiungere l'organizzazione alla tabella dei ruoli, così un utente può avere ruoli diversi in studi diversi e il conteggio dei posti ha senso. I dati esistenti vengono migrati sull'unica organizzazione presente.
+
+Nel pannello membri, il ruolo diventa una selezione multipla: "Marco Rossi → Architectural Dept + QS + Head of Payments". Un solo posto occupato.
+
+## 3. Super-admin separato dal cliente
+
+Va spezzato il doppio significato di `admin`:
+
+- **`admin` resta il ruolo dell'amministratore dello studio cliente**, con potere solo dentro la propria organizzazione.
+- **Nuovo livello di piattaforma** per te e il tuo team, memorizzato in una tabella dedicata (non nell'enum dei ruoli cliente, per evitare che si possa auto-assegnare), con due gradi:
+  - **staff**: vede tutto in sola lettura, può impersonare per assistenza, vede metriche e log.
+  - **owner di piattaforma**: in più cambia tier e stato, crea organizzazioni, gestisce codici sconto e referral, forza operazioni.
+
+Tutte le funzioni `admin_*`, il bypass dei limiti nei trigger, l'accesso a `/super-admin` e la visibilità dei costi vanno riagganciate a questo nuovo livello.
+
+Cosa aggiungere alla console `/super-admin`:
+- Vista completa per organizzazione: persone, ruoli, progetti, spazio usato, abbonamento, referral, storico pagamenti.
+- Modifica diretta di tier, stato, posti extra concessi a titolo commerciale.
+- Impersonazione tracciata: ogni sessione impersonata viene registrata nell'audit con chi, quando e su quale organizzazione.
+- Gestione del team di piattaforma: invitare colleghi come staff o owner.
+
+## 4. Referral con ricompensa e pagamenti dal sito Kroneel
+
+Oggi il referral registra chi ha portato chi e nient'altro. Va completato:
+
+- **Ricompensa configurabile** (definita da te nella console): percentuale di sconto o mesi gratis, sia per chi invita sia per chi viene invitato, con eventuale durata e tetto massimo.
+- **Credito maturato** per organizzazione, visibile dal cliente nella sua area su kroneel.com: quante persone ha portato, quanto ha maturato, cosa è già stato applicato.
+- **Applicazione automatica al pagamento**: quando il cliente paga il rinnovo, lo sconto maturato viene scalato e registrato.
+- **Pagina referral sul sito Kroneel**: codice personale, link condivisibile, contatore inviti, stato dei crediti.
+
+Il collegamento fra sito e software passa dagli endpoint `site-api` già esistenti, estesi con il riepilogo referral e crediti.
+
+**Punto da decidere prima di costruire**: nessun sistema di pagamento è attivo. Il referral con crediti ha senso solo appoggiato a un provider che gestisce abbonamenti ricorrenti. Le opzioni sono attivare i pagamenti integrati ora e costruirci sopra il referral, oppure costruire adesso solo la parte di calcolo e visualizzazione dei crediti, applicandoli a mano finché i pagamenti non ci sono.
+
+## 5. Ordine di esecuzione consigliato
+
+1. Ruoli legati all'organizzazione e ruoli multipli per persona (prerequisito).
+2. Separazione super-admin di piattaforma e messa in sicurezza delle funzioni `admin_*`.
+3. Limiti di posti per tier, imposti lato server, con contatore in interfaccia.
+4. Console super-admin estesa.
+5. Referral con ricompense e crediti.
+6. Pagamenti e applicazione automatica dei crediti.
+
+I punti 1 e 2 sono anche una correzione di sicurezza, non solo una funzionalità: finché restano così, il primo cliente con un utente `admin` vede i dati di tutti.
 
 ## Decisioni che servono da te
 
-1. I numeri della matrice vanno bene o vuoi correggerli (in particolare i 5 posti Starter e i 20 Pro)?
-2. Client e supplier restano gratuiti e illimitati di fatto, o vuoi che consumino posti anche loro?
-3. Su Starter limitiamo davvero i ruoli disponibili al nucleo base, oppure lasciamo tutti i ruoli e limitiamo solo i numeri?
+1. I numeri della matrice vanno bene? In particolare 3 persone su Starter e 15 su Pro.
+2. Il tetto di voci BOQ per progetto (300 / 3.000) ti convince come freno all'abuso, o preferisci non metterlo?
+3. Ricompensa referral: che forma vuoi darle (percentuale ricorrente, mesi gratis, sconto una tantum) e per quanto tempo?
+4. Pagamenti: li attiviamo ora oppure costruiamo il referral in modalità "credito calcolato, applicazione manuale"?
 
 ## Note tecniche
 
-- Il conteggio dei posti va calcolato lato server con una funzione dedicata, analoga a `get_org_active_project_count`, e restituito insieme al resto del riepilogo abbonamento (`get_my_org_subscription_summary`).
-- L'aggiunta dell'organizzazione ai ruoli tocca le policy di sicurezza che oggi usano `has_role`: vanno riviste una per una, mantenendo la variante globale per l'amministratore di piattaforma.
-- La migrazione è additiva: nessuna colonna o dato storico viene rimosso.
+- I posti si contano con una funzione dedicata analoga a `get_org_active_project_count`, esposta nel riepilogo abbonamento e imposta sia in `invite-member` sia con un trigger sulla membership.
+- Il livello di piattaforma va in una tabella separata con policy che ne impediscono la scrittura da parte degli utenti; le funzioni `admin_*` sostituiscono `has_role(auth.uid(),'admin')` con il nuovo controllo.
+- Anche `can_see_costs` va rivista: oggi include `admin`, che dopo la separazione va inteso come admin dello studio, non di piattaforma.
+- Tutte le migrazioni sono additive: nessun dato storico viene rimosso.
