@@ -18,8 +18,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Mail, Trash2, Copy, UserPlus } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Loader2, Mail, Trash2, Copy, UserPlus, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ORG_ROLES, roleLabel } from '@/lib/roles';
 
 interface OrgMemberRow {
   id: string;
@@ -29,6 +32,7 @@ interface OrgMemberRow {
   email?: string;
   display_name?: string;
 }
+
 
 interface OrgInviteRow {
   id: string;
@@ -68,6 +72,40 @@ export function MembersPanel() {
       }));
     },
   });
+
+  // Level 1 — organization roles (multi-role per person, one seat)
+  const { data: orgRoles = [] } = useQuery<{ id: string; user_id: string; role: string }[]>({
+    queryKey: ['org-user-roles', activeOrg?.organization_id],
+    enabled: !!activeOrg,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('user_roles')
+        .select('id, user_id, role')
+        .eq('organization_id', activeOrg!.organization_id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const toggleRole = useMutation({
+    mutationFn: async ({ userId, role, on }: { userId: string; role: string; on: boolean }) => {
+      if (on) {
+        const { error } = await (supabase as any).from('user_roles').insert({
+          user_id: userId, role, organization_id: activeOrg!.organization_id,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('user_roles').delete()
+          .eq('user_id', userId).eq('role', role)
+          .eq('organization_id', activeOrg!.organization_id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['org-user-roles'] }),
+    onError: (e: any) => toast.error(e?.message ?? 'Aggiornamento ruolo fallito'),
+  });
+
 
   const { data: invites = [] } = useQuery<OrgInviteRow[]>({
     queryKey: ['org-invites', activeOrg?.organization_id],
@@ -261,47 +299,95 @@ export function MembersPanel() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Current members</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Current members</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Una persona = un posto. I ruoli organizzativi sono cumulabili senza costi extra.
+          </p>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>Seat</TableHead>
+                <TableHead>Ruoli organizzativi</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.display_name ?? '—'}</TableCell>
-                  <TableCell className="text-xs">{m.email ?? '—'}</TableCell>
-                  <TableCell>
-                    <Badge variant={m.is_owner ? 'default' : 'secondary'}>
-                      {m.is_owner ? 'owner' : 'member'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {new Date(m.joined_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isOwner && !m.is_owner && (
-                      <Button
-                        size="sm" variant="ghost"
-                        onClick={() => removeMember.mutate(m.id)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {members.map((m) => {
+                const mine = orgRoles.filter((r) => r.user_id === m.user_id).map((r) => r.role);
+                return (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">{m.display_name ?? '—'}</TableCell>
+                    <TableCell className="text-xs">{m.email ?? '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant={m.is_owner ? 'default' : 'secondary'}>
+                        {m.is_owner ? 'owner' : 'member'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {mine.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">Nessun ruolo</span>
+                        ) : (
+                          mine.map((r) => (
+                            <Badge key={r} variant="outline" className="text-[10px]">
+                              {roleLabel(r)}
+                            </Badge>
+                          ))
+                        )}
+                        {isOwner && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-6 px-2">
+                                <Settings2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="start" className="w-64 max-h-80 overflow-auto">
+                              <p className="text-xs font-medium mb-2">Ruoli organizzativi</p>
+                              <div className="space-y-2">
+                                {ORG_ROLES.map((r) => (
+                                  <label key={r} className="flex items-center gap-2 text-xs cursor-pointer">
+                                    <Checkbox
+                                      checked={mine.includes(r)}
+                                      onCheckedChange={(v) =>
+                                        toggleRole.mutate({ userId: m.user_id, role: r, on: !!v })
+                                      }
+                                    />
+                                    {roleLabel(r)}
+                                  </label>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(m.joined_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isOwner && !m.is_owner && (
+                        <Button
+                          size="sm" variant="ghost"
+                          onClick={() => removeMember.mutate(m.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
     </div>
   );
 }
