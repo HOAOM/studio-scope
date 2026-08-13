@@ -18,8 +18,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Mail, Trash2, Copy, UserPlus } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Loader2, Mail, Trash2, Copy, UserPlus, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ORG_ROLES, roleLabel } from '@/lib/roles';
 
 interface OrgMemberRow {
   id: string;
@@ -29,6 +32,7 @@ interface OrgMemberRow {
   email?: string;
   display_name?: string;
 }
+
 
 interface OrgInviteRow {
   id: string;
