@@ -73,6 +73,40 @@ export function MembersPanel() {
     },
   });
 
+  // Level 1 — organization roles (multi-role per person, one seat)
+  const { data: orgRoles = [] } = useQuery<{ id: string; user_id: string; role: string }[]>({
+    queryKey: ['org-user-roles', activeOrg?.organization_id],
+    enabled: !!activeOrg,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('user_roles')
+        .select('id, user_id, role')
+        .eq('organization_id', activeOrg!.organization_id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const toggleRole = useMutation({
+    mutationFn: async ({ userId, role, on }: { userId: string; role: string; on: boolean }) => {
+      if (on) {
+        const { error } = await (supabase as any).from('user_roles').insert({
+          user_id: userId, role, organization_id: activeOrg!.organization_id,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('user_roles').delete()
+          .eq('user_id', userId).eq('role', role)
+          .eq('organization_id', activeOrg!.organization_id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['org-user-roles'] }),
+    onError: (e: any) => toast.error(e?.message ?? 'Aggiornamento ruolo fallito'),
+  });
+
+
   const { data: invites = [] } = useQuery<OrgInviteRow[]>({
     queryKey: ['org-invites', activeOrg?.organization_id],
     enabled: !!activeOrg,
