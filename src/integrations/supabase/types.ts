@@ -2308,6 +2308,7 @@ export type Database = {
         }
         Returns: Json
       }
+      shares_org_with: { Args: { _target: string }; Returns: boolean }
       tick_subscription_lifecycle: {
         Args: never
         Returns: {
