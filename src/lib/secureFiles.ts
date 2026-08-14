@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const SECURE_BUCKET = 'secure-docs';
 const SCHEME = `${SECURE_BUCKET}://`;
-const SIGNED_TTL_SECONDS = 60 * 60; // 1 hour
+const SIGNED_TTL_SECONDS = 15 * 60; // 15 minutes
 
 /** True when the value is a reference to a file in the private bucket. */
 export function isSecureRef(value?: string | null): boolean {
