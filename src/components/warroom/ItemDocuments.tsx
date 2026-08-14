@@ -270,14 +270,14 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
             >
               <Paperclip className="w-4 h-4 shrink-0 text-muted-foreground" />
               <div className="flex-1 min-w-0">
-                <a
-                  href={att.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-primary hover:underline break-all"
+                <button
+                  type="button"
+                  onClick={() => handleOpenAttachment(att.path)}
+                  className="text-sm text-primary hover:underline break-all text-left"
                 >
                   {att.name}
-                </a>
+                </button>
+
                 {att.created_at && (
                   <div className="text-[10px] text-muted-foreground">
                     {new Date(att.created_at).toLocaleDateString()}
