@@ -896,13 +896,14 @@ export function BOQAnalyst({ projectId, items, canSeeCosts }: BOQAnalystProps) {
                       {isCol('image') && (
                         <TableCell className={isOption ? 'pl-[52px]' : ''}>
                           {displayItem.reference_image_url ? (
-                            <img
+                            <StoredImage
                               src={displayItem.reference_image_url}
                               alt=""
                               className={cn('object-cover rounded cursor-pointer border border-border', isOption ? 'w-7 h-7' : 'w-10 h-10')}
-                              onClick={() => window.open(displayItem.reference_image_url!, '_blank')}
+                              onClick={() => openFile(displayItem.reference_image_url)}
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
+
                           ) : (
                             <div className={cn('rounded border border-border bg-muted/30 flex items-center justify-center', isOption ? 'w-7 h-7' : 'w-10 h-10')}>
                               <ImageIcon className="w-4 h-4 text-muted-foreground" />

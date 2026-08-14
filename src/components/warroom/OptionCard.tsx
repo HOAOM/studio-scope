@@ -183,7 +183,7 @@ export function OptionCard({
         {/* Image upload */}
         <div className="relative h-[180px] bg-muted/30 rounded-lg overflow-hidden border border-border">
           {imgUrl ? (
-            <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+            <StoredImage src={imgUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
               <ImageIcon className="w-8 h-8" />
