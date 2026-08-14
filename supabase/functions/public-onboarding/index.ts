@@ -193,16 +193,21 @@ Deno.serve(async (req) => {
         discount_applied = !!data;
       }
 
-      // 5) magic link so the owner can enter their ready workspace
+      // 5) magic link — sent ONLY to the owner's inbox, never returned in the
+      //    response (this endpoint is public and unauthenticated, so returning
+      //    the link would let anyone hijack an account by typing someone
+      //    else's email address).
       const origin = req.headers.get("origin") ?? "";
       const siteUrl = origin.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
-      let magic_link: string | null = null;
-      const { data: link } = await sb.auth.admin.generateLink({
-        type: "magiclink",
-        email: owner_email,
-        options: { redirectTo: `${siteUrl}/dashboard` },
+      let email_sent = false;
+      const anonClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        auth: { persistSession: false, autoRefreshToken: false },
       });
-      magic_link = link?.properties?.action_link ?? null;
+      const { error: otpErr } = await anonClient.auth.signInWithOtp({
+        email: owner_email,
+        options: { emailRedirectTo: `${siteUrl}/dashboard` },
+      });
+      email_sent = !otpErr;
 
       return json({
         ok: true,
@@ -212,9 +217,10 @@ Deno.serve(async (req) => {
         created_user,
         referral_applied,
         discount_applied,
-        magic_link,
+        email_sent,
         dns_instructions,
       });
+
     }
 
     return json({ error: "unknown_action" }, 400);
