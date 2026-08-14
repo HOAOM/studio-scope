@@ -49,6 +49,26 @@ export function MembersPanel() {
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('member');
+  const [domainWarning, setDomainWarning] = useState<string | null>(null);
+
+  /** Verifica coerenza dominio email con quello dell'organizzazione (owner/primo membro). */
+  const submitInvite = async () => {
+    if (!activeOrg || !email) return;
+    try {
+      const { data } = await (supabase as any).rpc('record_invite_domain', {
+        p_org: activeOrg.organization_id,
+        p_email: email.trim().toLowerCase(),
+      });
+      if (data?.mismatch) {
+        setDomainWarning(data.primary_domain as string);
+        return;
+      }
+    } catch {
+      /* controllo non bloccante */
+    }
+    invite.mutate();
+  };
+
 
   const { data: members = [] } = useQuery<OrgMemberRow[]>({
     queryKey: ['org-members', activeOrg?.organization_id],
