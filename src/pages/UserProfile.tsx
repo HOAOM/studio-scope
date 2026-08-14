@@ -21,6 +21,7 @@ export default function UserProfile() {
   const { roles } = useUserRole();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const resolvedAvatarUrl = useFileUrl(avatarUrl);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
