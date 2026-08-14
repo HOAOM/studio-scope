@@ -10,7 +10,11 @@ import {
   removeSecureFile,
   resolveFileUrl,
   toSecureRef,
+  isSecureRef,
+  secureRefPath,
+  openSecureFile,
 } from '@/lib/secureFiles';
+
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
