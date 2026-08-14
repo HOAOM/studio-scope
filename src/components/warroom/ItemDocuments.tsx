@@ -201,15 +201,19 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
                     </Button>
                   </div>
                 ) : value ? (
-                  <a
-                    href={value}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-primary hover:underline break-all"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      isSecureRef(value)
+                        ? openSecureFile(value)
+                        : window.open(value, '_blank', 'noopener,noreferrer')
+                    }
+                    className="text-sm text-primary hover:underline break-all text-left"
                   >
-                    {truncate(value, 40)}
-                  </a>
+                    {truncate(isSecureRef(value) ? secureRefPath(value).split('/').pop() || value : value, 40)}
+                  </button>
                 ) : (
+
                   <span className="text-sm text-muted-foreground italic">Non caricato</span>
                 )}
               </div>
