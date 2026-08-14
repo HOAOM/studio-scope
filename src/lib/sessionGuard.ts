@@ -74,6 +74,42 @@ export async function registerLogin(session: Session): Promise<boolean> {
   return false;
 }
 
+/**
+ * Heartbeat: se la riga della sessione corrente risulta revocata (login
+ * concorrente da un altro dispositivo), disconnette immediatamente anche
+ * questo client senza aspettare la scadenza dell'access token.
+ */
+export function startSessionWatch(session: Session): () => void {
+  const sessionId = decodeSessionId(session.access_token) ?? session.access_token.slice(-32);
+  let stopped = false;
+
+  const check = async () => {
+    if (stopped || document.visibilityState === 'hidden') return;
+    const { data, error } = await supabase
+      .from('user_login_sessions')
+      .select('revoked_at')
+      .eq('user_id', session.user.id)
+      .eq('session_id', sessionId)
+      .maybeSingle();
+    if (error || !data?.revoked_at || stopped) return;
+    stopped = true;
+    localStorage.setItem(KILL_FLAG, SESSION_KILL_MESSAGE);
+    sessionStorage.removeItem(SEEN_PREFIX + sessionId);
+    await supabase.auth.signOut();
+    window.location.replace('/auth');
+  };
+
+  const interval = window.setInterval(check, 20000);
+  document.addEventListener('visibilitychange', check);
+  void check();
+
+  return () => {
+    stopped = true;
+    window.clearInterval(interval);
+    document.removeEventListener('visibilitychange', check);
+  };
+}
+
 export async function closeLoginSessions() {
   try {
     await (supabase as any).rpc('close_login_sessions', { p_reason: 'signed_out' });
