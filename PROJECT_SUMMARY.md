@@ -233,3 +233,8 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 - ImpersonateBanner globale + helper setImpersonatedOrg (localStorage `studioscope.impersonateOrgId`).
 - UserMenu: voce "Super-Admin" visibile solo per admin.
 - MembersPanel: fallback se admin senza org propria.
+
+## 2026-08-14 — Kill-switch sessioni + privacy email
+- Fix `register_login`: `ON CONFLICT (user_id, session_id) WHERE session_id IS NOT NULL` (prima falliva con 42P10, nessuna sessione veniva registrata).
+- `startSessionWatch` in `src/lib/sessionGuard.ts`: polling 20s su `user_login_sessions.revoked_at` → logout immediato delle sessioni revocate (prima restavano vive fino alla scadenza dell'access token).
+- `run-migration-secfix6`: revocato `SELECT` su `profiles.email` per `authenticated`; nuova RPC `directory_profiles(uuid[])` (email solo a self / admin / owner org). Frontend migrato alla RPC.
