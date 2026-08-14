@@ -223,8 +223,19 @@ export function useUserRoles() {
 export function useAddUserRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (role: { user_id: string; role: Database['public']['Enums']['app_role'] }) => {
-      const { error } = await supabase.from('user_roles').insert(role);
+    mutationFn: async (role: { user_id: string; role: Database['public']['Enums']['app_role']; organization_id?: string }) => {
+      let orgId = role.organization_id;
+      if (!orgId) {
+        const { data, error: orgErr } = await supabase.rpc('get_user_org');
+        if (orgErr) throw orgErr;
+        if (!data) throw new Error('Nessuna organizzazione trovata per l\'utente');
+        orgId = data as string;
+      }
+      const { error } = await supabase.from('user_roles').insert({
+        user_id: role.user_id,
+        role: role.role,
+        organization_id: orgId,
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['user_roles'] }),
