@@ -23,6 +23,7 @@ import {
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { uploadWithQuota, describeTierError } from '@/lib/tierLimits';
 
 interface DM {
   id: string;
@@ -488,8 +489,9 @@ function NewMessagePanel({ projects, profiles, profileMap, getName, onSent, onBa
     if (attachFile) {
       const compressed = await compressImage(attachFile);
       const path = `dm-attachments/${Date.now()}-${attachFile.name.replace(/\.[^.]+$/, '')}.${compressed.ext}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, compressed.file);
-      if (error) { toast.error('Failed to upload file'); return; }
+      try {
+        await uploadWithQuota('item-files', path, compressed.file);
+      } catch (e) { toast.error(describeTierError(e)); return; }
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       attachmentUrl = urlData.publicUrl;
       attachmentName = attachFile.name;
@@ -661,8 +663,9 @@ function ConversationPanel({ thread, messages, profileMap, projectMap, itemInfo,
     if (attachFile) {
       const compressed = await compressImage(attachFile);
       const path = `dm-attachments/${Date.now()}-${attachFile.name.replace(/\.[^.]+$/, '')}.${compressed.ext}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, compressed.file);
-      if (error) { toast.error('Failed to upload file'); return; }
+      try {
+        await uploadWithQuota('item-files', path, compressed.file);
+      } catch (e) { toast.error(describeTierError(e)); return; }
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       attachmentUrl = urlData.publicUrl;
       attachmentName = attachFile.name;

@@ -33,6 +33,7 @@ type ApprovalStatus = Database['public']['Enums']['approval_status'];
 type LifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];
 
 import { CATEGORY_OPTIONS, ALL_CATEGORIES } from '@/lib/categories';
+import { uploadWithQuota, describeTierError } from '@/lib/tierLimits';
 const CATEGORIES = CATEGORY_OPTIONS;
 
 const APPROVAL_STATUSES: { value: ApprovalStatus; label: string }[] = [
@@ -310,14 +311,13 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     try {
       const result = await compressImage(file);
       const path = `${user.id}/${projectId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${result.ext}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, result.file);
-      if (error) throw error;
+      await uploadWithQuota('item-files', path, result.file);
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       form.setValue(field, urlData.publicUrl);
       const saving = describeSaving(result);
       toast.success(saving ? `File caricato e ottimizzato · ${saving}` : 'File uploaded');
     } catch (e: any) {
-      toast.error('Upload failed: ' + (e.message || 'Unknown error'));
+      toast.error(describeTierError(e));
     } finally {
       setUploadingField(null);
     }
@@ -329,14 +329,13 @@ export function ItemFormDialog({ open, onOpenChange, projectId, item }: ItemForm
     try {
       const result = await compressImage(file);
       const path = `${user.id}/${projectId}/proforma/${Date.now()}-${Math.random().toString(36).slice(2)}.${result.ext}`;
-      const { error } = await supabase.storage.from('item-files').upload(path, result.file);
-      if (error) throw error;
+      await uploadWithQuota('item-files', path, result.file);
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       setProformaUrl(urlData.publicUrl);
       form.setValue('purchase_order_ref', urlData.publicUrl);
       toast.success('Proforma uploaded');
     } catch (e: any) {
-      toast.error('Upload failed: ' + (e.message || 'Unknown error'));
+      toast.error(describeTierError(e));
     } finally {
       setUploadingProforma(false);
     }
