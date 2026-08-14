@@ -179,11 +179,16 @@ export function FileOrUrlInput({
           {/* Current value preview */}
           {value && (
             <div className="pt-2 border-t border-border">
-              <a href={value} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+              <button
+                type="button"
+                onClick={() => (secureValue ? openSecureFile(value) : window.open(value, '_blank', 'noopener,noreferrer'))}
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
                 <ExternalLink className="w-3 h-3" /> Open current file
-              </a>
+              </button>
             </div>
           )}
+
         </PopoverContent>
       </Popover>
     </div>
