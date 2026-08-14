@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { registerLogin, closeLoginSessions } from '@/lib/sessionGuard';
+import { registerLogin, closeLoginSessions, startSessionWatch } from '@/lib/sessionGuard';
 
 
 interface AuthContextType {
@@ -21,6 +21,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let stopWatch: (() => void) | null = null;
+    const watch = (s: Session | null) => {
+      stopWatch?.();
+      stopWatch = s ? startSessionWatch(s) : null;
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -30,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN' && session) {
           setTimeout(() => { registerLogin(session); }, 0);
         }
+        if (event === 'SIGNED_OUT') watch(null);
+        else if (session) watch(session);
       }
     );
 
@@ -39,9 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session) watch(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      stopWatch?.();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
