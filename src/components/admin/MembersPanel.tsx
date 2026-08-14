@@ -408,6 +408,24 @@ export function MembersPanel() {
         </CardContent>
       </Card>
 
+      <AlertDialog open={!!domainWarning} onOpenChange={(o) => !o && setDomainWarning(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dominio email diverso</AlertDialogTitle>
+            <AlertDialogDescription>
+              Questo indirizzo usa un dominio diverso da quello della tua organizzazione
+              ({domainWarning}) — confermi comunque l'invito?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setDomainWarning(null); invite.mutate(); }}>
+              Invia comunque
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
