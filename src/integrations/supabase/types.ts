@@ -2192,6 +2192,15 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      directory_profiles: {
+        Args: { p_ids?: string[] }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          email: string
+          id: string
+        }[]
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
