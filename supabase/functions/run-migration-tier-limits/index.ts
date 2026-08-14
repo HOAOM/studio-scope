@@ -112,7 +112,9 @@ AS $fn$
   SELECT COALESCE(SUM((o.metadata->>'size')::bigint), 0)::bigint
   FROM storage.objects o
   JOIN public.projects pr
-    ON pr.id::text = (storage.foldername(o.name))[1]
+    ON pr.id::text = ANY (
+         ARRAY[(storage.foldername(o.name))[1], (storage.foldername(o.name))[2]]
+       )
   WHERE o.bucket_id IN ('item-files','secure-docs')
     AND pr.organization_id = p_org
 $fn$;
@@ -129,12 +131,13 @@ BEGIN
   IF public.is_platform_admin(auth.uid()) THEN RETURN true; END IF;
   IF p_bucket NOT IN ('item-files','secure-docs') THEN RETURN true; END IF;
 
-  BEGIN
-    v_project := ((storage.foldername(p_name))[1])::uuid;
-  EXCEPTION WHEN OTHERS THEN RETURN true;  -- path non legato a un progetto (es. avatars/)
-  END;
-
-  SELECT organization_id INTO v_org FROM public.projects WHERE id = v_project;
+  -- il path puo' essere '{project_id}/...' oppure '{user_id}/{project_id}/...'
+  SELECT pr.id, pr.organization_id INTO v_project, v_org
+  FROM public.projects pr
+  WHERE pr.id::text = ANY (
+    ARRAY[(storage.foldername(p_name))[1], (storage.foldername(p_name))[2]]
+  )
+  LIMIT 1;
   IF v_org IS NULL THEN RETURN true; END IF;
 
   SELECT max_storage_bytes INTO v_limit FROM public.get_tier_limits(v_org);
