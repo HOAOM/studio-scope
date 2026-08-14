@@ -28,6 +28,9 @@ project_id = "grpzbxwafkcvecphnyyb"
     verify_jwt = false
   [functions.run-migration-session-guard]
     verify_jwt = false
+  [functions.run-migration-secure-docs]
+    verify_jwt = false
+
 
 
 

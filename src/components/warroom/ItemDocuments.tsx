@@ -4,6 +4,18 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  SECURE_BUCKET,
+  uploadSecureFile,
+  removeSecureFile,
+  resolveFileUrl,
+  toSecureRef,
+  isSecureRef,
+  secureRefPath,
+  openSecureFile,
+} from '@/lib/secureFiles';
+
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,25 +106,23 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
     }
   };
 
-  // Extra attachments stored in supabase storage bucket (no item_documents table available)
+  // Extra attachments stored in the private "secure-docs" bucket
   const { data: attachments = [], isLoading: loadingAttachments } = useQuery({
     queryKey: ['item-attachments', itemId],
     queryFn: async () => {
       if (!itemId || !projectId) return [];
       const { data, error } = await supabase.storage
-        .from('item-files')
+        .from(SECURE_BUCKET)
         .list(folderPath, { sortBy: { column: 'created_at', order: 'desc' } });
       if (error) return [];
       return (data || [])
         .filter((f) => f.name !== '.emptyFolderPlaceholder')
         .map((f) => {
           const fullPath = `${folderPath}/${f.name}`;
-          const { data: u } = supabase.storage.from('item-files').getPublicUrl(fullPath);
           return {
             id: fullPath,
             path: fullPath,
             name: f.name.replace(/^\d+__/, '').replace(/^\d+_/, ''),
-            url: u.publicUrl,
             created_at: f.created_at,
           };
         });
@@ -129,8 +139,7 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
       const safeName = `${Date.now()}__${(attachName || 'link').replace(/[^a-zA-Z0-9._-]/g, '_')}.url`;
       const path = `${folderPath}/${safeName}`;
       const blob = new Blob([attachUrl.trim()], { type: 'text/uri-list' });
-      const { error } = await supabase.storage.from('item-files').upload(path, blob);
-      if (error) throw error;
+      await uploadSecureFile(path, blob);
       queryClient.invalidateQueries({ queryKey: ['item-attachments', itemId] });
       toast.success('Allegato aggiunto');
       setAttachOpen(false);
@@ -141,16 +150,25 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
     }
   };
 
+  const handleOpenAttachment = async (path: string) => {
+    const url = await resolveFileUrl(toSecureRef(path));
+    if (!url) {
+      toast.error('Impossibile aprire il file');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleDeleteAttachment = async (path: string) => {
     try {
-      const { error } = await supabase.storage.from('item-files').remove([path]);
-      if (error) throw error;
+      await removeSecureFile(path);
       queryClient.invalidateQueries({ queryKey: ['item-attachments', itemId] });
       toast.success('Allegato eliminato');
     } catch {
       toast.error('Errore nell\'eliminazione');
     }
   };
+
 
   return (
     <div className="space-y-4">
@@ -187,15 +205,19 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
                     </Button>
                   </div>
                 ) : value ? (
-                  <a
-                    href={value}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-primary hover:underline break-all"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      isSecureRef(value)
+                        ? openSecureFile(value)
+                        : window.open(value, '_blank', 'noopener,noreferrer')
+                    }
+                    className="text-sm text-primary hover:underline break-all text-left"
                   >
-                    {truncate(value, 40)}
-                  </a>
+                    {truncate(isSecureRef(value) ? secureRefPath(value).split('/').pop() || value : value, 40)}
+                  </button>
                 ) : (
+
                   <span className="text-sm text-muted-foreground italic">Non caricato</span>
                 )}
               </div>
@@ -256,14 +278,14 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
             >
               <Paperclip className="w-4 h-4 shrink-0 text-muted-foreground" />
               <div className="flex-1 min-w-0">
-                <a
-                  href={att.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-primary hover:underline break-all"
+                <button
+                  type="button"
+                  onClick={() => handleOpenAttachment(att.path)}
+                  className="text-sm text-primary hover:underline break-all text-left"
                 >
                   {att.name}
-                </a>
+                </button>
+
                 {att.created_at && (
                   <div className="text-[10px] text-muted-foreground">
                     {new Date(att.created_at).toLocaleDateString()}
