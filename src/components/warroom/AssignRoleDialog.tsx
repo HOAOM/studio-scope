@@ -86,7 +86,7 @@ export function AssignRoleDialog({
       setLoadingProfiles(true);
       try {
         const [{ data: profs }, { data: roleRows }] = await Promise.all([
-          supabase.from('profiles').select('id, email, display_name').order('display_name', { ascending: true }),
+          (supabase as any).rpc('directory_profiles'),
           supabase.from('user_roles').select('user_id, role'),
         ]);
         if (cancelled) return;

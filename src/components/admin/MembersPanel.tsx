@@ -88,7 +88,7 @@ export function MembersPanel() {
       const ids = (m ?? []).map((x: any) => x.user_id);
       if (ids.length === 0) return [];
       const { data: profiles } = await (supabase as any)
-        .from('profiles').select('id, display_name, email').in('id', ids);
+        .rpc('directory_profiles', { p_ids: ids });
       const map = new Map((profiles ?? []).map((p: any) => [p.id, p]));
       return (m as any[]).map((row) => ({
         ...row,

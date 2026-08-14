@@ -128,7 +128,7 @@ BEGIN
 
   INSERT INTO public.user_login_sessions (user_id, session_id, ip, city, country, user_agent)
   VALUES (v_uid, p_session_id, p_ip, p_city, p_country, p_user_agent)
-  ON CONFLICT (user_id, session_id) DO UPDATE
+  ON CONFLICT (user_id, session_id) WHERE session_id IS NOT NULL DO UPDATE
     SET last_seen_at = now(),
         ip = COALESCE(EXCLUDED.ip, public.user_login_sessions.ip),
         city = COALESCE(EXCLUDED.city, public.user_login_sessions.city),
