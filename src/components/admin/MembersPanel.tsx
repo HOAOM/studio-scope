@@ -20,6 +20,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 import { Loader2, Mail, Trash2, Copy, UserPlus, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ORG_ROLES, roleLabel } from '@/lib/roles';
@@ -49,6 +54,26 @@ export function MembersPanel() {
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('member');
+  const [domainWarning, setDomainWarning] = useState<string | null>(null);
+
+  /** Verifica coerenza dominio email con quello dell'organizzazione (owner/primo membro). */
+  const submitInvite = async () => {
+    if (!activeOrg || !email) return;
+    try {
+      const { data } = await (supabase as any).rpc('record_invite_domain', {
+        p_org: activeOrg.organization_id,
+        p_email: email.trim().toLowerCase(),
+      });
+      if (data?.mismatch) {
+        setDomainWarning(data.primary_domain as string);
+        return;
+      }
+    } catch {
+      /* controllo non bloccante */
+    }
+    invite.mutate();
+  };
+
 
   const { data: members = [] } = useQuery<OrgMemberRow[]>({
     queryKey: ['org-members', activeOrg?.organization_id],
@@ -208,7 +233,7 @@ export function MembersPanel() {
           ) : (
             <form
               className="flex flex-col md:flex-row gap-3 items-end"
-              onSubmit={(e) => { e.preventDefault(); if (email) invite.mutate(); }}
+              onSubmit={(e) => { e.preventDefault(); submitInvite(); }}
             >
               <div className="flex-1 space-y-1.5">
                 <Label htmlFor="invite-email">Email</Label>
@@ -388,6 +413,24 @@ export function MembersPanel() {
         </CardContent>
       </Card>
 
+      <AlertDialog open={!!domainWarning} onOpenChange={(o) => !o && setDomainWarning(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dominio email diverso</AlertDialogTitle>
+            <AlertDialogDescription>
+              Questo indirizzo usa un dominio diverso da quello della tua organizzazione
+              ({domainWarning}) — confermi comunque l'invito?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setDomainWarning(null); invite.mutate(); }}>
+              Invia comunque
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+

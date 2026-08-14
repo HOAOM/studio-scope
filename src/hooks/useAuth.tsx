@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { registerLogin, closeLoginSessions } from '@/lib/sessionGuard';
+
 
 interface AuthContextType {
   user: User | null;
@@ -25,8 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (event === 'SIGNED_IN' && session) {
+          setTimeout(() => { registerLogin(session); }, 0);
+        }
       }
     );
+
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -59,8 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    await closeLoginSessions();
     await supabase.auth.signOut();
   };
+
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
