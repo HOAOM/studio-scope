@@ -244,9 +244,8 @@ export function BOQCategoryModal({
                   Open Original
                 </Button>
               </div>
-
-              </div>
             </div>
+
           )}
         </DialogContent>
       </Dialog>
