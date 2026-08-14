@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
         organization_id: org.id,
         slug: org.slug,
         custom_domain: org.custom_domain,
-        created_user,
+        pending_email_verification: true,
         referral_applied,
         discount_applied,
         email_sent,
