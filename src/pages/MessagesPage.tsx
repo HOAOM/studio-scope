@@ -44,9 +44,7 @@ function useAllProfiles() {
   return useQuery({
     queryKey: ['all-profiles'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('profiles')
-        .select('id, display_name, email, avatar_url');
+      const { data, error } = await (supabase as any).rpc('directory_profiles');
       if (error) throw error;
       return (data || []) as { id: string; display_name: string | null; email: string | null; avatar_url: string | null }[];
     },

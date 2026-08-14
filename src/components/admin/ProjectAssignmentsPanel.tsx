@@ -63,7 +63,7 @@ export function ProjectAssignmentsPanel() {
       const ids = (m ?? []).map((x: any) => x.user_id);
       if (!ids.length) return [];
       const { data: profiles } = await (supabase as any)
-        .from('profiles').select('id, display_name, email').in('id', ids);
+        .rpc('directory_profiles', { p_ids: ids });
       return (profiles ?? []) as { id: string; display_name: string | null; email: string | null }[];
     },
   });
@@ -82,7 +82,7 @@ export function ProjectAssignmentsPanel() {
       const ids = [...new Set(rows.map((r) => r.user_id))];
       if (!ids.length) return rows;
       const { data: profiles } = await (supabase as any)
-        .from('profiles').select('id, display_name, email').in('id', ids);
+        .rpc('directory_profiles', { p_ids: ids });
       const map = new Map((profiles ?? []).map((p: any) => [p.id, p]));
       return rows.map((r) => ({
         ...r,

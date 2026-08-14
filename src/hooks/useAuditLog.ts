@@ -51,10 +51,8 @@ export function useAuditLog(filters: AuditLogFilters = {}) {
 
       let profilesMap: Record<string, { email: string | null; display_name: string | null }> = {};
       if (userIds.length) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, email, display_name')
-          .in('id', userIds);
+        const { data: profiles } = await (supabase as any)
+          .rpc('directory_profiles', { p_ids: userIds });
         (profiles || []).forEach((p: any) => {
           profilesMap[p.id] = { email: p.email, display_name: p.display_name };
         });
@@ -105,10 +103,8 @@ export function useAuditLogUsers() {
       if (error) throw error;
       const ids = Array.from(new Set((data || []).map((r: any) => r.user_id)));
       if (!ids.length) return [];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, email, display_name')
-        .in('id', ids);
+      const { data: profiles } = await (supabase as any)
+        .rpc('directory_profiles', { p_ids: ids });
       return (profiles || []) as { id: string; email: string | null; display_name: string | null }[];
     },
   });

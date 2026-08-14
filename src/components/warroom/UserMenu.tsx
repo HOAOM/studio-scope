@@ -28,7 +28,7 @@ function useMyProfile() {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url, email')
+        .select('display_name, avatar_url')
         .eq('id', user.id)
         .single();
       return data;
