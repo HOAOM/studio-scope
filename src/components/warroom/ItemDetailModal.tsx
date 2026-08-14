@@ -175,15 +175,23 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('project_members')
-        .select('user_id, role, profiles:user_id(display_name, email)')
+        .select('user_id, role')
         .eq('project_id', projectId);
       if (error) return [];
-      return (data || []).map((m: any) => ({
-        id: m.user_id,
-        display_name: m.profiles?.display_name || null,
-        email: m.profiles?.email || null,
-        role: m.role,
-      }));
+      const ids = (data || []).map((m: any) => m.user_id);
+      if (!ids.length) return [];
+      const { data: profiles } = await (supabase as any)
+        .rpc('directory_profiles', { p_ids: ids });
+      const map = new Map((profiles || []).map((p: any) => [p.id, p]));
+      return (data || []).map((m: any) => {
+        const p: any = map.get(m.user_id);
+        return {
+          id: m.user_id,
+          display_name: p?.display_name || null,
+          email: p?.email || null,
+          role: m.role,
+        };
+      });
     },
     enabled: !!projectId && open,
   });
