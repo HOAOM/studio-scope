@@ -24,11 +24,25 @@ GRANT  EXECUTE ON FUNCTION public.sync_project_membership() TO service_role;
 
 -- 2) Cost / margin columns: no direct reads ---------------------------------
 REVOKE ALL ON public.project_items FROM anon;
-REVOKE SELECT (
-  unit_cost, budget_unit_cost, budget_estimate, selling_price, margin_percentage,
-  delivery_cost, installation_cost, insurance_cost, duty_cost, custom_cost,
-  boxing_cost, shifting_cost, extra_safe_cost
-) ON public.project_items FROM anon, authenticated;
+
+DO $do$
+DECLARE
+  cost_cols text[] := ARRAY['unit_cost','budget_unit_cost','budget_estimate','selling_price',
+    'margin_percentage','delivery_cost','installation_cost','insurance_cost','duty_cost',
+    'custom_cost','boxing_cost','shifting_cost','extra_safe_cost'];
+  safe_cols text;
+BEGIN
+  SELECT string_agg(quote_ident(column_name), ', ')
+    INTO safe_cols
+    FROM information_schema.columns
+   WHERE table_schema = 'public' AND table_name = 'project_items'
+     AND NOT (column_name = ANY(cost_cols));
+
+  -- table-level SELECT implies every column, so replace it with a column list
+  EXECUTE 'REVOKE SELECT ON public.project_items FROM authenticated';
+  EXECUTE format('GRANT SELECT (%s) ON public.project_items TO authenticated', safe_cols);
+END $do$;
+
 
 -- 3) Cost / margin columns: writes only for cost-visible roles --------------
 CREATE OR REPLACE FUNCTION public.guard_item_cost_writes()
