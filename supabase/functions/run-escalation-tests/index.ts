@@ -28,10 +28,11 @@ Deno.serve(async (req) => {
   const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 1 });
   const results: Record<string, unknown>[] = [];
 
-  const asUser = async (uid: string, label: string, stmts: string[]) => {
+  const asUser = async (uid: string, label: string, stmts: string[], setup: string[] = []) => {
     for (const stmt of stmts) {
       try {
         await sql.begin(async (tx) => {
+          for (const s of setup) await tx.unsafe(s);
           await tx.unsafe(`SET LOCAL ROLE authenticated`);
           await tx.unsafe(
             `SELECT set_config('request.jwt.claims', '{"sub":"${uid}","role":"authenticated"}', true)`,
@@ -78,6 +79,10 @@ Deno.serve(async (req) => {
         `INSERT INTO public.platform_admins (user_id, grade) VALUES ('${admin.id}','owner') RETURNING id`,
         `SELECT public.platform_admin_set_grade('${admin.email}','owner')`,
         `INSERT INTO public.user_roles (user_id, role, organization_id) VALUES ('${admin.id}','designer','${org}') RETURNING id`,
+      ], [
+        // scenario: admin@test.it declassato a NON-owner (solo dentro la tx)
+        `UPDATE public.organization_members SET is_owner = false WHERE user_id = '${admin.id}' AND organization_id = '${org}'`,
+        `INSERT INTO public.user_roles (user_id, role, organization_id) VALUES ('${admin.id}','admin','${org}') ON CONFLICT DO NOTHING`,
       ]);
     }
 
