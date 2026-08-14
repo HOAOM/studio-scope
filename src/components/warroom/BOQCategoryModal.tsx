@@ -233,18 +233,18 @@ export function BOQCategoryModal({
         <DialogContent className="max-w-2xl bg-card border-border">
           {previewImage && (
             <div className="space-y-3">
-              <img
+              <StoredImage
                 src={previewImage}
                 alt="Reference"
                 className="w-full max-h-[70vh] object-contain rounded"
               />
               <div className="flex justify-end">
-                <Button variant="outline" size="sm" asChild>
-                  <a href={previewImage} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open Original
-                  </a>
+                <Button variant="outline" size="sm" onClick={() => openFile(previewImage)}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open Original
                 </Button>
+              </div>
+
               </div>
             </div>
           )}
