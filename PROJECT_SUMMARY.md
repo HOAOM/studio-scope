@@ -239,3 +239,8 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 - `startSessionWatch` in `src/lib/sessionGuard.ts`: polling 20s su `user_login_sessions.revoked_at` → logout immediato delle sessioni revocate (prima restavano vive fino alla scadenza dell'access token).
 - `run-migration-secfix6`: revocato `SELECT` su `profiles.email` per `authenticated`; nuova RPC `directory_profiles(uuid[])` (email solo a self / admin / owner org). Frontend migrato alla RPC.
 - `run-migration-invites`: ricreata `public.organization_invites` (mancante in DB → 404 PGRST205 in /admin) con GRANT Data API, RLS owner/member e RPC `accept_org_invite` / `peek_org_invite`.
+
+## Tier limits enforced lato server (Step 5)
+- Tabella di configurazione `public.tier_limits` (posti, progetti attivi, voci BOQ/progetto, storage) modificabile dai platform admin dal tab "Tier limits" in /super-admin.
+- Enforcement: trigger su `organization_members`/`organization_invites` (posti), `projects` (progetti attivi), `project_items` (voci BOQ), policy INSERT su `storage.objects` (storage). Bypass automatico per `is_platform_admin()`.
+- Helper client `src/lib/tierLimits.ts` (`uploadWithQuota`, `describeTierError`, `my_org_limits_usage`) per messaggi chiari di upgrade; `invite-member` restituisce 409 `seat_limit_reached`.

@@ -103,6 +103,21 @@ Deno.serve(async (req) => {
   let inviteId = existingInvite?.id;
 
   if (!existingInvite) {
+    // Limite posti del piano (bypass per i platform admin)
+    if (!isPlatform) {
+      const [{ data: limits }, { data: seatsUsed }] = await Promise.all([
+        admin.rpc("get_tier_limits", { p_org: organization_id }),
+        admin.rpc("org_seat_count", { p_org: organization_id, p_include_invites: true }),
+      ]);
+      const maxSeats = (limits as any)?.max_seats ?? null;
+      if (maxSeats != null && Number(seatsUsed) >= Number(maxSeats)) {
+        return json({
+          error: "seat_limit_reached",
+          detail: `Limite posti raggiunto per il piano attuale (${seatsUsed} / ${maxSeats} posti occupati). Serve un upgrade di piano per invitare altre persone.`,
+        }, 409);
+      }
+    }
+
     const { data: inserted, error: insErr } = await admin
       .from("organization_invites")
       .insert({
@@ -115,10 +130,17 @@ Deno.serve(async (req) => {
       })
       .select("id, token")
       .single();
-    if (insErr) return json({ error: "invite_insert_failed", detail: insErr.message }, 500);
+    if (insErr) {
+      const seat = /Limite posti/i.test(insErr.message);
+      return json(
+        { error: seat ? "seat_limit_reached" : "invite_insert_failed", detail: insErr.message },
+        seat ? 409 : 500,
+      );
+    }
     inviteId = inserted!.id;
     inviteToken = inserted!.token;
   }
+
 
   // Resolve site URL for redirect
   const origin = req.headers.get("origin") ?? req.headers.get("referer") ?? "";

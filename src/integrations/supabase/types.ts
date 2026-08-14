@@ -2063,6 +2063,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_limits: {
+        Row: {
+          max_active_projects: number | null
+          max_boq_items_per_project: number | null
+          max_seats: number | null
+          max_storage_bytes: number | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          max_active_projects?: number | null
+          max_boq_items_per_project?: number | null
+          max_seats?: number | null
+          max_storage_bytes?: number | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          max_active_projects?: number | null
+          max_boq_items_per_project?: number | null
+          max_seats?: number | null
+          max_storage_bytes?: number | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_login_sessions: {
         Row: {
           city: string | null
@@ -2371,6 +2401,24 @@ export type Database = {
         Args: { p_org: string; p_role: Database["public"]["Enums"]["app_role"] }
         Returns: string
       }
+      get_tier_limits: {
+        Args: { p_org: string }
+        Returns: {
+          max_active_projects: number | null
+          max_boq_items_per_project: number | null
+          max_seats: number | null
+          max_storage_bytes: number | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tier_limits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_user_org: { Args: never; Returns: string }
       has_org_role: {
         Args: {
@@ -2408,10 +2456,29 @@ export type Database = {
         }
         Returns: number
       }
+      my_org_limits_usage: {
+        Args: { p_org?: string }
+        Returns: {
+          max_active_projects: number
+          max_boq_items_per_project: number
+          max_seats: number
+          max_storage_bytes: number
+          organization_id: string
+          projects_used: number
+          seats_used: number
+          storage_used_bytes: number
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }[]
+      }
       org_active_project_count: { Args: { p_org: string }; Returns: number }
       org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
       org_primary_email_domain: { Args: { p_org: string }; Returns: string }
       org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
+      org_seat_count: {
+        Args: { p_include_invites?: boolean; p_org: string }
+        Returns: number
+      }
+      org_storage_bytes: { Args: { p_org: string }; Returns: number }
       peek_org_invite: {
         Args: { p_token: string }
         Returns: {
@@ -2466,6 +2533,7 @@ export type Database = {
         }
         Returns: string
       }
+      project_boq_item_count: { Args: { p_project: string }; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -2493,6 +2561,10 @@ export type Database = {
         Returns: Json
       }
       shares_org_with: { Args: { _target: string }; Returns: boolean }
+      storage_upload_within_limit: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
       tick_subscription_lifecycle: {
         Args: never
         Returns: {

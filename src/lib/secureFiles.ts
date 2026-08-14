@@ -7,6 +7,7 @@
  * a short-lived signed URL only when the user actually opens the file.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { uploadWithQuota } from '@/lib/tierLimits';
 
 export const SECURE_BUCKET = 'secure-docs';
 const SCHEME = `${SECURE_BUCKET}://`;
@@ -29,10 +30,7 @@ export function secureRefPath(value: string): string {
 
 /** Upload a file to the private bucket and return its stored reference. */
 export async function uploadSecureFile(path: string, file: Blob): Promise<string> {
-  const { error } = await supabase.storage.from(SECURE_BUCKET).upload(path, file, {
-    upsert: false,
-  });
-  if (error) throw error;
+  await uploadWithQuota(SECURE_BUCKET, path, file, { upsert: false });
   return toSecureRef(path);
 }
 

@@ -156,7 +156,16 @@ export function MembersPanel() {
           base_role: role,
         },
       });
-      if (error) throw error;
+      if (error) {
+        // Estrae il messaggio chiaro (es. limite posti raggiunto) dalla risposta
+        let detail = '';
+        try {
+          const body = await (error as any)?.context?.json?.();
+          detail = body?.detail || body?.error || '';
+        } catch { /* body non JSON */ }
+        throw new Error(detail || error.message || 'Invite failed');
+      }
+
       return data as { accept_url: string; email_sent: boolean; existing_user: boolean };
     },
     onSuccess: (data) => {

@@ -21,6 +21,7 @@ import {
   ExternalLink, Upload, Plus, Trash2,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import { uploadWithQuota, describeTierError } from '@/lib/tierLimits';
 
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
@@ -127,8 +128,7 @@ export function OptionCard({
     try {
       const result = await compressImage(file);
       const path = `${projectId}/${option.id}/ref_${Date.now()}.${result.ext}`;
-      const { error: upErr } = await supabase.storage.from('item-files').upload(path, result.file);
-      if (upErr) throw upErr;
+      await uploadWithQuota('item-files', path, result.file);
       const { data: urlData } = supabase.storage.from('item-files').getPublicUrl(path);
       setForm(f => ({ ...f, reference_image_url: urlData.publicUrl }));
       const saving = describeSaving(result);

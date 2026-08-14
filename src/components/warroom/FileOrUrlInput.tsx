@@ -15,6 +15,7 @@ import { StoredImage } from '@/components/StoredImage';
 import { toast } from 'sonner';
 import { Upload, Link2, X, ExternalLink, Loader2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { uploadWithQuota, describeTierError } from '@/lib/tierLimits';
 
 interface FileOrUrlInputProps {
   label?: string;
@@ -63,8 +64,7 @@ export function FileOrUrlInput({
         const ref = await uploadSecureFile(path, result.file);
         onChange(ref);
       } else {
-        const { error } = await supabase.storage.from(bucket).upload(path, result.file);
-        if (error) throw error;
+        await uploadWithQuota(bucket, path, result.file);
         const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
         onChange(urlData.publicUrl);
       }
