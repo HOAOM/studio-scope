@@ -778,6 +778,44 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_domain_audit: {
+        Row: {
+          created_at: string
+          email: string
+          foreign_domain: string
+          id: string
+          organization_id: string
+          primary_domain: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          foreign_domain: string
+          id?: string
+          organization_id: string
+          primary_domain?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          foreign_domain?: string
+          id?: string
+          organization_id?: string
+          primary_domain?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_domain_audit_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_domains: {
         Row: {
           created_at: string
@@ -1646,6 +1684,45 @@ export type Database = {
         }
         Relationships: []
       }
+      security_flags: {
+        Row: {
+          created_at: string
+          details: Json
+          flag_type: string
+          id: string
+          organization_id: string | null
+          review_needed: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          triggers: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          flag_type: string
+          id?: string
+          organization_id?: string | null
+          review_needed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          triggers?: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          flag_type?: string
+          id?: string
+          organization_id?: string | null
+          review_needed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          triggers?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       sso_redeem_failures: {
         Row: {
           created_at: string
@@ -1870,6 +1947,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_login_sessions: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          last_seen_at: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -2067,6 +2186,7 @@ export type Database = {
         Returns: boolean
       }
       can_see_costs: { Args: never; Returns: boolean }
+      close_login_sessions: { Args: { p_reason?: string }; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -2159,6 +2279,7 @@ export type Database = {
       }
       org_active_project_count: { Args: { p_org: string }; Returns: number }
       org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
+      org_primary_email_domain: { Args: { p_org: string }; Returns: string }
       org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
@@ -2168,9 +2289,23 @@ export type Database = {
           read_ct: number
         }[]
       }
+      record_invite_domain: {
+        Args: { p_email: string; p_org: string }
+        Returns: Json
+      }
       redeem_discount: {
         Args: { p_code: string; p_org: string }
         Returns: boolean
+      }
+      register_login: {
+        Args: {
+          p_city?: string
+          p_country?: string
+          p_ip?: string
+          p_session_id: string
+          p_user_agent?: string
+        }
+        Returns: Json
       }
       tick_subscription_lifecycle: {
         Args: never
