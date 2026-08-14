@@ -1,6 +1,8 @@
 /**
- * SuperAdmin — global console for StudioScope staff (app_role='admin').
- * Distinct from /admin (which is the per-organization owner panel).
+ * SuperAdmin — global console reserved to the PLATFORM staff layer
+ * (public.platform_admins: grade 'staff' or 'owner').
+ * A client-studio admin (app_role='admin') has NO access here; their scope is
+ * /admin, which only administers their own organization.
  *
  * Tabs:
  *  - Organizations: list/manage all client orgs, tier, status, impersonate.
@@ -9,7 +11,7 @@
  *  - Metrics: global KPIs (MRR estimate, churn risk, top orgs).
  */
 import { useNavigate } from 'react-router-dom';
-import { useUserRole } from '@/hooks/useUserRole';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
@@ -21,11 +23,10 @@ import { ImpersonateBanner } from '@/components/layout/ImpersonateBanner';
 
 export default function SuperAdmin() {
   const navigate = useNavigate();
-  const { roles, isLoading } = useUserRole();
-  const isAdmin = roles.includes('admin' as any);
+  const { isPlatformAdmin, isLoading } = usePlatformAdmin();
 
   if (isLoading) return null;
-  if (!isAdmin) {
+  if (!isPlatformAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center space-y-3 max-w-sm">

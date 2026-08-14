@@ -2388,12 +2388,14 @@ export type Database = {
         Returns: boolean
       }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
+      is_org_admin: { Args: { p_org: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
       is_org_owner: { Args: { p_org: string }; Returns: boolean }
       is_platform_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_platform_owner: { Args: { _user_id?: string }; Returns: boolean }
       is_project_in_my_org: { Args: { p_project_id: string }; Returns: boolean }
       is_project_member: { Args: { p_project_id: string }; Returns: boolean }
+      is_project_org_admin: { Args: { p_project: string }; Returns: boolean }
       is_project_org_owner: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
       item_cost_values: { Args: { p_item_id: string }; Returns: Json }
