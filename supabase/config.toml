@@ -48,3 +48,8 @@ project_id = "grpzbxwafkcvecphnyyb"
   [functions.run-migration-platform-rebind]
     verify_jwt = false
 
+
+  [functions.run-migration-secfix10]
+    verify_jwt = false
+  [functions.run-escalation-tests]
+    verify_jwt = false
