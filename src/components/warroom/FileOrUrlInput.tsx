@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
+import { isSecureRef, openSecureFile, uploadSecureFile } from '@/lib/secureFiles';
 import { toast } from 'sonner';
 import { Upload, Link2, X, ExternalLink, Loader2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,8 @@ interface FileOrUrlInputProps {
   onChange: (value: string | null) => void;
   storagePath?: string; // e.g. "projectId/itemId/images"
   bucket?: string;
+  /** Store the file in the private "secure-docs" bucket (sensitive documents). */
+  secure?: boolean;
   accept?: string; // e.g. "image/*,.pdf"
   placeholder?: string;
   disabled?: boolean;
@@ -32,6 +35,7 @@ export function FileOrUrlInput({
   onChange,
   storagePath = 'uploads',
   bucket = 'item-files',
+  secure = false,
   accept,
   placeholder = 'Upload file or paste URL...',
   disabled = false,
@@ -43,7 +47,8 @@ export function FileOrUrlInput({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const isImage = value && /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(value);
+  const secureValue = isSecureRef(value);
+  const isImage = !secureValue && value && /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(value);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,10 +57,15 @@ export function FileOrUrlInput({
     try {
       const result = await compressImage(file);
       const path = `${storagePath}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${result.ext}`;
-      const { error } = await supabase.storage.from(bucket).upload(path, result.file);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
-      onChange(urlData.publicUrl);
+      if (secure) {
+        const ref = await uploadSecureFile(path, result.file);
+        onChange(ref);
+      } else {
+        const { error } = await supabase.storage.from(bucket).upload(path, result.file);
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+        onChange(urlData.publicUrl);
+      }
       const saving = describeSaving(result);
       toast.success(saving ? `File caricato e ottimizzato · ${saving}` : 'File uploaded');
       setOpen(false);
@@ -66,6 +76,7 @@ export function FileOrUrlInput({
       if (fileRef.current) fileRef.current.value = '';
     }
   };
+
 
   const handleUrlSubmit = () => {
     if (!urlInput.trim()) return;

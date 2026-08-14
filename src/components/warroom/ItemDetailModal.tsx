@@ -591,9 +591,11 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
           value={value ?? null}
           onChange={v => setVal(field, v || '')}
           storagePath={`${projectId}/${item.id}`}
+          secure
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
           className="py-1.5"
         />
+
       );
     }
     if (!value) return null;
