@@ -141,21 +141,35 @@ Deno.serve(async (req) => {
       }
       // "buy" → no domain yet (affiliate flow, later phase)
 
-      // 1) user (find or create, auto-confirmed for beta)
+      // 1) user — an existing account must NEVER be attached to an organization
+      //    created by an unauthenticated request (account hijack / code burning).
+      //    In that case we only send a sign-in link and return a generic response
+      //    that does not reveal whether the address is registered.
       const { data: list } = await sb.auth.admin.listUsers();
-      let owner = list?.users?.find((u) => u.email?.toLowerCase() === owner_email);
-      let created_user = false;
-      if (!owner) {
-        const tempPassword = crypto.randomUUID().slice(0, 16) + "A1!";
-        const { data: created, error: cerr } = await sb.auth.admin.createUser({
-          email: owner_email,
-          email_confirm: true,
-          password: tempPassword,
+      const existing = list?.users?.find((u) => u.email?.toLowerCase() === owner_email);
+      if (existing) {
+        const originExisting = req.headers.get("origin") ?? "";
+        const siteUrlExisting = originExisting.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
+        const anon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          auth: { persistSession: false, autoRefreshToken: false },
         });
-        if (cerr || !created?.user) return json({ error: "user_create_failed", detail: cerr?.message }, 500);
-        owner = created.user;
-        created_user = true;
+        await anon.auth.signInWithOtp({
+          email: owner_email,
+          options: { emailRedirectTo: `${siteUrlExisting}/dashboard` },
+        });
+        return json({ ok: true, pending_email_verification: true, email_sent: true });
       }
+
+      // New address: create the account unconfirmed — it only becomes usable
+      // once the real owner clicks the link sent to that inbox.
+      const tempPassword = crypto.randomUUID().slice(0, 16) + "A1!";
+      const { data: created, error: cerr } = await sb.auth.admin.createUser({
+        email: owner_email,
+        email_confirm: false,
+        password: tempPassword,
+      });
+      if (cerr || !created?.user) return json({ error: "user_create_failed" }, 500);
+      const owner = created.user;
 
       // 2) organization
       const { data: org, error: oerr } = await sb
@@ -214,7 +228,7 @@ Deno.serve(async (req) => {
         organization_id: org.id,
         slug: org.slug,
         custom_domain: org.custom_domain,
-        created_user,
+        pending_email_verification: true,
         referral_applied,
         discount_applied,
         email_sent,

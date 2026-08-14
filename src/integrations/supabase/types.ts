@@ -1072,6 +1072,69 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          grade: Database["public"]["Enums"]["platform_admin_grade"]
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          grade?: Database["public"]["Enums"]["platform_admin_grade"]
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          grade?: Database["public"]["Enums"]["platform_admin_grade"]
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_impersonation_log: {
+        Row: {
+          actor_grade: Database["public"]["Enums"]["platform_admin_grade"]
+          actor_user_id: string
+          ended_at: string | null
+          id: string
+          reason: string | null
+          started_at: string
+          target_organization_id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          actor_grade: Database["public"]["Enums"]["platform_admin_grade"]
+          actor_user_id: string
+          ended_at?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          target_organization_id: string
+          target_user_id?: string | null
+        }
+        Update: {
+          actor_grade?: Database["public"]["Enums"]["platform_admin_grade"]
+          actor_user_id?: string
+          ended_at?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          target_organization_id?: string
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       presentations: {
         Row: {
           created_at: string
@@ -2327,6 +2390,8 @@ export type Database = {
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
       is_org_owner: { Args: { p_org: string }; Returns: boolean }
+      is_platform_admin: { Args: { _user_id?: string }; Returns: boolean }
+      is_platform_owner: { Args: { _user_id?: string }; Returns: boolean }
       is_project_in_my_org: { Args: { p_project_id: string }; Returns: boolean }
       is_project_member: { Args: { p_project_id: string }; Returns: boolean }
       is_project_org_owner: { Args: { p_project_id: string }; Returns: boolean }
@@ -2354,6 +2419,50 @@ export type Database = {
           organization_name: string
           status: string
         }[]
+      }
+      platform_admin_list: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          grade: string
+          notes: string
+          user_id: string
+        }[]
+      }
+      platform_admin_revoke: { Args: { p_email: string }; Returns: Json }
+      platform_admin_set_grade: {
+        Args: { p_email: string; p_grade: string }
+        Returns: Json
+      }
+      platform_impersonation_end: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      platform_impersonation_log_list: {
+        Args: { p_limit?: number }
+        Returns: {
+          actor_email: string
+          actor_grade: string
+          actor_user_id: string
+          ended_at: string
+          id: string
+          organization_name: string
+          reason: string
+          started_at: string
+          target_email: string
+          target_organization_id: string
+          target_user_id: string
+        }[]
+      }
+      platform_impersonation_start: {
+        Args: {
+          p_organization_id: string
+          p_reason?: string
+          p_target_user_id?: string
+        }
+        Returns: string
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
@@ -2482,6 +2591,7 @@ export type Database = {
         | "closed"
         | "cancelled"
       payment_scheme: "single" | "split_50_50" | "installments_3"
+      platform_admin_grade: "staff" | "owner"
       subscription_status:
         | "active"
         | "grace"
@@ -2694,6 +2804,7 @@ export const Constants = {
         "cancelled",
       ],
       payment_scheme: ["single", "split_50_50", "installments_3"],
+      platform_admin_grade: ["staff", "owner"],
       subscription_status: [
         "active",
         "grace",
