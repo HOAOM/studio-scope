@@ -2,6 +2,7 @@
  * Client Board PDF Export — A3 landscape, 2x3 grid per room
  * Shows only selected option per item with image, description, finishes, dimensions, price
  */
+import { resolveFileUrl } from '@/lib/fileUrls';
 import jsPDF from 'jspdf';
 
 interface BoardItem {
@@ -27,6 +28,8 @@ interface ExportClientBoardOptions {
 
 async function loadImageAsBase64(url: string): Promise<string | null> {
   try {
+    const resolved = await resolveFileUrl(url);
+    if (!resolved) return null;
     const img = new Image();
     img.crossOrigin = 'anonymous';
     return await new Promise((resolve) => {
@@ -40,7 +43,7 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
         resolve(canvas.toDataURL('image/jpeg', 0.8));
       };
       img.onerror = () => resolve(null);
-      img.src = url;
+      img.src = resolved;
     });
   } catch {
     return null;
