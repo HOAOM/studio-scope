@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
+import { StoredImage } from '@/components/StoredImage';
+import { openFile } from '@/lib/fileUrls';
 import { ItemDetailModal } from './ItemDetailModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

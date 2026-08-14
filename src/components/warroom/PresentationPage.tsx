@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StoredImage } from '@/components/StoredImage';
 import { PresentationCell } from '@/hooks/usePresentations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -114,7 +115,7 @@ function CellEditor({
           </div>
         ) : (
           <>
-            <img
+            <StoredImage
               src={cell.content}
               alt="Slide content"
               className="w-full h-full object-cover"
