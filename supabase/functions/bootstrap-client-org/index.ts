@@ -1,8 +1,8 @@
 /**
- * bootstrap-client-org — super-admin creates a new client organization end-to-end.
+ * bootstrap-client-org — platform owner creates a new client organization end-to-end.
  *
  * Flow:
- *  1. Auth: caller must have app_role='admin'.
+ *  1. Auth: caller must be a PLATFORM OWNER (public.platform_admins.grade='owner').
  *  2. Validate body: { org_name, slug, owner_email, tier, discount_code?, send_invite_email? }
  *  3. Find or create auth user by email (auto-confirm).
  *  4. Insert organization + owner membership + subscription row.
@@ -46,11 +46,10 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: isAdmin } = await admin.rpc("has_role", {
+  const { data: isOwner } = await admin.rpc("is_platform_owner", {
     _user_id: ures.user.id,
-    _role: "admin",
   });
-  if (!isAdmin) return json({ error: "forbidden: admin only" }, 403);
+  if (!isOwner) return json({ error: "forbidden: platform owner only" }, 403);
 
   let body: any;
   try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }

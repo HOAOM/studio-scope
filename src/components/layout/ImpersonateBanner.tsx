@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserRole } from '@/hooks/useUserRole';
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 
 export const IMPERSONATE_KEY = 'studioscope.impersonateOrgId';
 
@@ -36,7 +36,7 @@ export function useImpersonatedOrgId() {
 }
 
 export function ImpersonateBanner() {
-  const { roles } = useUserRole();
+  const { isPlatformAdmin } = usePlatformAdmin();
   const impersonateId = useImpersonatedOrgId();
   const [orgName, setOrgName] = useState<string | null>(null);
 
@@ -48,7 +48,7 @@ export function ImpersonateBanner() {
     })();
   }, [impersonateId]);
 
-  if (!impersonateId || !roles.includes('admin' as any)) return null;
+  if (!impersonateId || !isPlatformAdmin) return null;
 
   return (
     <div className="sticky top-0 z-[80] bg-yellow-500 text-yellow-950 px-4 py-1.5 flex items-center justify-between gap-3 text-xs font-medium shadow">
