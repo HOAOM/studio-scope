@@ -228,7 +228,7 @@ export function MembersPanel() {
           ) : (
             <form
               className="flex flex-col md:flex-row gap-3 items-end"
-              onSubmit={(e) => { e.preventDefault(); if (email) invite.mutate(); }}
+              onSubmit={(e) => { e.preventDefault(); submitInvite(); }}
             >
               <div className="flex-1 space-y-1.5">
                 <Label htmlFor="invite-email">Email</Label>
