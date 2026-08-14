@@ -65,7 +65,8 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Authorisation: owner of org OR global admin
+  // Authorisation: owner/admin OF THIS org, or platform admin.
+  // A client admin of another organization must never pass this check.
   const { data: ownerCheck } = await admin
     .from("organization_members")
     .select("is_owner")
@@ -73,10 +74,19 @@ Deno.serve(async (req) => {
     .eq("user_id", caller.id)
     .maybeSingle();
 
-  const { data: isAdmin } = await admin.rpc("has_role", {
-    _user_id: caller.id, _role: "admin",
+  const { data: orgAdminRow } = await admin
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", caller.id)
+    .eq("organization_id", organization_id)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  const { data: isPlatform } = await admin.rpc("is_platform_admin", {
+    _user_id: caller.id,
   });
-  if (!isAdmin && !ownerCheck?.is_owner) {
+
+  if (!isPlatform && !orgAdminRow && !ownerCheck?.is_owner) {
     return json({ error: "forbidden: not org owner" }, 403);
   }
 
