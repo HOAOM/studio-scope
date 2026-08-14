@@ -27,8 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (event === 'SIGNED_IN' && session) {
+          setTimeout(() => { registerLogin(session); }, 0);
+        }
       }
     );
+
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
