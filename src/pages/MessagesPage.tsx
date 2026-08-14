@@ -1,3 +1,4 @@
+import { openFile } from '@/lib/fileUrls';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { compressImage } from '@/lib/imageCompression';
 import { useNavigate } from 'react-router-dom';
@@ -733,15 +734,14 @@ function ConversationPanel({ thread, messages, profileMap, projectMap, itemInfo,
                   {msg.body}
                 </div>
                 {msg.attachment_url && (
-                  <a
-                    href={msg.attachment_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openFile(msg.attachment_url)}
                     className="inline-flex items-center gap-1 mt-1 text-[10px] text-primary hover:underline"
                   >
                     <Paperclip className="w-3 h-3" />
                     {msg.attachment_name || 'Attachment'}
-                  </a>
+                  </button>
                 )}
               </div>
             </div>

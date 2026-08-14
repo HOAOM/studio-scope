@@ -12,8 +12,8 @@ import {
   toSecureRef,
   isSecureRef,
   secureRefPath,
-  openSecureFile,
 } from '@/lib/secureFiles';
+import { openFile } from '@/lib/fileUrls';
 
 
 import { Button } from '@/components/ui/button';
@@ -207,11 +207,7 @@ export function ItemDocuments({ item, onUpdate, canEdit = true }: ItemDocumentsP
                 ) : value ? (
                   <button
                     type="button"
-                    onClick={() =>
-                      isSecureRef(value)
-                        ? openSecureFile(value)
-                        : window.open(value, '_blank', 'noopener,noreferrer')
-                    }
+                    onClick={() => openFile(value)}
                     className="text-sm text-primary hover:underline break-all text-left"
                   >
                     {truncate(isSecureRef(value) ? secureRefPath(value).split('/').pop() || value : value, 40)}

@@ -2185,6 +2185,7 @@ export type Database = {
         Args: { p_code: string; p_org: string }
         Returns: boolean
       }
+      can_access_project_file: { Args: { p_name: string }; Returns: boolean }
       can_see_costs: { Args: never; Returns: boolean }
       close_login_sessions: { Args: { p_reason?: string }; Returns: undefined }
       delete_email: {

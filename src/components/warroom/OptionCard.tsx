@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { StoredImage } from '@/components/StoredImage';
 import { useUpdateProjectItem } from '@/hooks/useProjects';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -183,7 +184,7 @@ export function OptionCard({
         {/* Image upload */}
         <div className="relative h-[180px] bg-muted/30 rounded-lg overflow-hidden border border-border">
           {imgUrl ? (
-            <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+            <StoredImage src={imgUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
               <ImageIcon className="w-8 h-8" />
@@ -307,7 +308,7 @@ export function OptionCard({
       {/* Image — fixed height for consistency regardless of option count */}
       <div className="h-[180px] relative bg-muted/30 rounded-t-lg overflow-hidden">
         {imgUrl ? (
-          <img src={imgUrl} alt={`Option ${letter}`} className="w-full h-full object-cover" />
+          <StoredImage src={imgUrl} alt={`Option ${letter}`} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40">
             <ImageIcon className="w-8 h-8 mb-1" />

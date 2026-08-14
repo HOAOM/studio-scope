@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { StoredImage } from '@/components/StoredImage';
 import { useParams, Link } from 'react-router-dom';
 import { useProject, useProjectItems, useDeleteProjectItem } from '@/hooks/useProjects';
 import { StatusBadge } from '@/components/warroom/StatusBadge';
@@ -720,7 +721,7 @@ export default function ProjectDetail() {
                           <TableRow key={item.id} className={cn('tracker-row cursor-pointer', status === 'unsafe' && 'bg-status-unsafe-bg')} onDoubleClick={() => { setDetailItem(item); setDetailModalOpen(true); }}>
                             <TableCell>
                               {item.reference_image_url ? (
-                                <img src={item.reference_image_url} alt="" className="w-8 h-8 rounded object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                <StoredImage src={item.reference_image_url} alt="" className="w-8 h-8 rounded object-cover border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
                                 <div className="w-8 h-8 rounded border border-border bg-muted flex items-center justify-center">
                                   <ImageIcon className="w-3 h-3 text-muted-foreground" />

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
+import { useFileUrl } from '@/lib/fileUrls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,7 @@ export default function UserProfile() {
   const { roles } = useUserRole();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const resolvedAvatarUrl = useFileUrl(avatarUrl);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -111,7 +113,7 @@ export default function UserProfile() {
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar className="w-20 h-20 border-2 border-border">
-                  <AvatarImage src={avatarUrl || undefined} />
+                  <AvatarImage src={resolvedAvatarUrl} />
                   <AvatarFallback className="text-lg bg-primary/10 text-primary">{initials}</AvatarFallback>
                 </Avatar>
                 <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">

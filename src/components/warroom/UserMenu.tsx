@@ -1,3 +1,4 @@
+import { useFileUrl } from '@/lib/fileUrls';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,6 +50,7 @@ export function UserMenu() {
     [conversations]
   );
 
+  const avatarSrc = useFileUrl(profile?.avatar_url);
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'User';
   const initials = displayName.slice(0, 2).toUpperCase();
 
@@ -66,7 +68,7 @@ export function UserMenu() {
           <button className="relative focus:outline-none">
             <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-border hover:ring-primary transition-all">
               {profile?.avatar_url ? (
-                <AvatarImage src={profile.avatar_url} alt={displayName} />
+                <AvatarImage src={avatarSrc} alt={displayName} />
               ) : null}
               <AvatarFallback className="text-[10px] bg-muted font-semibold">
                 {initials}
