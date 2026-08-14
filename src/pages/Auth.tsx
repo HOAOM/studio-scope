@@ -25,10 +25,16 @@ export default function Auth() {
   const returnTo = params.get('returnTo') ?? '/';
 
   useEffect(() => {
+    const killed = consumeSessionKillMessage();
+    if (killed) toast.error(killed, { duration: 10000 });
+  }, []);
+
+  useEffect(() => {
     if (user && !loading) {
       navigate(returnTo);
     }
   }, [user, loading, navigate, returnTo]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
