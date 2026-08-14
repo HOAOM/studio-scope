@@ -34,9 +34,14 @@ export default function AcceptInvite() {
   useEffect(() => {
     if (!token) { setError('missing_token'); return; }
     (async () => {
-      const { data, error } = await (supabase as any).rpc('peek_org_invite', { p_token: token });
-      if (error) { setError(error.message); return; }
-      const row = Array.isArray(data) ? data[0] : data;
+      // Public preview goes through the peek-invite edge function (service role),
+      // so the RPC does not need to be callable by anonymous visitors.
+      const { data, error } = await supabase.functions.invoke(
+        `peek-invite?token=${encodeURIComponent(token)}`,
+        { method: 'GET' },
+      );
+      if (error) { setError('invite_not_found'); return; }
+      const row = (data as any)?.invite;
       if (!row) { setError('invite_not_found'); return; }
       setPeek(row);
     })();
