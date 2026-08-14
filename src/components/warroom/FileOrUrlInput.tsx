@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
-import { isSecureRef, openSecureFile, uploadSecureFile } from '@/lib/secureFiles';
+import { isSecureRef, uploadSecureFile } from '@/lib/secureFiles';
+import { openFile } from '@/lib/fileUrls';
+import { StoredImage } from '@/components/StoredImage';
 import { toast } from 'sonner';
 import { Upload, Link2, X, ExternalLink, Loader2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -108,7 +110,7 @@ export function FileOrUrlInput({
             {value ? (
               <>
                 {showPreview && isImage ? (
-                  <img src={value} alt="" className="w-6 h-6 rounded object-cover shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  <StoredImage src={value} alt="" className="w-6 h-6 rounded object-cover shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 ) : (
                   <Link2 className="w-3.5 h-3.5 shrink-0 text-primary" />
                 )}
@@ -181,7 +183,7 @@ export function FileOrUrlInput({
             <div className="pt-2 border-t border-border">
               <button
                 type="button"
-                onClick={() => (secureValue ? openSecureFile(value) : window.open(value, '_blank', 'noopener,noreferrer'))}
+                onClick={() => openFile(value)}
                 className="flex items-center gap-1.5 text-xs text-primary hover:underline"
               >
                 <ExternalLink className="w-3 h-3" /> Open current file

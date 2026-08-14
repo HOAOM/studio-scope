@@ -45,7 +45,7 @@ import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
 import { LifecycleChecklist } from './LifecycleChecklist';
 import { FileOrUrlInput } from './FileOrUrlInput';
-import { isSecureRef, openSecureFile } from '@/lib/secureFiles';
+import { openFile } from '@/lib/fileUrls';
 
 import { DynamicFinishes, DynamicFinish } from './DynamicFinishes';
 
@@ -604,7 +604,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     return (
       <button
         type="button"
-        onClick={() => (isSecureRef(value) ? openSecureFile(value) : window.open(value, '_blank', 'noopener,noreferrer'))}
+        onClick={() => openFile(value)}
         className="flex items-center gap-2 text-sm text-primary hover:underline py-1"
       >
         <ExternalLink className="w-3 h-3" /> {label}
