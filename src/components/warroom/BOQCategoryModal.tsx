@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StoredImage } from '@/components/StoredImage';
-import { useFileUrl } from '@/lib/fileUrls';
+import { openFile } from '@/lib/fileUrls';
 import {
   Dialog,
   DialogContent,
