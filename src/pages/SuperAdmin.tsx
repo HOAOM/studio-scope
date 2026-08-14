@@ -19,6 +19,7 @@ import { OrganizationsTable } from '@/components/super-admin/OrganizationsTable'
 import { DiscountCodesPanel } from '@/components/super-admin/DiscountCodesPanel';
 import { ReferralCodesPanel } from '@/components/super-admin/ReferralCodesPanel';
 import { GlobalMetricsPanel } from '@/components/super-admin/GlobalMetricsPanel';
+import { TierLimitsPanel } from '@/components/super-admin/TierLimitsPanel';
 import { ImpersonateBanner } from '@/components/layout/ImpersonateBanner';
 
 export default function SuperAdmin() {
@@ -65,11 +66,13 @@ export default function SuperAdmin() {
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="discounts">Discount codes</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
+            <TabsTrigger value="limits">Tier limits</TabsTrigger>
           </TabsList>
           <TabsContent value="orgs"><OrganizationsTable /></TabsContent>
           <TabsContent value="metrics"><GlobalMetricsPanel /></TabsContent>
           <TabsContent value="discounts"><DiscountCodesPanel /></TabsContent>
           <TabsContent value="referrals"><ReferralCodesPanel /></TabsContent>
+          <TabsContent value="limits"><TierLimitsPanel /></TabsContent>
         </Tabs>
       </main>
     </div>
