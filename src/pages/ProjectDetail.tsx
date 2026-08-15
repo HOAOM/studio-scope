@@ -795,7 +795,7 @@ export default function ProjectDetail() {
           {/* CLIENT BOARDS TAB */}
           <TabsContent value="client-boards" className="space-y-6">
             {projectId && (
-              <ClientBoardsTab projectId={projectId} items={items} projectName={project.name} />
+              <ClientBoardsTab projectId={projectId} items={items} projectName={project.name} organizationId={(project as any).organization_id} />
             )}
           </TabsContent>
 
@@ -807,6 +807,7 @@ export default function ProjectDetail() {
                 projectName={project.name}
                 projectCode={project.code}
                 items={items}
+                organizationId={(project as any).organization_id}
                 onOpenItem={(item) => {
                   setDetailItem(item);
                   setDetailModalOpen(true);

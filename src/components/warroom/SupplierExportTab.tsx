@@ -47,6 +47,7 @@ interface SupplierExportTabProps {
   projectCode: string;
   items: ProjectItem[];
   onOpenItem?: (item: ProjectItem) => void;
+  organizationId?: string | null;
 }
 
 const DOC_TYPE_LABELS: Record<SupplierDocType, string> = {
@@ -55,10 +56,10 @@ const DOC_TYPE_LABELS: Record<SupplierDocType, string> = {
   proforma_request: 'Proforma Invoice Request',
 };
 
-export function SupplierExportTab({ projectId, projectName, projectCode, items, onOpenItem }: SupplierExportTabProps) {
+export function SupplierExportTab({ projectId, projectName, projectCode, items, onOpenItem, organizationId }: SupplierExportTabProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { data: company } = useCompanySettings();
+  const { data: company } = useCompanySettings(organizationId);
 
   const [selectedSupplier, setSelectedSupplier] = useState<string>('');
   const [docType, setDocType] = useState<SupplierDocType>('rfq');

@@ -8,7 +8,7 @@ import { useCompanySettings } from '@/hooks/useCompanySettings';
 type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 
 export function ExportExcelButton({ project, items }: { project: any; items: ProjectItem[] }) {
-  const { data: companySettings } = useCompanySettings();
+  const { data: companySettings } = useCompanySettings(project?.organization_id);
   const handleExport = async () => {
     try {
       await exportBOQToExcel(project, items, companySettings);
