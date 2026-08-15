@@ -244,3 +244,11 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 - Tabella di configurazione `public.tier_limits` (posti, progetti attivi, voci BOQ/progetto, storage) modificabile dai platform admin dal tab "Tier limits" in /super-admin.
 - Enforcement: trigger su `organization_members`/`organization_invites` (posti), `projects` (progetti attivi), `project_items` (voci BOQ), policy INSERT su `storage.objects` (storage). Bypass automatico per `is_platform_admin()`.
 - Helper client `src/lib/tierLimits.ts` (`uploadWithQuota`, `describeTierError`, `my_org_limits_usage`) per messaggi chiari di upgrade; `invite-member` restituisce 409 `seat_limit_reached`.
+
+## company_settings per-organizzazione (2026-08-15)
+
+- `company_settings.organization_id` (FK organizations, unique) — una riga per studio, non più una riga globale.
+- Trigger `trg_create_company_settings` crea la riga alla creazione di una nuova organizzazione.
+- RLS: lettura ai membri della propria org (`is_org_member`), scrittura solo admin/owner della propria org o platform admin.
+- `useCompanySettings(orgId?)` / `useUpdateCompanySettings(orgId?)`: gli export (Excel BOQ, client boards, supplier docs) passano `project.organization_id`.
+- Edge functions: `run-migration-company-settings-org`, `run-company-settings-tests`.
