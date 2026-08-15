@@ -807,6 +807,7 @@ export default function ProjectDetail() {
                 projectName={project.name}
                 projectCode={project.code}
                 items={items}
+                organizationId={(project as any).organization_id}
                 onOpenItem={(item) => {
                   setDetailItem(item);
                   setDetailModalOpen(true);
