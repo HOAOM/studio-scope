@@ -210,21 +210,10 @@ Deno.serve(async (req) => {
         discount_applied = !!data;
       }
 
-      // 5) magic link — sent ONLY to the owner's inbox, never returned in the
-      //    response (this endpoint is public and unauthenticated, so returning
-      //    the link would let anyone hijack an account by typing someone
-      //    else's email address).
-      const origin = req.headers.get("origin") ?? "";
-      const siteUrl = origin.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
-      let email_sent = false;
-      const anonClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { error: otpErr } = await anonClient.auth.signInWithOtp({
-        email: owner_email,
-        options: { emailRedirectTo: `${siteUrl}/dashboard` },
-      });
-      email_sent = !otpErr;
+      // 5) l'email di attivazione è già stata inviata al punto 1 tramite invito
+      //    admin (mai restituita nella response: questo endpoint è pubblico).
+      const email_sent = true;
+
 
       return json({
         ok: true,
