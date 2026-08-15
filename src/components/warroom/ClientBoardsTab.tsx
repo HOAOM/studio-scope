@@ -44,6 +44,7 @@ interface ClientBoardsTabProps {
   projectId: string;
   items: ProjectItem[];
   projectName: string;
+  organizationId?: string | null;
 }
 
 const BOARD_STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -53,10 +54,10 @@ const BOARD_STATUS_COLORS: Record<string, { bg: string; text: string; label: str
   signed:             { bg: 'bg-status-safe-bg',    text: 'text-status-safe',       label: 'Signed' },
 };
 
-export function ClientBoardsTab({ projectId, items, projectName }: ClientBoardsTabProps) {
+export function ClientBoardsTab({ projectId, items, projectName, organizationId }: ClientBoardsTabProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { data: company } = useCompanySettings();
+  const { data: company } = useCompanySettings(organizationId);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [boardName, setBoardName] = useState('');
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
