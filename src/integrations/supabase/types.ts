@@ -195,6 +195,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          organization_id: string
           sort_order: number | null
         }
         Insert: {
@@ -203,6 +204,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          organization_id?: string
           sort_order?: number | null
         }
         Update: {
@@ -211,9 +213,18 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          organization_id?: string
           sort_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cost_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       direct_messages: {
         Row: {
@@ -649,6 +660,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          organization_id: string
           sort_order: number | null
         }
         Insert: {
@@ -656,6 +668,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          organization_id?: string
           sort_order?: number | null
         }
         Update: {
@@ -663,9 +676,18 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          organization_id?: string
           sort_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "master_floors_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       master_item_types: {
         Row: {
@@ -674,6 +696,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          organization_id: string
           sort_order: number | null
         }
         Insert: {
@@ -682,6 +705,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          organization_id?: string
           sort_order?: number | null
         }
         Update: {
@@ -690,9 +714,18 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          organization_id?: string
           sort_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "master_item_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       master_rooms: {
         Row: {
@@ -700,6 +733,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          organization_id: string
           sort_order: number | null
         }
         Insert: {
@@ -707,6 +741,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          organization_id?: string
           sort_order?: number | null
         }
         Update: {
@@ -714,9 +749,18 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          organization_id?: string
           sort_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "master_rooms_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       master_subcategories: {
         Row: {
@@ -725,6 +769,7 @@ export type Database = {
           id: string
           item_type_id: string | null
           name: string
+          organization_id: string
           sort_order: number | null
         }
         Insert: {
@@ -733,6 +778,7 @@ export type Database = {
           id?: string
           item_type_id?: string | null
           name: string
+          organization_id?: string
           sort_order?: number | null
         }
         Update: {
@@ -741,6 +787,7 @@ export type Database = {
           id?: string
           item_type_id?: string | null
           name?: string
+          organization_id?: string
           sort_order?: number | null
         }
         Relationships: [
@@ -749,6 +796,13 @@ export type Database = {
             columns: ["item_type_id"]
             isOneToOne: false
             referencedRelation: "master_item_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subcategories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2571,6 +2625,7 @@ export type Database = {
         }
         Returns: Json
       }
+      seed_master_data_for_org: { Args: { p_org: string }; Returns: undefined }
       shares_org_with: { Args: { _target: string }; Returns: boolean }
       storage_upload_within_limit: {
         Args: { p_bucket: string; p_name: string }
@@ -2596,6 +2651,7 @@ export type Database = {
         Args: { t: Database["public"]["Enums"]["subscription_tier"] }
         Returns: number
       }
+      touch_login_session: { Args: { p_session_id: string }; Returns: boolean }
       validate_discount: {
         Args: {
           p_code: string
