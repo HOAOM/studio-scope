@@ -17,11 +17,10 @@ const authSchema = z.object({
 });
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const returnTo = params.get('returnTo') ?? '/';
@@ -50,38 +49,19 @@ export default function Auth() {
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Invalid email or password');
-          } else if (error.message.includes('Email not confirmed')) {
-            toast.error('Please verify your email before signing in');
-          } else {
-            toast.error(error.message);
-          }
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email o password non validi');
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error('Conferma la tua email prima di accedere');
         } else {
-          toast.success('Welcome back!');
-          navigate(returnTo);
+          toast.error(error.message);
         }
       } else {
-        const { error } = await signUp(email, password);
-        if (error) {
-          const msg = error.message.toLowerCase();
-          if (msg.includes('already registered')) {
-            toast.error('An account with this email already exists');
-          } else if (msg.includes('pwned') || msg.includes('compromised') || msg.includes('data breach')) {
-            toast.error(
-              'Questa password è comparsa in violazioni di dati note. Scegline una diversa, più lunga e mai usata altrove.'
-            );
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success('Account created! Please check your email to verify.');
-        }
+        toast.success('Bentornato!');
+        navigate(returnTo);
       }
-
     } finally {
       setIsSubmitting(false);
     }
@@ -103,13 +83,9 @@ export default function Auth() {
             <Activity className="w-8 h-8 text-primary" />
             <span className="text-2xl font-bold text-foreground">War Room</span>
           </div>
-          <CardTitle className="text-xl">
-            {isLogin ? 'Sign In' : 'Create Account'}
-          </CardTitle>
+          <CardTitle className="text-xl">Accedi</CardTitle>
           <CardDescription>
-            {isLogin 
-              ? 'Enter your credentials to access the War Room' 
-              : 'Create an account to start managing projects'}
+            Inserisci le tue credenziali per entrare nella War Room
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,21 +118,23 @@ export default function Auth() {
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
-              {isLogin ? 'Sign In' : 'Create Account'}
+              Accedi
             </Button>
           </form>
           
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline"
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            L'accesso è riservato agli account creati tramite invito o
+            attivazione da{' '}
+            <a
+              href="https://kroneel.com"
+              className="text-primary hover:underline"
+              target="_blank"
+              rel="noreferrer"
             >
-              {isLogin 
-                ? "Don't have an account? Sign up" 
-                : 'Already have an account? Sign in'}
-            </button>
-          </div>
+              kroneel.com
+            </a>
+            .
+          </p>
         </CardContent>
       </Card>
     </div>
