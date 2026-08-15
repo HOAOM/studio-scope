@@ -146,6 +146,7 @@ export type Database = {
           email: string | null
           id: string
           logo_url: string | null
+          organization_id: string
           phone: string | null
           updated_at: string
           vat_number: string | null
@@ -158,6 +159,7 @@ export type Database = {
           email?: string | null
           id?: string
           logo_url?: string | null
+          organization_id: string
           phone?: string | null
           updated_at?: string
           vat_number?: string | null
@@ -170,12 +172,21 @@ export type Database = {
           email?: string | null
           id?: string
           logo_url?: string | null
+          organization_id?: string
           phone?: string | null
           updated_at?: string
           vat_number?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cost_categories: {
         Row: {
