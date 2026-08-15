@@ -54,7 +54,7 @@ BEGIN
      AND s.revoked_at IS NULL
      AND s.session_id IS DISTINCT FROM p_session_id
      AND (
-       s.last_seen_at < now() - interval '5 minutes'
+       s.last_seen_at < now() - interval '2 minutes'
        OR NOT EXISTS (
          SELECT 1 FROM auth.sessions a
           WHERE a.user_id = v_uid AND a.id::text = s.session_id
