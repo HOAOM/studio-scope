@@ -26,17 +26,35 @@ import { Database } from '@/integrations/supabase/types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 
-const projectSchema = z.object({
-  code: z.string().min(1, 'Project code is required').max(50),
-  name: z.string().min(1, 'Project name is required').max(200),
-  client: z.string().min(1, 'Client name is required').max(200),
-  location: z.string().max(200).optional(),
-  start_date: z.string().min(1, 'Start date is required'),
-  target_completion_date: z.string().min(1, 'Target completion date is required'),
-  boq_master_ref: z.string().max(100).optional(),
-  boq_version: z.string().max(50).optional(),
-  project_manager: z.string().max(100).optional(),
-});
+/** Data valida: formato YYYY-MM-DD con anno a 4 cifre in un intervallo plausibile. */
+const plausibleDate = (label: string) =>
+  z
+    .string()
+    .min(1, `${label} is required`)
+    .refine((v) => /^\d{4}-\d{2}-\d{2}$/.test(v), `${label}: use a valid date (YYYY-MM-DD)`)
+    .refine((v) => {
+      const year = Number(v.slice(0, 4));
+      return year >= 2000 && year <= 2100;
+    }, `${label}: year must be between 2000 and 2100`)
+    .refine((v) => !Number.isNaN(new Date(v).getTime()), `${label}: invalid date`);
+
+const projectSchema = z
+  .object({
+    code: z.string().min(1, 'Project code is required').max(50),
+    name: z.string().min(1, 'Project name is required').max(200),
+    client: z.string().min(1, 'Client name is required').max(200),
+    location: z.string().max(200).optional(),
+    start_date: plausibleDate('Start date'),
+    target_completion_date: plausibleDate('Target completion date'),
+    boq_master_ref: z.string().max(100).optional(),
+    boq_version: z.string().max(50).optional(),
+    project_manager: z.string().max(100).optional(),
+  })
+  .refine((d) => new Date(d.target_completion_date) > new Date(d.start_date), {
+    path: ['target_completion_date'],
+    message: 'Target completion date must be after the start date',
+  });
+
 
 type ProjectFormData = z.infer<typeof projectSchema>;
 
