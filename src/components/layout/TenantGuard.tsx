@@ -58,5 +58,38 @@ export function TenantGuard({ children }: { children: ReactNode }) {
     );
   }
 
+  // Utente autenticato ma senza organizzazione (es. registrazione diretta):
+  // niente dashboard vuota, messaggio esplicito.
+  if (!orgsLoading && orgs.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-3">
+              <Building2 className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-xl">Nessuna organizzazione collegata</CardTitle>
+            <CardDescription>
+              Il tuo account non è ancora associato a uno studio. Chiedi all'amministratore del tuo
+              studio di invitarti, oppure attiva un abbonamento su kroneel.com per creare la tua
+              organizzazione.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center gap-2">
+            <Button asChild>
+              <a href="https://kroneel.com" target="_blank" rel="noreferrer">
+                Vai a kroneel.com
+              </a>
+            </Button>
+            <Button variant="outline" onClick={() => signOut()}>
+              Esci
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }
+

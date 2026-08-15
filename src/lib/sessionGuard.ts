@@ -84,20 +84,19 @@ export function startSessionWatch(session: Session): () => void {
   let stopped = false;
 
   const check = async () => {
-    if (stopped || document.visibilityState === 'hidden') return;
-    const { data, error } = await supabase
-      .from('user_login_sessions')
-      .select('revoked_at')
-      .eq('user_id', session.user.id)
-      .eq('session_id', sessionId)
-      .maybeSingle();
-    if (error || !data?.revoked_at || stopped) return;
+    if (stopped) return;
+    // heartbeat: aggiorna last_seen_at e ritorna true se la sessione è stata revocata
+    const { data, error } = await (supabase as any).rpc('touch_login_session', {
+      p_session_id: sessionId,
+    });
+    if (error || data !== true || stopped) return;
     stopped = true;
     localStorage.setItem(KILL_FLAG, SESSION_KILL_MESSAGE);
     sessionStorage.removeItem(SEEN_PREFIX + sessionId);
     await supabase.auth.signOut();
     window.location.replace('/auth');
   };
+
 
   const interval = window.setInterval(check, 20000);
   document.addEventListener('visibilitychange', check);

@@ -54,7 +54,7 @@ BEGIN
      AND s.revoked_at IS NULL
      AND s.session_id IS DISTINCT FROM p_session_id
      AND (
-       s.last_seen_at < now() - interval '5 minutes'
+       s.last_seen_at < now() - interval '2 minutes'
        OR NOT EXISTS (
          SELECT 1 FROM auth.sessions a
           WHERE a.user_id = v_uid AND a.id::text = s.session_id
@@ -193,7 +193,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS master_floors_org_code_key        ON public.ma
 CREATE UNIQUE INDEX IF NOT EXISTS master_rooms_org_code_key         ON public.master_rooms (organization_id, code);
 CREATE UNIQUE INDEX IF NOT EXISTS master_item_types_org_code_key    ON public.master_item_types (organization_id, code);
 CREATE UNIQUE INDEX IF NOT EXISTS cost_categories_org_code_key      ON public.cost_categories (organization_id, code);
+DROP INDEX IF EXISTS public.master_subcategories_code_typed_uniq;
+DROP INDEX IF EXISTS public.master_subcategories_code_placeholder_uniq;
 CREATE UNIQUE INDEX IF NOT EXISTS master_subcategories_org_code_key ON public.master_subcategories (organization_id, item_type_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS master_subcategories_org_placeholder_uniq ON public.master_subcategories (organization_id, code) WHERE item_type_id IS NULL;
 
 -- RLS: read = org members, write = org admins (platform admins bypass via is_platform_admin)
 DO $$
@@ -261,6 +264,13 @@ BEGIN
     JOIN public.master_item_types oldt ON oldt.id = s.item_type_id AND oldt.organization_id = v_tpl
     JOIN public.master_item_types newt ON newt.organization_id = p_org AND newt.code = oldt.code
    WHERE s.organization_id = v_tpl
+  ON CONFLICT DO NOTHING;
+
+  -- sottocategorie senza tipo collegato (legacy): copiate per parità col template
+  INSERT INTO public.master_subcategories (organization_id, item_type_id, name, code, sort_order)
+  SELECT p_org, NULL, s.name, s.code, s.sort_order
+    FROM public.master_subcategories s
+   WHERE s.organization_id = v_tpl AND s.item_type_id IS NULL
   ON CONFLICT DO NOTHING;
 END;
 $fn$;
