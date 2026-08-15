@@ -53,3 +53,7 @@ project_id = "grpzbxwafkcvecphnyyb"
     verify_jwt = false
   [functions.run-escalation-tests]
     verify_jwt = false
+  [functions.run-migration-company-settings-org]
+    verify_jwt = false
+  [functions.run-company-settings-tests]
+    verify_jwt = false
