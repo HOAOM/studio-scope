@@ -84,7 +84,7 @@ export function startSessionWatch(session: Session): () => void {
   let stopped = false;
 
   const check = async () => {
-    if (stopped || document.visibilityState === 'hidden') return;
+    if (stopped) return;
     // heartbeat: aggiorna last_seen_at e ritorna true se la sessione è stata revocata
     const { data, error } = await (supabase as any).rpc('touch_login_session', {
       p_session_id: sessionId,
