@@ -1,160 +1,181 @@
 /**
- * SubscriptionTierPanel — Admin UI to view & switch the current subscription tier.
- * Shows the 3 plans side-by-side with feature comparison.
+ * SubscriptionTierPanel — mostra il piano REALE dell'organizzazione, letto dal
+ * database (organization_subscriptions + tier_limits). I limiti sono applicati
+ * lato server: questo pannello è di sola lettura, il cambio piano avviene dal
+ * pannello di piattaforma / contatto commerciale.
  *
  * @see mem://constraints/subscription-tiers
  */
-import { useSubscriptionTier } from '@/hooks/useSubscriptionTier';
-import { TIERS, type TierFeatures } from '@/lib/subscriptionTiers';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrgSubscription, type OrgTier } from '@/hooks/useOrgSubscription';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Crown, Zap, Building, Sparkles } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Building, Zap, Crown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
-const FEATURE_LABELS: Record<keyof TierFeatures, string> = {
-  maxProjects: 'Active projects',
-  maxUsersPerRole: 'Users per role',
-  maxTotalUsers: 'Total team members',
-  bulkImport: 'Bulk Excel/CSV import',
-  presentationBuilder: 'Presentation Builder',
-  supplierExports: 'Supplier exports (RFQ/PO)',
-  clientBoards: 'Client Boards (signed PDF)',
-  customBranding: 'Custom branding in PDFs',
-  apiAccess: 'API access / integrations',
-  auditRetentionDays: 'Audit log retention',
+interface TierLimitRow {
+  tier: OrgTier;
+  max_seats: number | null;
+  max_active_projects: number | null;
+  max_boq_items_per_project: number | null;
+  max_storage_bytes: number | null;
+}
+
+const TIER_ORDER: OrgTier[] = ['starter', 'pro', 'business'];
+
+const TIER_META: Record<OrgTier, { label: string; tagline: string; icon: typeof Building }> = {
+  starter: { label: 'Starter', tagline: 'Studio singolo · progetti limitati', icon: Building },
+  pro: { label: 'Pro', tagline: 'Team completo · procurement e export', icon: Zap },
+  business: { label: 'Business', tagline: 'Illimitato · multi-team e SLA', icon: Crown },
 };
 
-const TIER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  base: Building,
-  pro: Zap,
-  enterprise: Crown,
+const STATUS_LABEL: Record<string, string> = {
+  active: 'Attivo',
+  grace: 'In tolleranza',
+  suspended: 'Sospeso',
+  purge_pending: 'In cancellazione',
+  purged: 'Cancellato',
 };
 
-function formatValue(key: keyof TierFeatures, value: number | boolean): React.ReactNode {
-  if (typeof value === 'boolean') {
-    return value ? (
-      <Check className="w-4 h-4 text-primary" />
-    ) : (
-      <X className="w-4 h-4 text-muted-foreground/40" />
-    );
-  }
-  if (value === Infinity) return <span className="text-primary font-semibold">Unlimited</span>;
-  if (key === 'auditRetentionDays') return `${value} days`;
-  return value.toLocaleString();
+function fmt(v: number | null): string {
+  return v === null || v === undefined ? 'Illimitato' : v.toLocaleString('it-IT');
+}
+
+function fmtBytes(v: number | null): string {
+  if (v === null || v === undefined) return 'Illimitato';
+  return `${Math.round(v / 1024 ** 3)} GB`;
+}
+
+function useTierLimits() {
+  return useQuery<TierLimitRow[]>({
+    queryKey: ['tier-limits'],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('tier_limits').select('*');
+      if (error) throw error;
+      return (data ?? []) as TierLimitRow[];
+    },
+  });
 }
 
 export function SubscriptionTierPanel() {
-  const { tier, setTier, definition } = useSubscriptionTier();
+  const { data: sub, isLoading: subLoading } = useOrgSubscription();
+  const { data: limits, isLoading: limitsLoading } = useTierLimits();
 
-  const handleSelect = (next: typeof tier) => {
-    if (next === tier) return;
-    setTier(next);
-    toast.success(`Subscription switched to ${TIERS.find((t) => t.id === next)?.label}`);
-  };
+  if (subLoading || limitsLoading) {
+    return <Skeleton className="h-64 w-full" />;
+  }
+
+  const rows = TIER_ORDER.map((t) => limits?.find((l) => l.tier === t)).filter(
+    Boolean,
+  ) as TierLimitRow[];
+  const current = sub?.tier;
+  const currentLimits = rows.find((r) => r.tier === current);
 
   return (
     <Card className="bg-card border-border">
       <CardContent className="pt-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Subscription Tiers</h2>
+            <h2 className="text-lg font-semibold text-foreground">Abbonamento</h2>
           </div>
-          <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
-            Current: {definition.label}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {current && (
+              <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
+                Piano: {TIER_META[current].label}
+              </Badge>
+            )}
+            {sub?.status && (
+              <Badge variant="outline" className="border-border text-muted-foreground">
+                {STATUS_LABEL[sub.status] ?? sub.status}
+              </Badge>
+            )}
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Choose the plan that fits your organization. Limits apply softly across projects, users, and exports.
-          Switching is instant; existing data is never modified.
-        </p>
 
-        {/* Plan cards */}
+        {sub && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-border bg-background/40 p-3">
+              <div className="text-xs text-muted-foreground">Organizzazione</div>
+              <div className="text-sm font-medium text-foreground">{sub.organization_name}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-background/40 p-3">
+              <div className="text-xs text-muted-foreground">Progetti attivi</div>
+              <div className="text-sm font-medium text-foreground">
+                {sub.projects_used} / {currentLimits?.max_active_projects ?? '∞'}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background/40 p-3">
+              <div className="text-xs text-muted-foreground">Storage incluso</div>
+              <div className="text-sm font-medium text-foreground">
+                {fmtBytes(currentLimits?.max_storage_bytes ?? null)}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background/40 p-3">
+              <div className="text-xs text-muted-foreground">Rinnovo</div>
+              <div className="text-sm font-medium text-foreground">
+                {sub.current_period_end
+                  ? new Date(sub.current_period_end).toLocaleDateString('it-IT')
+                  : '—'}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {TIERS.map((t) => {
-            const Icon = TIER_ICONS[t.id] ?? Building;
-            const isCurrent = t.id === tier;
+          {rows.map((r) => {
+            const meta = TIER_META[r.tier];
+            const Icon = meta.icon;
+            const isCurrent = r.tier === current;
             return (
               <div
-                key={t.id}
+                key={r.tier}
                 className={cn(
-                  'relative rounded-lg border p-4 flex flex-col gap-3 transition-all',
+                  'rounded-lg border p-4 flex flex-col gap-2',
                   isCurrent
-                    ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20'
-                    : 'border-border bg-background/40 hover:border-primary/40',
-                  t.highlight && !isCurrent && 'border-accent/60'
+                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                    : 'border-border bg-background/40',
                 )}
               >
-                {t.highlight && (
-                  <Badge className="absolute -top-2 right-3 bg-accent text-accent-foreground text-[10px]">
-                    Most popular
-                  </Badge>
-                )}
                 <div className="flex items-center gap-2">
                   <Icon className="w-4 h-4 text-primary" />
-                  <span className="font-semibold text-foreground">{t.label}</span>
-                </div>
-                <p className="text-xs text-muted-foreground min-h-[2.5em]">{t.tagline}</p>
-                <div className="text-2xl font-bold text-foreground">
-                  {t.monthlyPrice === 0 ? (
-                    <span className="text-base text-muted-foreground">Contact sales</span>
-                  ) : (
-                    <>
-                      €{t.monthlyPrice}
-                      <span className="text-xs text-muted-foreground font-normal"> /mo</span>
-                    </>
+                  <span className="font-semibold text-foreground">{meta.label}</span>
+                  {isCurrent && (
+                    <Badge className="ml-auto bg-primary/20 text-primary text-[10px]">
+                      Piano attivo
+                    </Badge>
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  variant={isCurrent ? 'default' : 'outline'}
-                  className="w-full"
-                  onClick={() => handleSelect(t.id)}
-                  disabled={isCurrent}
-                >
-                  {isCurrent ? 'Active plan' : 'Switch to ' + t.label}
-                </Button>
+                <p className="text-xs text-muted-foreground min-h-[2.5em]">{meta.tagline}</p>
+                <dl className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Utenti</dt>
+                    <dd className="text-foreground">{fmt(r.max_seats)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Progetti attivi</dt>
+                    <dd className="text-foreground">{fmt(r.max_active_projects)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Voci BOQ / progetto</dt>
+                    <dd className="text-foreground">{fmt(r.max_boq_items_per_project)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Storage</dt>
+                    <dd className="text-foreground">{fmtBytes(r.max_storage_bytes)}</dd>
+                  </div>
+                </dl>
               </div>
             );
           })}
         </div>
 
-        {/* Comparison matrix */}
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40">
-              <tr>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Feature</th>
-                {TIERS.map((t) => (
-                  <th key={t.id} className="px-3 py-2 text-center font-medium text-foreground">
-                    {t.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(Object.keys(FEATURE_LABELS) as Array<keyof TierFeatures>).map((key, i) => (
-                <tr key={key} className={cn('border-t border-border', i % 2 === 1 && 'bg-muted/10')}>
-                  <td className="px-3 py-2 text-muted-foreground">{FEATURE_LABELS[key]}</td>
-                  {TIERS.map((t) => (
-                    <td key={t.id} className="px-3 py-2 text-center">
-                      <div className="inline-flex items-center justify-center">
-                        {formatValue(key, t.features[key])}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
         <p className="text-[11px] text-muted-foreground italic">
-          Tier preference is currently stored locally for development. The production rollout will
-          persist subscriptions per organization via Lovable Cloud billing.
+          I limiti mostrati sono quelli effettivamente applicati dal database: superarli blocca
+          l'operazione lato server. Per cambiare piano contatta il supporto Kroneel.
         </p>
       </CardContent>
     </Card>
