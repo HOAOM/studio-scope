@@ -145,6 +145,8 @@ Deno.serve(async (req) => {
       //    created by an unauthenticated request (account hijack / code burning).
       //    In that case we only send a sign-in link and return a generic response
       //    that does not reveal whether the address is registered.
+      //    NB: la registrazione pubblica è disattivata, quindi qui NON si può usare
+      //    signInWithOtp (422 signup_disabled): si usano le admin API / recovery.
       const { data: list } = await sb.auth.admin.listUsers();
       const existing = list?.users?.find((u) => u.email?.toLowerCase() === owner_email);
       if (existing) {
@@ -153,23 +155,24 @@ Deno.serve(async (req) => {
         const anon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
           auth: { persistSession: false, autoRefreshToken: false },
         });
-        await anon.auth.signInWithOtp({
-          email: owner_email,
-          options: { emailRedirectTo: `${siteUrlExisting}/dashboard` },
+        await anon.auth.resetPasswordForEmail(owner_email, {
+          redirectTo: `${siteUrlExisting}/dashboard`,
         });
         return json({ ok: true, pending_email_verification: true, email_sent: true });
       }
 
-      // New address: create the account unconfirmed — it only becomes usable
-      // once the real owner clicks the link sent to that inbox.
-      const tempPassword = crypto.randomUUID().slice(0, 16) + "A1!";
-      const { data: created, error: cerr } = await sb.auth.admin.createUser({
-        email: owner_email,
-        email_confirm: false,
-        password: tempPassword,
+      // New address: l'invito admin crea l'account e invia l'email di attivazione
+      // (bypassa il blocco della registrazione pubblica, che resta disattivata).
+      const originNew = req.headers.get("origin") ?? "";
+      const siteUrlNew = originNew.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
+      const { data: invited, error: cerr } = await sb.auth.admin.inviteUserByEmail(owner_email, {
+        redirectTo: `${siteUrlNew}/dashboard`,
       });
-      if (cerr || !created?.user) return json({ error: "user_create_failed" }, 500);
-      const owner = created.user;
+      if (cerr || !invited?.user) {
+        return json({ error: "user_create_failed", detail: cerr?.message ?? null }, 500);
+      }
+      const owner = invited.user;
+
 
       // 2) organization
       const { data: org, error: oerr } = await sb
@@ -207,21 +210,10 @@ Deno.serve(async (req) => {
         discount_applied = !!data;
       }
 
-      // 5) magic link — sent ONLY to the owner's inbox, never returned in the
-      //    response (this endpoint is public and unauthenticated, so returning
-      //    the link would let anyone hijack an account by typing someone
-      //    else's email address).
-      const origin = req.headers.get("origin") ?? "";
-      const siteUrl = origin.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
-      let email_sent = false;
-      const anonClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { error: otpErr } = await anonClient.auth.signInWithOtp({
-        email: owner_email,
-        options: { emailRedirectTo: `${siteUrl}/dashboard` },
-      });
-      email_sent = !otpErr;
+      // 5) l'email di attivazione è già stata inviata al punto 1 tramite invito
+      //    admin (mai restituita nella response: questo endpoint è pubblico).
+      const email_sent = true;
+
 
       return json({
         ok: true,
