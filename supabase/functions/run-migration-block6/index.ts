@@ -262,6 +262,13 @@ BEGIN
     JOIN public.master_item_types newt ON newt.organization_id = p_org AND newt.code = oldt.code
    WHERE s.organization_id = v_tpl
   ON CONFLICT DO NOTHING;
+
+  -- sottocategorie senza tipo collegato (legacy): copiate per parità col template
+  INSERT INTO public.master_subcategories (organization_id, item_type_id, name, code, sort_order)
+  SELECT p_org, NULL, s.name, s.code, s.sort_order
+    FROM public.master_subcategories s
+   WHERE s.organization_id = v_tpl AND s.item_type_id IS NULL
+  ON CONFLICT DO NOTHING;
 END;
 $fn$;
 
