@@ -193,7 +193,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS master_floors_org_code_key        ON public.ma
 CREATE UNIQUE INDEX IF NOT EXISTS master_rooms_org_code_key         ON public.master_rooms (organization_id, code);
 CREATE UNIQUE INDEX IF NOT EXISTS master_item_types_org_code_key    ON public.master_item_types (organization_id, code);
 CREATE UNIQUE INDEX IF NOT EXISTS cost_categories_org_code_key      ON public.cost_categories (organization_id, code);
+DROP INDEX IF EXISTS public.master_subcategories_code_typed_uniq;
+DROP INDEX IF EXISTS public.master_subcategories_code_placeholder_uniq;
 CREATE UNIQUE INDEX IF NOT EXISTS master_subcategories_org_code_key ON public.master_subcategories (organization_id, item_type_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS master_subcategories_org_placeholder_uniq ON public.master_subcategories (organization_id, code) WHERE item_type_id IS NULL;
 
 -- RLS: read = org members, write = org admins (platform admins bypass via is_platform_admin)
 DO $$
