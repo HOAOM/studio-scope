@@ -12,12 +12,37 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 
 export const IMPERSONATE_KEY = 'studioscope.impersonateOrgId';
+const ACTIVE_ORG_KEY = 'studioscope.activeOrgId';
 
 export function setImpersonatedOrg(id: string | null) {
   if (id) localStorage.setItem(IMPERSONATE_KEY, id);
   else localStorage.removeItem(IMPERSONATE_KEY);
   window.dispatchEvent(new Event('studioscope.impersonate-change'));
 }
+
+/**
+ * Opens a real impersonation session: the DB logs it in
+ * platform_impersonation_log and, while it is open, the platform admin gets
+ * MEMBER-level visibility on that organization (impersonating_org()).
+ */
+export async function startImpersonation(orgId: string, reason = 'super-admin view-as') {
+  const { error } = await (supabase as any).rpc('platform_impersonation_start', {
+    p_organization_id: orgId,
+    p_target_user_id: null,
+    p_reason: reason,
+  });
+  if (error) throw error;
+  localStorage.setItem(ACTIVE_ORG_KEY, orgId);
+  setImpersonatedOrg(orgId);
+}
+
+/** Closes every open impersonation session and restores the admin's own org. */
+export async function stopImpersonation() {
+  await (supabase as any).rpc('platform_impersonation_end_all');
+  localStorage.removeItem(ACTIVE_ORG_KEY);
+  setImpersonatedOrg(null);
+}
+
 
 export function useImpersonatedOrgId() {
   const [id, setId] = useState<string | null>(() =>
@@ -61,7 +86,10 @@ export function ImpersonateBanner() {
       <Button
         size="sm" variant="ghost"
         className="h-6 px-2 text-yellow-950 hover:bg-yellow-600/30"
-        onClick={() => setImpersonatedOrg(null)}
+        onClick={async () => {
+          await stopImpersonation();
+          window.location.assign('/');
+        }}
       >
         <X className="w-3.5 h-3.5 mr-1" /> Exit
       </Button>

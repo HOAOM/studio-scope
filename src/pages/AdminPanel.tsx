@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useCompanySettings, useUpdateCompanySettings } from '@/hooks/useCompanySettings';
+import { CustomDomainCard } from '@/components/admin/CustomDomainCard';
+import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -35,6 +37,8 @@ export default function AdminPanel() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: isAdmin, isLoading: checkingAdmin } = useIsAdmin();
+  const { activeId } = useActiveOrg();
+
 
   // Master data hooks
   const { data: floors = [], isLoading: loadingFloors } = useFloors();
@@ -238,8 +242,9 @@ export default function AdminPanel() {
             <UserManagement />
           </TabsContent>
 
-          <TabsContent value="company">
+          <TabsContent value="company" className="space-y-4">
             <CompanySettingsForm />
+            <CustomDomainCard orgId={activeId} />
           </TabsContent>
 
           <TabsContent value="subscription">
