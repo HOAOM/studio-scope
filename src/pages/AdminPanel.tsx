@@ -37,6 +37,8 @@ export default function AdminPanel() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: isAdmin, isLoading: checkingAdmin } = useIsAdmin();
+  const { activeId } = useActiveOrg();
+
 
   // Master data hooks
   const { data: floors = [], isLoading: loadingFloors } = useFloors();
