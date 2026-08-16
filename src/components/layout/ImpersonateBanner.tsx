@@ -86,7 +86,10 @@ export function ImpersonateBanner() {
       <Button
         size="sm" variant="ghost"
         className="h-6 px-2 text-yellow-950 hover:bg-yellow-600/30"
-        onClick={() => setImpersonatedOrg(null)}
+        onClick={async () => {
+          await stopImpersonation();
+          window.location.assign('/');
+        }}
       >
         <X className="w-3.5 h-3.5 mr-1" /> Exit
       </Button>
