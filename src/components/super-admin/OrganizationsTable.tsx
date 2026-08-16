@@ -10,9 +10,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Eye } from 'lucide-react';
+import { Loader2, Eye, Globe } from 'lucide-react';
 import { toast } from 'sonner';
-import { setImpersonatedOrg } from '@/components/layout/ImpersonateBanner';
+import { startImpersonation } from '@/components/layout/ImpersonateBanner';
+import { CustomDomainCard } from '@/components/admin/CustomDomainCard';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
 import { CreateOrgDialog } from './CreateOrgDialog';
 import { useNavigate } from 'react-router-dom';
 
@@ -85,6 +89,7 @@ export function OrganizationsTable() {
                   <TableHead>Tier</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Projects</TableHead>
+                  <TableHead>Domain</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -133,6 +138,21 @@ export function OrganizationsTable() {
                         {o.active_projects} / {o.project_limit > 1_000_000 ? '∞' : o.project_limit}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs">
+                            <Globe className="w-3.5 h-3.5 mr-1" /> Domain
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Dominio personalizzato — {o.name}</DialogTitle>
+                          </DialogHeader>
+                          <CustomDomainCard orgId={o.organization_id} orgName={o.name} compact />
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(o.created_at).toLocaleDateString()}
                     </TableCell>
@@ -140,10 +160,15 @@ export function OrganizationsTable() {
                       <Button
                         size="sm" variant="ghost"
                         className="h-7 text-xs"
-                        onClick={() => {
-                          setImpersonatedOrg(o.organization_id);
-                          toast.success(`Viewing as ${o.name}`);
-                          navigate('/');
+                        onClick={async () => {
+                          try {
+                            await startImpersonation(o.organization_id);
+                            toast.success(`Viewing as ${o.name}`);
+                            navigate('/');
+                            window.location.reload();
+                          } catch (e: any) {
+                            toast.error(e?.message ?? 'Impersonation failed');
+                          }
                         }}
                       >
                         <Eye className="w-3.5 h-3.5 mr-1" /> View as
