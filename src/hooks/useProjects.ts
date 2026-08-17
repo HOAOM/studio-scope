@@ -180,20 +180,26 @@ export function useBOQCoverage(projectId: string | undefined) {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+  const { activeId } = useActiveOrg();
+
   return useMutation({
     mutationFn: async (project: Omit<ProjectInsert, 'owner_id'>) => {
       if (!user) throw new Error('Must be logged in');
-      
+
       const { data, error } = await supabase
         .from('projects')
-        .insert({ ...project, owner_id: user.id })
+        .insert({
+          ...project,
+          owner_id: user.id,
+          organization_id: (project as any).organization_id ?? activeId ?? null,
+        })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
