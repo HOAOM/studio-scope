@@ -1,15 +1,24 @@
 import { ReactNode, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTenant } from '@/hooks/useTenant';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Loader2 } from 'lucide-react';
 
 /**
  * Se l'app è servita su un dominio tenant (es. marco.amz.ee), seleziona
- * automaticamente l'organizzazione corrispondente. Se l'utente loggato non
- * appartiene a quell'organizzazione mostra un messaggio chiaro.
+ * automaticamente l'organizzazione corrispondente.
+ *
+ * IMPORTANTE: su dominio tenant l'accesso è consentito SOLO se l'utente è
+ * membro REALE dell'organizzazione (riga in organization_members), non in base
+ * alla lista `get_my_organizations`, che include anche le organizzazioni
+ * visibili tramite una sessione "View as" di un platform admin. Un platform
+ * admin che fa login diretto su un dominio cliente vede "Accesso non
+ * autorizzato": l'unico canale legittimo è il dominio neutro + "View as".
+ *
  * Su preview/localhost (tenant = null) il comportamento resta invariato.
  */
 export function TenantGuard({ children }: { children: ReactNode }) {
@@ -17,7 +26,28 @@ export function TenantGuard({ children }: { children: ReactNode }) {
   const { orgs, activeId, setActiveOrg, isLoading: orgsLoading } = useActiveOrg();
   const { signOut } = useAuth();
 
-  const belongs = tenant ? orgs.some((o) => o.organization_id === tenant.organization_id) : true;
+  // Appartenenza reale: query diretta sulla propria riga di membership.
+  // Sotto impersonazione la RLS lascia leggere le righe dell'org, ma nessuna
+  // riga ha user_id = platform admin → risultato vuoto → accesso negato.
+  const { data: realMember, isLoading: memberLoading } = useQuery({
+    queryKey: ['real-membership', tenant?.organization_id],
+    enabled: !!tenant?.organization_id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return false;
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select('id')
+        .eq('organization_id', tenant!.organization_id)
+        .eq('user_id', auth.user.id)
+        .maybeSingle();
+      if (error) return false;
+      return !!data;
+    },
+  });
+
+  const belongs = tenant ? realMember === true : true;
 
   useEffect(() => {
     if (tenant && belongs && activeId !== tenant.organization_id) {
@@ -25,13 +55,14 @@ export function TenantGuard({ children }: { children: ReactNode }) {
     }
   }, [tenant, belongs, activeId, setActiveOrg]);
 
-  if (tenantLoading || (tenant && orgsLoading)) {
+  if (tenantLoading || (tenant && (orgsLoading || memberLoading))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
+
 
   if (tenant && !belongs) {
     return (
