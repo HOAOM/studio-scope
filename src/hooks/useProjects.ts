@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { Database } from '@/integrations/supabase/types';
 import { syncTaskFromLifecycleChange } from '@/hooks/useGanttAutoGen';
 import { createNotification } from '@/hooks/useNotifications';
@@ -15,23 +16,32 @@ type ProjectItemInsert = Database['public']['Tables']['project_items']['Insert']
 type ProjectItemUpdate = Database['public']['Tables']['project_items']['Update'];
 type BOQCoverage = Database['public']['Tables']['boq_coverage']['Row'];
 
+/**
+ * Progetti dell'organizzazione ATTIVA.
+ * La RLS può restituire progetti di più organizzazioni (multi-org o "View as"
+ * di un platform admin): il filtro esplicito su organization_id garantisce che
+ * la War Room mostri solo l'org attualmente selezionata/impersonata.
+ */
 export function useProjects() {
   const { user } = useAuth();
-  
+  const { activeId, isLoading: orgLoading } = useActiveOrg();
+
   return useQuery({
-    queryKey: ['projects'],
+    queryKey: ['projects', activeId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
+        .eq('organization_id', activeId!)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as Project[];
     },
-    enabled: !!user,
+    enabled: !!user && !!activeId && !orgLoading,
   });
 }
+
 
 export function useProject(projectId: string | undefined) {
   const { user } = useAuth();
@@ -170,20 +180,26 @@ export function useBOQCoverage(projectId: string | undefined) {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+  const { activeId } = useActiveOrg();
+
   return useMutation({
     mutationFn: async (project: Omit<ProjectInsert, 'owner_id'>) => {
       if (!user) throw new Error('Must be logged in');
-      
+
       const { data, error } = await supabase
         .from('projects')
-        .insert({ ...project, owner_id: user.id })
+        .insert({
+          ...project,
+          owner_id: user.id,
+          organization_id: (project as any).organization_id ?? activeId ?? null,
+        })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
