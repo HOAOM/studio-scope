@@ -15,23 +15,32 @@ type ProjectItemInsert = Database['public']['Tables']['project_items']['Insert']
 type ProjectItemUpdate = Database['public']['Tables']['project_items']['Update'];
 type BOQCoverage = Database['public']['Tables']['boq_coverage']['Row'];
 
+/**
+ * Progetti dell'organizzazione ATTIVA.
+ * La RLS può restituire progetti di più organizzazioni (multi-org o "View as"
+ * di un platform admin): il filtro esplicito su organization_id garantisce che
+ * la War Room mostri solo l'org attualmente selezionata/impersonata.
+ */
 export function useProjects() {
   const { user } = useAuth();
-  
+  const { activeId, isLoading: orgLoading } = useActiveOrg();
+
   return useQuery({
-    queryKey: ['projects'],
+    queryKey: ['projects', activeId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
+        .eq('organization_id', activeId!)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as Project[];
     },
-    enabled: !!user,
+    enabled: !!user && !!activeId && !orgLoading,
   });
 }
+
 
 export function useProject(projectId: string | undefined) {
   const { user } = useAuth();
