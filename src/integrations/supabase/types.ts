@@ -2500,6 +2500,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      impersonating_org: { Args: never; Returns: string }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
@@ -2574,6 +2575,7 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: undefined
       }
+      platform_impersonation_end_all: { Args: never; Returns: undefined }
       platform_impersonation_log_list: {
         Args: { p_limit?: number }
         Returns: {
@@ -2626,6 +2628,10 @@ export type Database = {
         Returns: Json
       }
       seed_master_data_for_org: { Args: { p_org: string }; Returns: undefined }
+      set_org_custom_domain: {
+        Args: { p_domain: string; p_org: string }
+        Returns: string
+      }
       shares_org_with: { Args: { _target: string }; Returns: boolean }
       storage_upload_within_limit: {
         Args: { p_bucket: string; p_name: string }
