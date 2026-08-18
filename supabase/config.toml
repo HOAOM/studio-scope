@@ -58,3 +58,6 @@ project_id = "grpzbxwafkcvecphnyyb"
   [functions.run-company-settings-tests]
     verify_jwt = false
 
+
+  [functions.run-migration-secfix12]
+    verify_jwt = false
