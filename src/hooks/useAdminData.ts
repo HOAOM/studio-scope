@@ -253,17 +253,21 @@ export function useDeleteUserRole() {
   });
 }
 
-// ── Admin check ──
+// ── Admin check (SEMPRE scoped all'organizzazione attiva) ──
+// Il ruolo 'admin' è per-organizzazione: non conferisce mai privilegi
+// cross-tenant. I privilegi di piattaforma passano da usePlatformAdmin().
 export function useIsAdmin() {
   const { user } = useAuth();
+  const { activeId } = useActiveOrg();
   return useQuery({
-    queryKey: ['is_admin', user?.id],
+    queryKey: ['is_admin', user?.id, activeId],
     queryFn: async () => {
-      if (!user) return false;
-      const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin');
+      if (!user || !activeId) return false;
+      const { data, error } = await (supabase as any).rpc('is_org_admin', { p_org: activeId });
       if (error) return false;
-      return (data?.length ?? 0) > 0;
+      return data === true;
     },
-    enabled: !!user,
+    enabled: !!user && !!activeId,
   });
 }
+
