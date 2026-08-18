@@ -57,8 +57,4 @@ project_id = "grpzbxwafkcvecphnyyb"
     verify_jwt = false
   [functions.run-company-settings-tests]
     verify_jwt = false
-  [functions.run-migration-tiers-real]
-    verify_jwt = false
-  [functions.run-tier-masterdata-tests]
-    verify_jwt = false
 
