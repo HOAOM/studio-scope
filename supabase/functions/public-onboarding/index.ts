@@ -150,6 +150,24 @@ Deno.serve(async (req) => {
       const { data: list } = await sb.auth.admin.listUsers();
       const existing = list?.users?.find((u) => u.email?.toLowerCase() === owner_email);
       if (existing) {
+        // Se è già owner di un'organizzazione, NON si crea un secondo studio.
+        const { data: ownedOrg } = await sb
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", existing.id)
+          .eq("is_owner", true)
+          .limit(1)
+          .maybeSingle();
+        if (ownedOrg) {
+          return json(
+            {
+              error: "org_already_exists",
+              message:
+                "Esiste già uno studio associato a questa email. Accedi con le tue credenziali o contatta l'assistenza per attivarne uno nuovo.",
+            },
+            409,
+          );
+        }
         const originExisting = req.headers.get("origin") ?? "";
         const siteUrlExisting = originExisting.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
         const anon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -160,6 +178,7 @@ Deno.serve(async (req) => {
         });
         return json({ ok: true, pending_email_verification: true, email_sent: true });
       }
+
 
       // New address: l'invito admin crea l'account e invia l'email di attivazione
       // (bypassa il blocco della registrazione pubblica, che resta disattivata).
