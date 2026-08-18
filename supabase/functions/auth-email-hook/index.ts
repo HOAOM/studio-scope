@@ -229,8 +229,14 @@ async function handleWebhook(req: Request): Promise<Response> {
   // Passiamo invece token_hash + type, che la pagina consuma esplicitamente
   // con verifyOtp() dopo aver fatto signOut locale.
   const data = payload.data as Record<string, any>
-  const tokenHash: string | undefined = data.token_hash
-  const redirectTo: string | undefined = data.redirect_to
+  let verifyParams: URLSearchParams | null = null
+  try {
+    verifyParams = new URL(String(data.url)).searchParams
+  } catch { /* url non parsabile: si resta sul link originale */ }
+
+  const tokenHash: string | undefined = data.token_hash ?? verifyParams?.get('token') ?? undefined
+  const redirectTo: string | undefined =
+    data.redirect_to ?? verifyParams?.get('redirect_to') ?? undefined
   let confirmationUrl: string = data.url
 
   if (
@@ -243,9 +249,10 @@ async function handleWebhook(req: Request): Promise<Response> {
     target.searchParams.set('token_hash', tokenHash)
     target.searchParams.set('type', emailType)
     if (data.email) target.searchParams.set('email', String(data.email))
-
     confirmationUrl = target.toString()
   }
+  console.log('Auth email link', { emailType, run_id, confirmationUrl })
+
 
   const templateProps = {
     siteName: SITE_NAME,
