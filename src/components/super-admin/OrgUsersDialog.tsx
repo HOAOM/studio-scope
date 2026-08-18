@@ -101,8 +101,7 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
                 </div>
                 {editing === m.user_id && (
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="password"
+                    <PasswordInput
                       autoComplete="new-password"
                       placeholder="Nuova password (min 8 caratteri)"
                       value={password}
