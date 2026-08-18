@@ -28,11 +28,13 @@ App **multi-tenant** (un software, tanti studi clienti). Ogni studio = una **Org
 
 ## 3. Modello commerciale (tier)
 
-| Tier | Progetti attivi | Storage | Riaperture/mese | Grace period | Purge dopo |
-|------|----------------|---------|-----------------|--------------|------------|
-| **Starter** | 2 | 2 GB | 2 | 15 giorni | 30 giorni |
-| **Pro** | 8 | 10 GB | 2 | 30 giorni | 60 giorni |
-| **Business** | illimitati | illimitato | 2 | 90 giorni | 180 giorni |
+| Tier | Prezzo | Utenti per ruolo | Progetti attivi | Storage | Addon | Riaperture/mese | Grace period | Purge dopo |
+|------|--------|------------------|-----------------|---------|-------|-----------------|--------------|------------|
+| **Basic** (`basic`) | 79 €/mese | 1 | 10 | 5 GB | 1 | 2 | 15 giorni | 30 giorni |
+| **Advanced** (`advanced`) | 99 €/mese | 5 | 30 | 20 GB | 3 | 2 | 30 giorni | 60 giorni |
+| **Pro** (`pro`) | 135 €/mese | illimitati | illimitati | illimitato | tutti | 2 | 90 giorni | 180 giorni |
+
+I numeri vivono in `public.tier_limits` (colonne `max_users_per_role`, `max_active_projects`, `max_storage_bytes`, `max_addons`, `max_seats`, `max_boq_items_per_project`; NULL = illimitato) e sono modificabili dai platform admin in /super-admin → Tier limits.
 
 **Ciclo di vita abbonamento:** `active` → `grace` (in ritardo) → `suspended` (bloccato) → `purge_pending` (dati cancellati). Gestito dalla funzione DB `tick_subscription_lifecycle()` (da agganciare a cron giornaliero).
 
@@ -147,8 +149,8 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 | `has_role(user_id, role)` | Check ruolo (usata in tutte le RLS policy) |
 | `is_org_member(org_id)` / `is_org_owner(org_id)` | Check membership organizzazione |
 | `is_project_member(project_id)` / `is_project_owner(project_id)` | Check accesso progetto |
-| `tier_project_limit(tier)` | 2 / 8 / `MAX_INT` |
-| `tier_storage_limit_gb(tier)` | 2 / 10 / `NULL` (illimitato) |
+| `tier_project_limit(tier)` | 10 / 30 / `MAX_INT` |
+| `tier_storage_limit_gb(tier)` | 5 / 20 / `NULL` (illimitato) |
 | `tier_storage_limit_bytes(tier)` | versione in byte |
 | `validate_discount(code, org, tier)` | Verifica codice sconto |
 | `redeem_discount(code, org)` | Riscatta codice |
@@ -252,3 +254,11 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 - RLS: lettura ai membri della propria org (`is_org_member`), scrittura solo admin/owner della propria org o platform admin.
 - `useCompanySettings(orgId?)` / `useUpdateCompanySettings(orgId?)`: gli export (Excel BOQ, client boards, supplier docs) passano `project.organization_id`.
 - Edge functions: `run-migration-company-settings-org`, `run-company-settings-tests`.
+
+### 2026-08-18 — Piani reali (Basic/Advanced/Pro) + hardening anagrafiche
+- Enum `subscription_tier` rinominato: `starter→basic`, `pro→advanced`, `business→pro`. Aggiornati frontend (`useOrgSubscription`, `SubscriptionTierPanel`, super-admin, `src/marketing/tiers.ts`) ed edge functions (`site-api`, `public-onboarding`, `bootstrap-client-org`).
+- `tier_limits` allineata al pricing di kroneel.com; nuove colonne `max_users_per_role` e `max_addons`; `max_boq_items_per_project` e `max_seats` ora illimitati su tutti i piani (il vincolo commerciale è "utenti per ruolo").
+- Nuovo trigger `trg_role_limit` su `user_roles` (funzione `enforce_org_role_limit`) che applica il limite di utenti per ruolo; l'owner dell'organizzazione è sempre esente.
+- `my_org_limits_usage` restituisce anche `max_users_per_role` e `max_addons`.
+- `organization_domain_audit`: lettura ristretta ad admin/owner dell'organizzazione (prima tutti i membri vedevano le email).
+- Anagrafiche master: policy già scoped per organizzazione — verificato in test live che un admin non può scrivere quelle di un'altra org.
