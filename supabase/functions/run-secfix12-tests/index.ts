@@ -86,23 +86,23 @@ Deno.serve(async (req) => {
     // --- notifications ---
     await asUser(MEMBER, "membro: notifica mention a membro dello stesso progetto", (t) =>
       t`insert into public.notifications (user_id, type, title, body, project_id, item_id)
-        values (${CEO}, 'mention', 'SECFIX12-TEST mention', 'ok', ${PROJECT}, ${ITEM}) returning id`);
+        values (${CEO}, 'mention', 'SECFIX12-TEST mention', 'ok', ${PROJECT}, ${ITEM})`);
 
     await asUser(MEMBER, "membro: notifica di tipo system_alert", (t) =>
       t`insert into public.notifications (user_id, type, title, body, project_id)
-        values (${CEO}, 'system_alert', 'SECFIX12-TEST fake system', 'spoof', ${PROJECT}) returning id`);
+        values (${CEO}, 'system_alert', 'SECFIX12-TEST fake system', 'spoof', ${PROJECT})`);
 
     await asUser(MEMBER, "membro: notifica senza project_id", (t) =>
       t`insert into public.notifications (user_id, type, title, body)
-        values (${CEO}, 'mention', 'SECFIX12-TEST no project', 'x') returning id`);
+        values (${CEO}, 'mention', 'SECFIX12-TEST no project', 'x')`);
 
     await asUser(MEMBER, "membro: notifica a utente esterno al progetto", (t) =>
       t`insert into public.notifications (user_id, type, title, body, project_id)
-        values (${OUTSIDER}, 'mention', 'SECFIX12-TEST outsider', 'x', ${PROJECT}) returning id`);
+        values (${OUTSIDER}, 'mention', 'SECFIX12-TEST outsider', 'x', ${PROJECT})`);
 
     await asUser(FOREIGN, "utente di altra org: notifica su progetto non suo", (t) =>
       t`insert into public.notifications (user_id, type, title, body, project_id)
-        values (${CEO}, 'mention', 'SECFIX12-TEST foreign', 'x', ${PROJECT}) returning id`);
+        values (${CEO}, 'mention', 'SECFIX12-TEST foreign', 'x', ${PROJECT})`);
 
     // --- search_path ---
     const fns = await sql`
