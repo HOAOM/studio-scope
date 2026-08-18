@@ -18,7 +18,7 @@ export const UPGRADE_HINT = 'Serve un upgrade di piano per continuare.';
 
 export interface OrgLimitsUsage {
   organization_id: string;
-  tier: 'starter' | 'pro' | 'business';
+  tier: 'basic' | 'advanced' | 'pro';
   seats_used: number;
   max_seats: number | null;
   projects_used: number;
@@ -26,6 +26,8 @@ export interface OrgLimitsUsage {
   storage_used_bytes: number;
   max_storage_bytes: number | null;
   max_boq_items_per_project: number | null;
+  max_users_per_role: number | null;
+  max_addons: number | null;
 }
 
 export async function fetchOrgLimitsUsage(orgId?: string): Promise<OrgLimitsUsage | null> {

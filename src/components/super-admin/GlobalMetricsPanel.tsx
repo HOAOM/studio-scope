@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Building2, TrendingUp, AlertTriangle, Sparkles, Boxes } from 'lucide-react';
 
 // Approx monthly price per tier (EUR) for MRR estimate
-const TIER_PRICE: Record<string, number> = { starter: 0, pro: 49, business: 199 };
+const TIER_PRICE: Record<string, number> = { basic: 79, advanced: 99, pro: 135 };
 
 export function GlobalMetricsPanel() {
   const { data, isLoading } = useGlobalMetrics();

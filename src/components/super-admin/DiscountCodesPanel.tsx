@@ -125,9 +125,9 @@ export function DiscountCodesPanel() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All tiers</SelectItem>
-                  <SelectItem value="starter">Starter</SelectItem>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="advanced">Advanced</SelectItem>
                   <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
                 </SelectContent>
               </Select>
             </div>

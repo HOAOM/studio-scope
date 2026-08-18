@@ -67,8 +67,8 @@ async function createOrganization(body: any) {
   if (!body?.name || !body?.owner_email) {
     return json({ error: "name and owner_email are required" }, 400);
   }
-  const tier = body.tier ?? "starter";
-  if (!["starter", "pro", "business"].includes(tier)) {
+  const tier = body.tier ?? "basic";
+  if (!["basic", "advanced", "pro"].includes(tier)) {
     return json({ error: "invalid tier" }, 400);
   }
 

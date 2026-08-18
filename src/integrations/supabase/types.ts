@@ -2745,7 +2745,7 @@ export type Database = {
         | "suspended"
         | "purge_pending"
         | "purged"
-      subscription_tier: "starter" | "pro" | "business"
+      subscription_tier: "basic" | "advanced" | "pro"
       task_macro_area:
         | "planning"
         | "design_validation"
@@ -2959,7 +2959,7 @@ export const Constants = {
         "purge_pending",
         "purged",
       ],
-      subscription_tier: ["starter", "pro", "business"],
+      subscription_tier: ["basic", "advanced", "pro"],
       task_macro_area: [
         "planning",
         "design_validation",

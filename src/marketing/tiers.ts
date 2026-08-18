@@ -1,9 +1,9 @@
 /**
- * Marketing tier model — mirrors the DB tiers (starter / pro / business)
- * and their real limits from tier_project_limit / tier_storage_limit_gb.
- * Prices are presentational; billing is wired later.
+ * Marketing tier model — mirrors the DB tiers (basic / advanced / pro)
+ * and their real limits from public.tier_limits.
+ * Prices are the ones actually sold on kroneel.com.
  */
-export type MarketingTier = "starter" | "pro" | "business";
+export type MarketingTier = "basic" | "advanced" | "pro";
 
 export interface TierCard {
   id: MarketingTier;
@@ -17,48 +17,50 @@ export interface TierCard {
 
 export const MARKETING_TIERS: TierCard[] = [
   {
-    id: "starter",
-    name: "Starter",
-    price: "€49",
+    id: "basic",
+    name: "Basic",
+    price: "€79",
     cadence: "/ mese",
     tagline: "Per studi che muovono i primi progetti.",
     features: [
-      "2 progetti attivi",
-      "2 GB di archiviazione",
+      "1 utente per ruolo",
+      "10 progetti attivi",
+      "5 GB di archiviazione",
+      "1 addon incluso",
       "BOQ Analyst + Gantt",
       "Client Boards",
-      "1 utente per ruolo",
+    ],
+  },
+  {
+    id: "advanced",
+    name: "Advanced",
+    price: "€99",
+    cadence: "/ mese",
+    tagline: "Il flusso completo, dal design al cantiere.",
+    highlight: true,
+    features: [
+      "5 utenti per ruolo",
+      "30 progetti attivi",
+      "20 GB di archiviazione",
+      "3 addon inclusi",
+      "Procurement & margini",
+      "Import Excel massivo",
+      "Presentation builder",
     ],
   },
   {
     id: "pro",
     name: "Pro",
-    price: "€149",
+    price: "€135",
     cadence: "/ mese",
-    tagline: "Il flusso completo, dal design al cantiere.",
-    highlight: true,
-    features: [
-      "8 progetti attivi",
-      "10 GB di archiviazione",
-      "Procurement & margini",
-      "Import Excel massivo",
-      "Presentation builder",
-      "Più utenti per ruolo",
-    ],
-  },
-  {
-    id: "business",
-    name: "Business",
-    price: "Su misura",
-    cadence: "",
     tagline: "Operazioni senza limiti, branding e API.",
     features: [
-      "Progetti illimitati",
-      "Archiviazione estesa",
-      "Branding personalizzato",
-      "Accesso API",
-      "SLA dedicati",
       "Utenti illimitati",
+      "Progetti illimitati",
+      "Archiviazione illimitata",
+      "Tutti gli addon",
+      "Branding personalizzato",
+      "Accesso API e SLA dedicati",
     ],
   },
 ];

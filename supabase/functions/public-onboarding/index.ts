@@ -16,7 +16,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BASE_DOMAIN = (Deno.env.get("PUBLIC_BASE_DOMAIN") ?? "studio-scope.lovable.app").trim();
 
-const ALLOWED_TIERS = ["starter", "pro", "business"] as const;
+const ALLOWED_TIERS = ["basic", "advanced", "pro"] as const;
 type Tier = (typeof ALLOWED_TIERS)[number];
 
 const json = (body: unknown, status = 200) =>
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     // ── validate_code ──────────────────────────────────────────────
     if (body.action === "validate_code") {
       const code = String(body.code ?? "").trim();
-      const tier = String(body.tier ?? "starter").toLowerCase() as Tier;
+      const tier = String(body.tier ?? "basic").toLowerCase() as Tier;
       if (!code) return json({ valid: false, reason: "empty" });
       if (!ALLOWED_TIERS.includes(tier)) return json({ valid: false, reason: "invalid_tier" });
       if (body.kind === "referral") return json(await validateReferral(sb, code));
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     if (body.action === "provision") {
       const org_name = String(body.org_name ?? "").trim();
       const owner_email = String(body.owner_email ?? "").trim().toLowerCase();
-      const tier = String(body.tier ?? "starter").toLowerCase() as Tier;
+      const tier = String(body.tier ?? "basic").toLowerCase() as Tier;
       const domain_choice = String(body.domain_choice ?? "subdomain").toLowerCase();
       const discount_code = body.discount_code ? String(body.discount_code).trim() : null;
       const referral_code = body.referral_code ? String(body.referral_code).trim() : null;

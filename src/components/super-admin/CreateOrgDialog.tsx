@@ -18,7 +18,7 @@ export function CreateOrgDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     org_name: '', slug: '', owner_email: '',
-    tier: 'starter', discount_code: '',
+    tier: 'basic', discount_code: '',
   });
   const [result, setResult] = useState<any>(null);
 
@@ -41,7 +41,7 @@ export function CreateOrgDialog() {
   });
 
   const reset = () => {
-    setForm({ org_name: '', slug: '', owner_email: '', tier: 'starter', discount_code: '' });
+    setForm({ org_name: '', slug: '', owner_email: '', tier: 'basic', discount_code: '' });
     setResult(null);
   };
 
@@ -126,9 +126,9 @@ export function CreateOrgDialog() {
                 <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="starter">Starter (2 / 2GB)</SelectItem>
-                    <SelectItem value="pro">Pro (8 / 10GB)</SelectItem>
-                    <SelectItem value="business">Business (unlimited)</SelectItem>
+                    <SelectItem value="basic">Basic 79€ (10 progetti / 5GB)</SelectItem>
+                    <SelectItem value="advanced">Advanced 99€ (30 progetti / 20GB)</SelectItem>
+                    <SelectItem value="pro">Pro 135€ (illimitato)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
