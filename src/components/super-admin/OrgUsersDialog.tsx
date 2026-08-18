@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Users, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
@@ -101,8 +101,7 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
                 </div>
                 {editing === m.user_id && (
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="password"
+                    <PasswordInput
                       autoComplete="new-password"
                       placeholder="Nuova password (min 8 caratteri)"
                       value={password}
