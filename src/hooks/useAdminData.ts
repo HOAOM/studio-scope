@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { Database } from '@/integrations/supabase/types';
 
 type MasterFloor = Database['public']['Tables']['master_floors']['Row'];
