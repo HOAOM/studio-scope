@@ -26,9 +26,9 @@ interface TierLimitRow {
 const TIER_ORDER: OrgTier[] = ['basic', 'advanced', 'pro'];
 
 const TIER_META: Record<OrgTier, { label: string; tagline: string; icon: typeof Building }> = {
-  starter: { label: 'Starter', tagline: 'Studio singolo · progetti limitati', icon: Building },
+  basic: { label: 'Basic', tagline: '1 utente per ruolo · 10 progetti · 5 GB · 1 addon', icon: Building },
   pro: { label: 'Pro', tagline: 'Team completo · procurement e export', icon: Zap },
-  business: { label: 'Business', tagline: 'Illimitato · multi-team e SLA', icon: Crown },
+  pro: { label: 'Pro', tagline: 'Tutto illimitato · addon inclusi', icon: Crown },
 };
 
 const STATUS_LABEL: Record<string, string> = {

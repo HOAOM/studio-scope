@@ -21,9 +21,9 @@ import { CreateOrgDialog } from './CreateOrgDialog';
 import { useNavigate } from 'react-router-dom';
 
 const TIER_COLORS: Record<string, string> = {
-  starter: 'bg-slate-500/15 text-slate-300',
+  basic: 'bg-slate-500/15 text-slate-300',
   pro: 'bg-blue-500/15 text-blue-300',
-  business: 'bg-emerald-500/15 text-emerald-300',
+  pro: 'bg-emerald-500/15 text-emerald-300',
 };
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-emerald-500/15 text-emerald-300',
@@ -111,9 +111,9 @@ export function OrganizationsTable() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="basic">Starter</SelectItem>
-                          <SelectItem value="advanced">Pro</SelectItem>
-                          <SelectItem value="pro">Business</SelectItem>
+                          <SelectItem value="basic">Basic</SelectItem>
+                          <SelectItem value="advanced">Advanced</SelectItem>
+                          <SelectItem value="pro">Pro</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
