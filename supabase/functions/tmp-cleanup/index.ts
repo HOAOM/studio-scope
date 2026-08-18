@@ -1,10 +1,34 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+
 Deno.serve(async () => {
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const org = "479baf88-1622-4cd6-8dfb-29b99d253a47";
-  const { error } = await sb.from("organizations").delete().eq("id", org);
+  const orgs = [
+    "79c70f07-efb8-4656-92a5-a6c753e3835b",
+    "d571f8df-3c40-46d4-be93-59ed03a7e479",
+  ];
+  const emails = [
+    "marcodenardi+linktest1@gmail.com",
+    "marcodenardi+linktest2@gmail.com",
+  ];
+
+  const results: Record<string, unknown> = {};
+  for (const org of orgs) {
+    const { error } = await sb.from("organizations").delete().eq("id", org);
+    results[org] = error?.message ?? "deleted";
+  }
+
   const { data: users } = await sb.auth.admin.listUsers();
-  const u = users?.users?.find((x) => x.email?.toLowerCase() === "marcodenardi+dupcheck818@gmail.com");
-  if (u) await sb.auth.admin.deleteUser(u.id);
-  return new Response(JSON.stringify({ error: error?.message ?? null, user_deleted: !!u }));
+  for (const email of emails) {
+    const u = users?.users?.find((x) => x.email?.toLowerCase() === email);
+    if (u) {
+      const { error } = await sb.auth.admin.deleteUser(u.id);
+      results[email] = error?.message ?? "deleted";
+    } else {
+      results[email] = "not_found";
+    }
+  }
+
+  return new Response(JSON.stringify(results), {
+    headers: { "Content-Type": "application/json" },
+  });
 });
