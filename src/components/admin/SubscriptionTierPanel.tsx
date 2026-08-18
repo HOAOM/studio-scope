@@ -27,7 +27,7 @@ const TIER_ORDER: OrgTier[] = ['basic', 'advanced', 'pro'];
 
 const TIER_META: Record<OrgTier, { label: string; tagline: string; icon: typeof Building }> = {
   basic: { label: 'Basic', tagline: '1 utente per ruolo · 10 progetti · 5 GB · 1 addon', icon: Building },
-  pro: { label: 'Pro', tagline: 'Team completo · procurement e export', icon: Zap },
+  advanced: { label: 'Advanced', tagline: '5 utenti per ruolo · 30 progetti · 20 GB · 3 addon', icon: Zap },
   pro: { label: 'Pro', tagline: 'Tutto illimitato · addon inclusi', icon: Crown },
 };
 
