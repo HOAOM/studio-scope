@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
 
         const [item] = await tx.unsafe(
           `insert into public.project_items (project_id, category, area, description, lifecycle_status)
-           values ($1,'FX','Area','Test item','quotation_approved_ops') returning id`,
+           values ($1,'joinery','Area','Test item','quotation_approved_ops') returning id`,
           [projectId],
         );
         const itemId = (item as { id: string }).id;
