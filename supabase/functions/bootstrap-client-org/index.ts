@@ -24,7 +24,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-const ALLOWED_TIERS = ["starter", "pro", "business"] as const;
+const ALLOWED_TIERS = ["basic", "advanced", "pro"] as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
   const slug_raw: string = String(body.slug ?? "").trim().toLowerCase();
   const slug = slug_raw.replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 50);
   const owner_email: string = String(body.owner_email ?? "").trim().toLowerCase();
-  const tier: string = String(body.tier ?? "starter").toLowerCase();
+  const tier: string = String(body.tier ?? "basic").toLowerCase();
   const discount_code: string | undefined = body.discount_code?.trim();
   const send_invite_email: boolean = body.send_invite_email ?? true;
 

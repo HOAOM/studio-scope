@@ -18,7 +18,7 @@ export const UPGRADE_HINT = 'Serve un upgrade di piano per continuare.';
 
 export interface OrgLimitsUsage {
   organization_id: string;
-  tier: 'starter' | 'pro' | 'business';
+  tier: 'basic' | 'advanced' | 'pro';
   seats_used: number;
   max_seats: number | null;
   projects_used: number;

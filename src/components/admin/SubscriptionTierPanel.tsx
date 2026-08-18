@@ -23,7 +23,7 @@ interface TierLimitRow {
   max_storage_bytes: number | null;
 }
 
-const TIER_ORDER: OrgTier[] = ['starter', 'pro', 'business'];
+const TIER_ORDER: OrgTier[] = ['basic', 'advanced', 'pro'];
 
 const TIER_META: Record<OrgTier, { label: string; tagline: string; icon: typeof Building }> = {
   starter: { label: 'Starter', tagline: 'Studio singolo · progetti limitati', icon: Building },

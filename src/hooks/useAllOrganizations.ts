@@ -12,7 +12,7 @@ export interface AllOrgRow {
   created_at: string;
   owner_email: string | null;
   owner_user_id: string | null;
-  tier: 'starter' | 'pro' | 'business';
+  tier: 'basic' | 'advanced' | 'pro';
   status: 'active' | 'grace' | 'suspended' | 'purge_pending';
   current_period_end: string | null;
   active_projects: number;

@@ -14,7 +14,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export type OrgTier = 'starter' | 'pro' | 'business';
+export type OrgTier = 'basic' | 'advanced' | 'pro';
 export type OrgStatus = 'active' | 'grace' | 'suspended' | 'purge_pending' | 'purged';
 
 export interface OrgSubscriptionSummary {
