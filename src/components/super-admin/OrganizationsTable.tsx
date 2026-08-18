@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { CreateOrgDialog } from './CreateOrgDialog';
 import { OrgUsersDialog } from './OrgUsersDialog';
+import { DeleteOrgDialog } from './DeleteOrgDialog';
 import { useNavigate } from 'react-router-dom';
 
 const TIER_COLORS: Record<string, string> = {
@@ -175,6 +176,7 @@ export function OrganizationsTable() {
                       >
                         <Eye className="w-3.5 h-3.5 mr-1" /> View as
                       </Button>
+                      <DeleteOrgDialog orgId={o.organization_id} orgName={o.name} />
                     </TableCell>
                   </TableRow>
                 ))}
