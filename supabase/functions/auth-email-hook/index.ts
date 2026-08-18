@@ -220,16 +220,42 @@ async function handleWebhook(req: Request): Promise<Response> {
   }
 
   // Build template props from payload.data (HookData structure)
+  //
+  // Per i link che atterrano sulla pagina "imposta password" del sito
+  // (kroneel.com/reset-password) NON usiamo il link implicito /verify:
+  // viene consumato dal prefetch dei client di posta (Gmail) e, quando poi
+  // l'utente clicca davvero, la pagina non riceve nessuna sessione e finisce
+  // per operare sulla sessione già presente nel browser (account sbagliato).
+  // Passiamo invece token_hash + type, che la pagina consuma esplicitamente
+  // con verifyOtp() dopo aver fatto signOut locale.
+  const data = payload.data as Record<string, any>
+  const tokenHash: string | undefined = data.token_hash
+  const redirectTo: string | undefined = data.redirect_to
+  let confirmationUrl: string = data.url
+
+  if (
+    tokenHash &&
+    redirectTo &&
+    (emailType === 'recovery' || emailType === 'invite') &&
+    /\/reset-password(\/|\?|$)/.test(redirectTo)
+  ) {
+    const target = new URL(redirectTo)
+    target.searchParams.set('token_hash', tokenHash)
+    target.searchParams.set('type', emailType)
+    confirmationUrl = target.toString()
+  }
+
   const templateProps = {
     siteName: SITE_NAME,
     siteUrl: `https://${ROOT_DOMAIN}`,
     recipient: payload.data.email,
-    confirmationUrl: payload.data.url,
+    confirmationUrl,
     token: payload.data.token,
     email: payload.data.email,
     oldEmail: payload.data.old_email,
     newEmail: payload.data.new_email,
   }
+
 
   // Render React Email to HTML and plain text
   const html = await renderAsync(React.createElement(EmailTemplate, templateProps))
