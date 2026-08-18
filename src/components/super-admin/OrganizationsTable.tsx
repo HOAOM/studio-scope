@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 
 const TIER_COLORS: Record<string, string> = {
   basic: 'bg-slate-500/15 text-slate-300',
-  pro: 'bg-blue-500/15 text-blue-300',
+  advanced: 'bg-blue-500/15 text-blue-300',
   pro: 'bg-emerald-500/15 text-emerald-300',
 };
 const STATUS_COLORS: Record<string, string> = {
