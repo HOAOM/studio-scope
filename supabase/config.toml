@@ -16,6 +16,8 @@ project_id = "grpzbxwafkcvecphnyyb"
   [functions.run-migration-kroneel-access]
     verify_jwt = false
 
+  [functions.run-migration-secfix13]
+    verify_jwt = false
   [functions.run-migration-security-fix]
     verify_jwt = false
   [functions.run-migration-secfix2]
