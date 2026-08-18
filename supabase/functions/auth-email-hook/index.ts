@@ -242,6 +242,8 @@ async function handleWebhook(req: Request): Promise<Response> {
     const target = new URL(redirectTo)
     target.searchParams.set('token_hash', tokenHash)
     target.searchParams.set('type', emailType)
+    if (data.email) target.searchParams.set('email', String(data.email))
+
     confirmationUrl = target.toString()
   }
 
