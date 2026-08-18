@@ -158,6 +158,7 @@ export function OrganizationsTable() {
                       {new Date(o.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
+                      <OrgUsersDialog orgId={o.organization_id} orgName={o.name} />
                       <Button
                         size="sm" variant="ghost"
                         className="h-7 text-xs"
