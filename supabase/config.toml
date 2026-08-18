@@ -77,3 +77,6 @@ project_id = "grpzbxwafkcvecphnyyb"
 
   [functions.admin-delete-organization]
     verify_jwt = false
+
+  [functions.run-migration-secfix14]
+    verify_jwt = false
