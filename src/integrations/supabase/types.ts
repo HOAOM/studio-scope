@@ -2131,27 +2131,33 @@ export type Database = {
       tier_limits: {
         Row: {
           max_active_projects: number | null
+          max_addons: number | null
           max_boq_items_per_project: number | null
           max_seats: number | null
           max_storage_bytes: number | null
+          max_users_per_role: number | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           max_active_projects?: number | null
+          max_addons?: number | null
           max_boq_items_per_project?: number | null
           max_seats?: number | null
           max_storage_bytes?: number | null
+          max_users_per_role?: number | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           max_active_projects?: number | null
+          max_addons?: number | null
           max_boq_items_per_project?: number | null
           max_seats?: number | null
           max_storage_bytes?: number | null
+          max_users_per_role?: number | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           updated_by?: string | null
@@ -2470,9 +2476,11 @@ export type Database = {
         Args: { p_org: string }
         Returns: {
           max_active_projects: number | null
+          max_addons: number | null
           max_boq_items_per_project: number | null
           max_seats: number | null
           max_storage_bytes: number | null
+          max_users_per_role: number | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
           updated_by: string | null
@@ -2526,9 +2534,11 @@ export type Database = {
         Args: { p_org?: string }
         Returns: {
           max_active_projects: number
+          max_addons: number
           max_boq_items_per_project: number
           max_seats: number
           max_storage_bytes: number
+          max_users_per_role: number
           organization_id: string
           projects_used: number
           seats_used: number
@@ -2540,6 +2550,10 @@ export type Database = {
       org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
       org_primary_email_domain: { Args: { p_org: string }; Returns: string }
       org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
+      org_role_user_count: {
+        Args: { p_org: string; p_role: Database["public"]["Enums"]["app_role"] }
+        Returns: number
+      }
       org_seat_count: {
         Args: { p_include_invites?: boolean; p_org: string }
         Returns: number
