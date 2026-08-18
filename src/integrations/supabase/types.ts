@@ -654,6 +654,24 @@ export type Database = {
           },
         ]
       }
+      lifecycle_transition_roles: {
+        Row: {
+          from_status: string
+          roles: Database["public"]["Enums"]["app_role"][]
+          to_status: string
+        }
+        Insert: {
+          from_status: string
+          roles: Database["public"]["Enums"]["app_role"][]
+          to_status: string
+        }
+        Update: {
+          from_status?: string
+          roles?: Database["public"]["Enums"]["app_role"][]
+          to_status?: string
+        }
+        Relationships: []
+      }
       master_floors: {
         Row: {
           code: string
@@ -2498,6 +2516,13 @@ export type Database = {
           _org: string
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+        }
+        Returns: boolean
+      }
+      has_project_function_role: {
+        Args: {
+          p_project: string
+          p_roles: Database["public"]["Enums"]["app_role"][]
         }
         Returns: boolean
       }
