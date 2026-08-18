@@ -1,3 +1,12 @@
+/**
+ * admin-users — gestione utenti/membri di progetto.
+ *
+ * SICUREZZA: il ruolo applicativo 'admin' è SEMPRE scoped a un'organizzazione.
+ * Un admin di organizzazione può operare SOLO sugli utenti e sui progetti della
+ * propria organizzazione. I privilegi cross-organizzazione appartengono
+ * esclusivamente al livello di piattaforma (public.platform_admins →
+ * is_platform_admin()).
+ */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -18,39 +27,11 @@ Deno.serve(async (req) => {
     const body = await req.json()
     const { action, ...params } = body
 
-    // Admin client with service role (needed for all actions)
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Seed action - disabled after initial setup
-    if (action === 'seed_users') {
-      throw new Error('Seed action is disabled')
-
-      const { users } = params
-      const results = []
-      for (const u of users) {
-        try {
-          const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-            email: u.email,
-            email_confirm: true,
-            password: u.password,
-          })
-          if (createError) { results.push({ email: u.email, error: createError.message }); continue }
-          if (u.role && newUser.user) {
-            await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: u.role })
-          }
-          results.push({ email: u.email, success: true, user_id: newUser.user?.id })
-        } catch (e) {
-          results.push({ email: u.email, error: e.message })
-        }
-      }
-      return new Response(JSON.stringify({ results }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Verify the caller is admin for all other actions
+    // ── Autenticazione del chiamante ──
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error('No authorization header')
 
@@ -61,20 +42,80 @@ Deno.serve(async (req) => {
     const { data: { user: caller }, error: authError } = await callerClient.auth.getUser(token)
     if (authError || !caller) throw new Error('Not authenticated')
 
-    const { data: adminCheck } = await callerClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', caller.id)
-      .eq('role', 'admin')
-    if (!adminCheck || adminCheck.length === 0) throw new Error('Admin access required')
+    // ── Autorizzazione: platform admin (globale) oppure org admin (scoped) ──
+    const { data: platformAdmin } = await adminClient.rpc('is_platform_admin', { _user_id: caller.id })
+    const isPlatformAdmin = platformAdmin === true
+
+    const adminOrgs = new Set<string>()
+    if (!isPlatformAdmin) {
+      const { data: ownedOrgs } = await adminClient
+        .from('organization_members')
+        .select('organization_id, is_owner')
+        .eq('user_id', caller.id)
+        .eq('is_owner', true)
+      for (const r of ownedOrgs ?? []) adminOrgs.add(r.organization_id)
+
+      const { data: adminRoles } = await adminClient
+        .from('user_roles')
+        .select('organization_id')
+        .eq('user_id', caller.id)
+        .eq('role', 'admin')
+      for (const r of adminRoles ?? []) if (r.organization_id) adminOrgs.add(r.organization_id)
+
+      if (adminOrgs.size === 0) throw new Error('Admin access required')
+    }
+
+    const orgList = [...adminOrgs]
+
+    /** Organizzazioni (fra quelle amministrate) a cui appartiene un utente. */
+    const userOrgs = async (userId: string): Promise<string[]> => {
+      const { data } = await adminClient
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', userId)
+      return (data ?? []).map((r: { organization_id: string }) => r.organization_id)
+    }
+
+    const assertUserInScope = async (userId: string) => {
+      if (isPlatformAdmin) return
+      const orgs = await userOrgs(userId)
+      if (!orgs.some((o) => adminOrgs.has(o))) {
+        throw new Error('Utente non appartenente alla tua organizzazione')
+      }
+    }
+
+    const assertProjectInScope = async (projectId: string) => {
+      if (isPlatformAdmin) return
+      const { data } = await adminClient
+        .from('projects')
+        .select('organization_id')
+        .eq('id', projectId)
+        .maybeSingle()
+      if (!data || !data.organization_id || !adminOrgs.has(data.organization_id)) {
+        throw new Error('Progetto non appartenente alla tua organizzazione')
+      }
+    }
+
+    /** Organizzazione target per le azioni di scrittura. */
+    const targetOrg = (): string | null => {
+      const requested = params.organization_id as string | undefined
+      if (requested) {
+        if (!isPlatformAdmin && !adminOrgs.has(requested)) {
+          throw new Error('Organizzazione non consentita')
+        }
+        return requested
+      }
+      return orgList[0] ?? null
+    }
 
     if (action === 'invite') {
       const { email, role, password } = params
       if (!email) throw new Error('Email is required')
+      const orgId = targetOrg()
+      if (!orgId) throw new Error('organization_id is required')
 
       const userPassword = password || (crypto.randomUUID().slice(0, 12) + 'A1!')
 
-      // Create user via admin API (auto-confirms)
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
         email_confirm: true,
@@ -82,9 +123,19 @@ Deno.serve(async (req) => {
       })
       if (createError) throw createError
 
-      // Assign role if provided
-      if (role && newUser.user) {
-        await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role })
+      if (newUser.user) {
+        await adminClient.from('organization_members').insert({
+          organization_id: orgId,
+          user_id: newUser.user.id,
+          is_owner: false,
+        })
+        if (role) {
+          await adminClient.from('user_roles').insert({
+            user_id: newUser.user.id,
+            role,
+            organization_id: orgId,
+          })
+        }
       }
 
       return new Response(JSON.stringify({ success: true, user_id: newUser.user?.id }), {
@@ -96,6 +147,21 @@ Deno.serve(async (req) => {
       const { user_id } = params
       if (!user_id) throw new Error('user_id is required')
       if (user_id === caller.id) throw new Error('Cannot delete yourself')
+      await assertUserInScope(user_id)
+
+      if (!isPlatformAdmin) {
+        // Un org admin non può cancellare un account condiviso con altre org:
+        // lo rimuove solo dalla propria organizzazione.
+        const orgs = await userOrgs(user_id)
+        const outside = orgs.filter((o) => !adminOrgs.has(o))
+        if (outside.length > 0) {
+          await adminClient.from('organization_members').delete().eq('user_id', user_id).in('organization_id', orgList)
+          await adminClient.from('user_roles').delete().eq('user_id', user_id).in('organization_id', orgList)
+          return new Response(JSON.stringify({ success: true, removed_from_organization: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
 
       const { error } = await adminClient.auth.admin.deleteUser(user_id)
       if (error) throw error
@@ -108,15 +174,18 @@ Deno.serve(async (req) => {
     if (action === 'update_role') {
       const { user_id, old_role, new_role } = params
       if (!user_id || !new_role) throw new Error('user_id and new_role required')
+      await assertUserInScope(user_id)
+      const orgId = targetOrg()
 
-      // Delete old role if specified
-      if (old_role) {
-        await adminClient.from('user_roles').delete().eq('user_id', user_id).eq('role', old_role)
-      }
-      // Insert new role
+      let del = adminClient.from('user_roles').delete().eq('user_id', user_id)
+      if (old_role) del = del.eq('role', old_role)
+      if (!isPlatformAdmin) del = del.in('organization_id', orgList)
+      else if (orgId) del = del.eq('organization_id', orgId)
+      if (old_role) await del
+
       const { error } = await adminClient.from('user_roles').upsert(
-        { user_id, role: new_role },
-        { onConflict: 'user_id,role' }
+        { user_id, role: new_role, organization_id: orgId },
+        { onConflict: 'user_id,role,organization_id' }
       )
       if (error) throw error
 
@@ -126,8 +195,27 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'list_users') {
-      const { data: profiles } = await adminClient.from('profiles').select('*').order('created_at')
-      const { data: roles } = await adminClient.from('user_roles').select('*')
+      if (isPlatformAdmin) {
+        const { data: profiles } = await adminClient.from('profiles').select('*').order('created_at')
+        const { data: roles } = await adminClient.from('user_roles').select('*')
+        return new Response(JSON.stringify({ profiles: profiles || [], roles: roles || [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const { data: members } = await adminClient
+        .from('organization_members')
+        .select('user_id')
+        .in('organization_id', orgList)
+      const memberIds = [...new Set((members ?? []).map((m: { user_id: string }) => m.user_id))]
+
+      const { data: profiles } = memberIds.length
+        ? await adminClient.from('profiles').select('*').in('id', memberIds).order('created_at')
+        : { data: [] as unknown[] }
+      const { data: roles } = await adminClient
+        .from('user_roles')
+        .select('*')
+        .in('organization_id', orgList)
 
       return new Response(JSON.stringify({ profiles: profiles || [], roles: roles || [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -139,8 +227,9 @@ Deno.serve(async (req) => {
       if (!email) throw new Error('Email required')
 
       const tempPass = crypto.randomUUID().slice(0, 12) + 'A1!'
-      const { data: profile } = await adminClient.from('profiles').select('id').eq('email', email).single()
+      const { data: profile } = await adminClient.from('profiles').select('id').eq('email', email).maybeSingle()
       if (!profile) throw new Error('User not found')
+      await assertUserInScope(profile.id)
 
       const { error } = await adminClient.auth.admin.updateUserById(profile.id, { password: tempPass })
       if (error) throw error
@@ -153,6 +242,7 @@ Deno.serve(async (req) => {
     if (action === 'confirm_email') {
       const { user_id } = params
       if (!user_id) throw new Error('user_id required')
+      await assertUserInScope(user_id)
       const { error } = await adminClient.auth.admin.updateUserById(user_id, { email_confirm: true })
       if (error) throw error
       return new Response(JSON.stringify({ success: true }), {
@@ -163,6 +253,7 @@ Deno.serve(async (req) => {
     if (action === 'reset_password_direct') {
       const { user_id, new_password } = params
       if (!user_id || !new_password) throw new Error('user_id and new_password required')
+      await assertUserInScope(user_id)
 
       const { error } = await adminClient.auth.admin.updateUserById(user_id, { password: new_password })
       if (error) throw error
@@ -175,6 +266,7 @@ Deno.serve(async (req) => {
     if (action === 'list_project_members') {
       const { project_id } = params
       if (!project_id) throw new Error('project_id required')
+      await assertProjectInScope(project_id)
       const { data } = await adminClient.from('project_members').select('*').eq('project_id', project_id)
       return new Response(JSON.stringify({ members: data || [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -184,6 +276,8 @@ Deno.serve(async (req) => {
     if (action === 'add_project_member') {
       const { project_id, user_id, role } = params
       if (!project_id || !user_id || !role) throw new Error('project_id, user_id, role required')
+      await assertProjectInScope(project_id)
+      await assertUserInScope(user_id)
       const { error } = await adminClient.from('project_members').insert({ project_id, user_id, role })
       if (error) throw error
       return new Response(JSON.stringify({ success: true }), {
@@ -194,6 +288,13 @@ Deno.serve(async (req) => {
     if (action === 'update_project_member_role') {
       const { member_id, new_role } = params
       if (!member_id || !new_role) throw new Error('member_id and new_role required')
+      const { data: member } = await adminClient
+        .from('project_members')
+        .select('project_id')
+        .eq('id', member_id)
+        .maybeSingle()
+      if (!member) throw new Error('Member not found')
+      await assertProjectInScope(member.project_id)
       const { error } = await adminClient.from('project_members').update({ role: new_role }).eq('id', member_id)
       if (error) throw error
       return new Response(JSON.stringify({ success: true }), {
@@ -204,6 +305,13 @@ Deno.serve(async (req) => {
     if (action === 'remove_project_member') {
       const { member_id } = params
       if (!member_id) throw new Error('member_id required')
+      const { data: member } = await adminClient
+        .from('project_members')
+        .select('project_id')
+        .eq('id', member_id)
+        .maybeSingle()
+      if (!member) throw new Error('Member not found')
+      await assertProjectInScope(member.project_id)
       const { error } = await adminClient.from('project_members').delete().eq('id', member_id)
       if (error) throw error
       return new Response(JSON.stringify({ success: true }), {
@@ -213,7 +321,7 @@ Deno.serve(async (req) => {
 
     throw new Error('Unknown action: ' + action)
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -2520,6 +2520,10 @@ export type Database = {
       is_project_org_admin: { Args: { p_project: string }; Returns: boolean }
       is_project_org_owner: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
+      is_user_project_member: {
+        Args: { p_project: string; p_user: string }
+        Returns: boolean
+      }
       item_cost_values: { Args: { p_item_id: string }; Returns: Json }
       move_to_dlq: {
         Args: {
