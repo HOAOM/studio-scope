@@ -56,6 +56,11 @@ Deno.serve(async (req) => {
           `insert into public.organizations (name, slug) values ('SecFix13 Test','secfix13-test-' || substr(md5(random()::text),1,8)) returning id`,
         );
         const orgId = (org as { id: string }).id;
+        await tx.unsafe(
+          `insert into public.organization_subscriptions (organization_id, tier, status, current_period_end)
+           values ($1,'pro','active', now() + interval '365 days')`,
+          [orgId],
+        );
 
         const [designer] = await tx.unsafe(
           `insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
