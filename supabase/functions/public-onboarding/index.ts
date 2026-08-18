@@ -186,8 +186,9 @@ Deno.serve(async (req) => {
       const originNew = req.headers.get("origin") ?? "";
       const siteUrlNew = originNew.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
       const { data: invited, error: cerr } = await sb.auth.admin.inviteUserByEmail(owner_email, {
-        redirectTo: `${siteUrlNew}/dashboard`,
+        redirectTo: `${siteUrlNew}/reset-password`,
       });
+
       if (cerr || !invited?.user) {
         return json({ error: "user_create_failed", detail: cerr?.message ?? null }, 500);
       }
