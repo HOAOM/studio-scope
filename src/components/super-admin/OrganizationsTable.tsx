@@ -18,6 +18,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { CreateOrgDialog } from './CreateOrgDialog';
+import { OrgUsersDialog } from './OrgUsersDialog';
 import { useNavigate } from 'react-router-dom';
 
 const TIER_COLORS: Record<string, string> = {
