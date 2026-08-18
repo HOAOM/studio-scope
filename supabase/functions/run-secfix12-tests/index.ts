@@ -79,6 +79,10 @@ Deno.serve(async (req) => {
         values ('item', ${ITEM}, 'secfix12_test', ${u.id}, 'SECFIX12-TEST foreign') returning id`;
     });
 
+    await asUser(MEMBER, "DEBUG predicati notifica", (t) =>
+      t`select public.is_project_member(${PROJECT}::uuid) as sender_member,
+               public.is_user_project_member(${PROJECT}::uuid, ${CEO}::uuid) as recipient_member`);
+
     // --- notifications ---
     await asUser(MEMBER, "membro: notifica mention a membro dello stesso progetto", (t) =>
       t`insert into public.notifications (user_id, type, title, body, project_id, item_id)
