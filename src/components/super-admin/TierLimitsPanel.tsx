@@ -19,6 +19,8 @@ type Row = {
   max_active_projects: number | null;
   max_boq_items_per_project: number | null;
   max_storage_gb: number | null;
+  max_users_per_role: number | null;
+  max_addons: number | null;
 };
 
 const GB = 1024 ** 3;
@@ -42,6 +44,8 @@ export function TierLimitsPanel() {
         max_active_projects: r.max_active_projects,
         max_boq_items_per_project: r.max_boq_items_per_project,
         max_storage_gb: r.max_storage_bytes == null ? null : Math.round((r.max_storage_bytes / GB) * 100) / 100,
+        max_users_per_role: r.max_users_per_role,
+        max_addons: r.max_addons,
       })),
     );
     setLoading(false);
@@ -63,6 +67,8 @@ export function TierLimitsPanel() {
         max_active_projects: row.max_active_projects,
         max_boq_items_per_project: row.max_boq_items_per_project,
         max_storage_bytes: row.max_storage_gb == null ? null : Math.round(row.max_storage_gb * GB),
+        max_users_per_role: row.max_users_per_role,
+        max_addons: row.max_addons,
         updated_at: new Date().toISOString(),
       })
       .eq('tier', row.tier);
@@ -76,7 +82,7 @@ export function TierLimitsPanel() {
       <CardHeader>
         <CardTitle className="text-base">Tier limits</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Campo vuoto = illimitato. Applicati lato server (posti, progetti attivi, voci BOQ, storage).
+          Campo vuoto = illimitato. Applicati lato server (posti, utenti per ruolo, progetti attivi, voci BOQ, storage).
         </p>
       </CardHeader>
       <CardContent>
@@ -91,6 +97,8 @@ export function TierLimitsPanel() {
                 <TableHead>Progetti attivi</TableHead>
                 <TableHead>Voci BOQ / progetto</TableHead>
                 <TableHead>Storage (GB)</TableHead>
+                <TableHead>Utenti / ruolo</TableHead>
+                <TableHead>Addon</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -98,7 +106,7 @@ export function TierLimitsPanel() {
               {rows.map(row => (
                 <TableRow key={row.tier}>
                   <TableCell className="font-medium capitalize">{row.tier}</TableCell>
-                  {(['max_seats', 'max_active_projects', 'max_boq_items_per_project', 'max_storage_gb'] as const).map(f => (
+                  {(['max_seats', 'max_active_projects', 'max_boq_items_per_project', 'max_storage_gb', 'max_users_per_role', 'max_addons'] as const).map(f => (
                     <TableCell key={f}>
                       <Input
                         className="h-8 w-28"
