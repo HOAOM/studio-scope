@@ -174,8 +174,9 @@ Deno.serve(async (req) => {
           auth: { persistSession: false, autoRefreshToken: false },
         });
         await anon.auth.resetPasswordForEmail(owner_email, {
-          redirectTo: `${siteUrlExisting}/dashboard`,
+          redirectTo: `${siteUrlExisting}/reset-password`,
         });
+
         return json({ ok: true, pending_email_verification: true, email_sent: true });
       }
 
