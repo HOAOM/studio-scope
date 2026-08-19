@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
       const { data: members, error: mErr } = await admin
         .from('organization_members')
-        .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason')
+        .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason, is_over_tier_limit')
         .eq('organization_id', orgId)
       if (mErr) return json({ error: mErr.message }, 400)
 
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       // Inviti in sospeso (inclusi quelli omaggio non ancora accettati)
       const { data: invites } = await admin
         .from('organization_invites')
-        .select('id, email, base_role, status, is_complimentary, complimentary_reason, expires_at')
+        .select('id, email, base_role, status, is_complimentary, complimentary_reason, is_over_tier_limit, expires_at')
         .eq('organization_id', orgId)
         .eq('status', 'pending')
 
@@ -105,12 +105,38 @@ Deno.serve(async (req) => {
           joined_at: m.joined_at,
           is_complimentary: m.is_complimentary === true,
           complimentary_reason: m.complimentary_reason ?? null,
+          is_over_tier_limit: m.is_over_tier_limit === true,
           roles: rolesByUser[m.user_id] ?? [],
           email: profiles[m.user_id]?.email ?? null,
           display_name: profiles[m.user_id]?.display_name ?? null,
         })),
         invites: invites ?? [],
       })
+    }
+
+    // Quota disponibile per un ruolo in una organizzazione
+    const roleQuota = async (orgId: string, role: string) => {
+      const { data: limits } = await admin.rpc('get_tier_limits', { p_org: orgId })
+      const limitRow: any = Array.isArray(limits) ? limits[0] : limits
+      const max = limitRow?.max_users_per_role ?? null
+      const { data: used } = await admin.rpc('org_role_user_count', {
+        p_org: orgId, p_role: role,
+      })
+      const usedCount = typeof used === 'number' ? used : 0
+      return {
+        used: usedCount,
+        max,
+        tier: limitRow?.tier ?? null,
+        full: max !== null && usedCount >= max,
+      }
+    }
+
+    if (action === 'role_quota') {
+      const orgId = String(body?.organization_id ?? '')
+      const role = String(body?.role ?? '')
+      if (!UUID_RE.test(orgId)) return json({ error: 'organization_id non valido' }, 400)
+      if (!APP_ROLES.includes(role)) return json({ error: 'Ruolo non valido' }, 400)
+      return json(await roleQuota(orgId, role))
     }
 
     if (action === 'invite_extra_user') {
@@ -133,6 +159,11 @@ Deno.serve(async (req) => {
         .from('organizations').select('name').eq('id', orgId).maybeSingle()
       if (!org) return json({ error: 'Organizzazione non trovata' }, 404)
 
+      // Quota del tier per quel ruolo: se piena l'utente viene creato in eccedenza
+      const quota = await roleQuota(orgId, role)
+      // "omaggio" resta una scelta esplicita del super-admin; l'eccedenza e' automatica
+      const overTier = !isComplimentary && quota.full
+
       // Utente gia' esistente?
       const { data: existingProfile } = await admin
         .from('profiles').select('id, email').ilike('email', email).maybeSingle()
@@ -151,6 +182,9 @@ Deno.serve(async (req) => {
           complimentary_reason: isComplimentary ? reason : null,
           complimentary_by: isComplimentary ? user.id : null,
           complimentary_at: isComplimentary ? new Date().toISOString() : null,
+          is_over_tier_limit: overTier,
+          over_tier_by: overTier ? user.id : null,
+          over_tier_at: overTier ? new Date().toISOString() : null,
         }, { onConflict: 'organization_id,user_id' })
         if (memErr) return json({ error: memErr.message }, 400)
 
@@ -159,7 +193,7 @@ Deno.serve(async (req) => {
         }, { onConflict: 'user_id,role,organization_id' })
         if (roleErr) return json({ error: roleErr.message }, 400)
       } else {
-        // Invito: il flag omaggio viaggia sull'invito e viene propagato all'accettazione
+        // Invito: i flag viaggiano sull'invito e vengono propagati all'accettazione
         const origin = req.headers.get('origin') ?? ''
         const siteUrl = origin.replace(/\/$/, '') ||
           Deno.env.get('SITE_URL') || 'https://studio-scope.lovable.app'
@@ -175,6 +209,7 @@ Deno.serve(async (req) => {
             token: crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''),
             is_complimentary: isComplimentary,
             complimentary_reason: isComplimentary ? reason : null,
+            is_over_tier_limit: overTier,
           })
           .select('id, token')
           .single()
@@ -187,18 +222,33 @@ Deno.serve(async (req) => {
         emailSent = !mailErr
       }
 
+      const quotaText = `Quota ruolo ${role}: ${quota.used}/${quota.max ?? 'illimitato'}`
       await admin.from('audit_log').insert({
         entity_type: 'organization',
         entity_id: orgId,
-        action: isComplimentary ? 'platform_admin_complimentary_user' : 'platform_admin_add_user',
+        action: isComplimentary
+          ? 'platform_admin_complimentary_user'
+          : overTier
+            ? 'platform_admin_add_user_over_tier'
+            : 'platform_admin_add_user',
         user_id: user.id,
         summary: isComplimentary
-          ? `Utente omaggio FUORI TIER ${email} (ruolo ${role}) aggiunto a ${org.name} dal platform admin ${user.email ?? user.id}. Motivo: ${reason}`
-          : `Utente ${email} (ruolo ${role}) aggiunto a ${org.name} dal platform admin ${user.email ?? user.id}`,
+          ? `Utente omaggio FUORI TIER ${email} (ruolo ${role}) aggiunto a ${org.name} dal platform admin ${user.email ?? user.id}. Motivo: ${reason}. ${quotaText}`
+          : overTier
+            ? `Utente ${email} (ruolo ${role}) creato IN ECCEDENZA rispetto al limite di piano su ${org.name} dal platform admin ${user.email ?? user.id}. ${quotaText}`
+            : `Utente ${email} (ruolo ${role}) aggiunto a ${org.name} dal platform admin ${user.email ?? user.id}, posto consumato dalla quota. ${quotaText}`,
       })
 
-      return json({ success: true, email_sent: emailSent, accept_url: acceptUrl, existing_user: !!targetUserId })
+      return json({
+        success: true,
+        email_sent: emailSent,
+        accept_url: acceptUrl,
+        existing_user: !!targetUserId,
+        over_tier_limit: overTier,
+        quota,
+      })
     }
+
 
     if (action === 'set_complimentary') {
       const orgId = String(body?.organization_id ?? '')
