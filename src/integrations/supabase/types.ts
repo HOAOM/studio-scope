@@ -951,11 +951,13 @@ export type Database = {
           accepted_at: string | null
           accepted_by: string | null
           base_role: string
+          complimentary_reason: string | null
           created_at: string
           email: string
           expires_at: string
           id: string
           invited_by: string | null
+          is_complimentary: boolean
           is_owner: boolean
           organization_id: string
           status: string
@@ -965,11 +967,13 @@ export type Database = {
           accepted_at?: string | null
           accepted_by?: string | null
           base_role?: string
+          complimentary_reason?: string | null
           created_at?: string
           email: string
           expires_at?: string
           id?: string
           invited_by?: string | null
+          is_complimentary?: boolean
           is_owner?: boolean
           organization_id: string
           status?: string
@@ -979,11 +983,13 @@ export type Database = {
           accepted_at?: string | null
           accepted_by?: string | null
           base_role?: string
+          complimentary_reason?: string | null
           created_at?: string
           email?: string
           expires_at?: string
           id?: string
           invited_by?: string | null
+          is_complimentary?: boolean
           is_owner?: boolean
           organization_id?: string
           status?: string
@@ -1001,21 +1007,33 @@ export type Database = {
       }
       organization_members: {
         Row: {
+          complimentary_at: string | null
+          complimentary_by: string | null
+          complimentary_reason: string | null
           id: string
+          is_complimentary: boolean
           is_owner: boolean
           joined_at: string
           organization_id: string
           user_id: string
         }
         Insert: {
+          complimentary_at?: string | null
+          complimentary_by?: string | null
+          complimentary_reason?: string | null
           id?: string
+          is_complimentary?: boolean
           is_owner?: boolean
           joined_at?: string
           organization_id: string
           user_id: string
         }
         Update: {
+          complimentary_at?: string | null
+          complimentary_by?: string | null
+          complimentary_reason?: string | null
           id?: string
+          is_complimentary?: boolean
           is_owner?: boolean
           joined_at?: string
           organization_id?: string

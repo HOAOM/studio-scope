@@ -4,6 +4,8 @@ import { useTenant } from '@/hooks/useTenant';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { LOGIN_DENIED_FLAG } from '@/pages/Auth';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Loader2 } from 'lucide-react';
@@ -55,6 +57,18 @@ export function TenantGuard({ children }: { children: ReactNode }) {
     }
   }, [tenant, belongs, activeId, setActiveOrg]);
 
+  // Accesso negato su dominio tenant: nessuna schermata dedicata (rivelerebbe
+  // che le credenziali sono valide). Sessione invalidata e ritorno al login con
+  // lo stesso identico messaggio generico di password errata.
+  useEffect(() => {
+    if (tenant && realMember === false) {
+      localStorage.setItem(LOGIN_DENIED_FLAG, '1');
+      void signOut().finally(() => {
+        window.location.replace('/auth');
+      });
+    }
+  }, [tenant, realMember, signOut]);
+
   if (tenantLoading || (tenant && (orgsLoading || memberLoading))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -66,27 +80,12 @@ export function TenantGuard({ children }: { children: ReactNode }) {
 
   if (tenant && !belongs) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-3">
-              <Building2 className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <CardTitle className="text-xl">Accesso non autorizzato</CardTitle>
-            <CardDescription>
-              Accesso non autorizzato. Verifica email e password, oppure contatta l'amministratore
-              del tuo studio.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <Button variant="outline" onClick={() => signOut()}>
-              Esci
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
+
 
   // Utente autenticato ma senza organizzazione (es. registrazione diretta):
   // niente dashboard vuota, messaggio esplicito.
