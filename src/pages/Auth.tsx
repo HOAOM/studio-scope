@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useTenant } from '@/hooks/useTenant';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -11,6 +13,14 @@ import { z } from 'zod';
 import { Activity, Loader2 } from 'lucide-react';
 import { consumeSessionKillMessage } from '@/lib/sessionGuard';
 
+/**
+ * Messaggio unico per QUALUNQUE fallimento di login: credenziali errate e
+ * utente valido ma non appartenente all'organizzazione del dominio corrente
+ * devono essere indistinguibili (stesso testo, stesso comportamento UI).
+ */
+export const LOGIN_GENERIC_ERROR = 'Email o password non validi';
+/** Flag impostato da TenantGuard quando nega l'accesso su dominio tenant. */
+export const LOGIN_DENIED_FLAG = 'ss.login-denied';
 
 const authSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -21,7 +31,9 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, loading, signIn } = useAuth();
+  const [formError, setFormError] = useState<string | null>(null);
+  const { user, loading, signIn, signOut } = useAuth();
+  const { tenant, loading: tenantLoading } = useTenant();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const returnTo = params.get('returnTo') ?? '/';
@@ -29,21 +41,26 @@ export default function Auth() {
   useEffect(() => {
     const killed = consumeSessionKillMessage();
     if (killed) toast.error(killed, { duration: 10000 });
+    if (localStorage.getItem(LOGIN_DENIED_FLAG)) {
+      localStorage.removeItem(LOGIN_DENIED_FLAG);
+      setFormError(LOGIN_GENERIC_ERROR);
+    }
   }, []);
 
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && !formError && !isSubmitting) {
       navigate(returnTo);
     }
-  }, [user, loading, navigate, returnTo]);
+  }, [user, loading, navigate, returnTo, formError, isSubmitting]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setFormError(null);
+
     const validation = authSchema.safeParse({ email, password });
     if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
+      setFormError(validation.error.errors[0].message);
       return;
     }
 
@@ -52,23 +69,45 @@ export default function Auth() {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Email o password non validi');
-        } else if (error.message.includes('Email not confirmed')) {
-          toast.error('Conferma la tua email prima di accedere');
+        if (
+          error.message.includes('Invalid login credentials') ||
+          error.message.includes('Email not confirmed')
+        ) {
+          setFormError(LOGIN_GENERIC_ERROR);
         } else {
-          toast.error(error.message);
+          setFormError(error.message);
         }
-      } else {
-        toast.success('Bentornato!');
-        navigate(returnTo);
+        return;
       }
+
+      // Verifica appartenenza REALE all'organizzazione del dominio corrente
+      // PRIMA di qualunque feedback di successo.
+      if (tenant?.organization_id) {
+        const { data: auth } = await supabase.auth.getUser();
+        let belongs = false;
+        if (auth.user) {
+          const { data, error: memberError } = await supabase
+            .from('organization_members')
+            .select('id')
+            .eq('organization_id', tenant.organization_id)
+            .eq('user_id', auth.user.id)
+            .maybeSingle();
+          belongs = !memberError && !!data;
+        }
+        if (!belongs) {
+          await signOut();
+          setFormError(LOGIN_GENERIC_ERROR);
+          return;
+        }
+      }
+
+      navigate(returnTo);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loading || tenantLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -120,8 +159,13 @@ export default function Auth() {
               ) : null}
               Accedi
             </Button>
+            {formError && (
+              <p role="alert" className="text-sm text-destructive text-center">
+                {formError}
+              </p>
+            )}
           </form>
-          
+
           <p className="mt-6 text-center text-sm text-muted-foreground">
             L'accesso è riservato agli account creati tramite invito o
             attivazione da{' '}
