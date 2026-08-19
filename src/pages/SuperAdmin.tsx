@@ -64,12 +64,14 @@ export default function SuperAdmin() {
         <Tabs defaultValue="orgs" className="space-y-4">
           <TabsList>
             <TabsTrigger value="orgs">Organizations</TabsTrigger>
+            <TabsTrigger value="credentials">Credenziali</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="discounts">Discount codes</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="limits">Tier limits</TabsTrigger>
           </TabsList>
           <TabsContent value="orgs"><OrganizationsTable /></TabsContent>
+          <TabsContent value="credentials"><CredentialsPanel /></TabsContent>
           <TabsContent value="metrics"><GlobalMetricsPanel /></TabsContent>
           <TabsContent value="discounts"><DiscountCodesPanel /></TabsContent>
           <TabsContent value="referrals"><ReferralCodesPanel /></TabsContent>
