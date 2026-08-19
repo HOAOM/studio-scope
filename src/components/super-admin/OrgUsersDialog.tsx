@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, KeyRound, UserPlus, Gift } from 'lucide-react';
+import { Loader2, Users, KeyRound, UserPlus, Gift, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const APP_ROLES = [
@@ -35,6 +35,7 @@ interface Member {
   display_name: string | null;
   is_complimentary?: boolean;
   complimentary_reason?: string | null;
+  is_over_tier_limit?: boolean;
   roles?: string[];
 }
 
@@ -44,6 +45,7 @@ interface Invite {
   base_role: string;
   is_complimentary: boolean;
   complimentary_reason: string | null;
+  is_over_tier_limit?: boolean;
 }
 
 export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: string }) {
@@ -60,6 +62,20 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
   const [freeUser, setFreeUser] = useState(false);
   const [reason, setReason] = useState('');
   const [inviting, setInviting] = useState(false);
+
+  // Quota del tier per il ruolo selezionato nel form "Aggiungi utente"
+  const { data: quota } = useQuery({
+    queryKey: ['org-role-quota', orgId, newRole],
+    enabled: open && adding,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('admin-set-user-password', {
+        body: { action: 'role_quota', organization_id: orgId, role: newRole },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { used: number; max: number | null; full: boolean };
+    },
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['org-members-admin', orgId],
@@ -113,6 +129,9 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      if (data?.over_tier_limit) {
+        toast.warning('Utente creato in eccedenza rispetto al limite del tier');
+      }
       toast.success(
         data?.existing_user
           ? 'Utente aggiunto all\u2019organizzazione'
@@ -209,6 +228,16 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
                 value={reason} onChange={(e) => setReason(e.target.value)}
               />
             )}
+            {quota?.full && !freeUser && (
+              <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-500">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>
+                  Il tier ha raggiunto il limite per questo ruolo
+                  {quota.max !== null && ` (${quota.used}/${quota.max})`}.
+                  L'utente verrà comunque creato in eccedenza.
+                </span>
+              </div>
+            )}
             <Button
               size="sm" className="h-8 text-xs w-full"
               disabled={inviting || !newEmail || (freeUser && reason.trim().length < 3)}
@@ -247,6 +276,11 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
                     {m.is_complimentary && (
                       <Badge className="text-[10px] bg-amber-500/20 text-amber-500 border-amber-500/40">
                         <Gift className="w-3 h-3 mr-1" /> Omaggio · fuori tier
+                      </Badge>
+                    )}
+                    {m.is_over_tier_limit && !m.is_complimentary && (
+                      <Badge className="text-[10px] bg-orange-500/20 text-orange-500 border-orange-500/40">
+                        <AlertTriangle className="w-3 h-3 mr-1" /> In eccedenza
                       </Badge>
                     )}
                     <Button
@@ -296,6 +330,11 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
                   {i.is_complimentary && (
                     <Badge className="text-[10px] bg-amber-500/20 text-amber-500 border-amber-500/40">
                       <Gift className="w-3 h-3 mr-1" /> Omaggio · fuori tier
+                    </Badge>
+                  )}
+                  {i.is_over_tier_limit && !i.is_complimentary && (
+                    <Badge className="text-[10px] bg-orange-500/20 text-orange-500 border-orange-500/40">
+                      <AlertTriangle className="w-3 h-3 mr-1" /> In eccedenza
                     </Badge>
                   )}
                 </div>
