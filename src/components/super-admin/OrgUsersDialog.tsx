@@ -1,25 +1,49 @@
 /**
  * OrgUsersDialog — elenco membri di un'organizzazione con possibilità, per il
  * platform admin, di impostare direttamente la password di un utente
- * (edge function admin-set-user-password), senza passare da email/reset.
+ * (edge function admin-set-user-password) e di aggiungere utenti extra,
+ * eventualmente "omaggio / fuori tier" (non conteggiati nei limiti di piano).
  */
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, KeyRound } from 'lucide-react';
+import { Loader2, Users, KeyRound, UserPlus, Gift } from 'lucide-react';
 import { toast } from 'sonner';
+
+const APP_ROLES = [
+  'admin', 'designer', 'accountant', 'qs', 'head_of_payments', 'client', 'ceo',
+  'site_engineer', 'project_manager', 'procurement_manager', 'mep_engineer',
+  'coo', 'head_of_design', 'architectural_dept',
+];
 
 interface Member {
   user_id: string;
   is_owner: boolean;
   email: string | null;
   display_name: string | null;
+  is_complimentary?: boolean;
+  complimentary_reason?: string | null;
+  roles?: string[];
+}
+
+interface Invite {
+  id: string;
+  email: string;
+  base_role: string;
+  is_complimentary: boolean;
+  complimentary_reason: string | null;
 }
 
 export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: string }) {
@@ -27,8 +51,17 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
   const [editing, setEditing] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const qc = useQueryClient();
 
-  const { data: members = [], isLoading } = useQuery({
+  // form "Aggiungi utente"
+  const [adding, setAdding] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState('designer');
+  const [freeUser, setFreeUser] = useState(false);
+  const [reason, setReason] = useState('');
+  const [inviting, setInviting] = useState(false);
+
+  const { data, isLoading } = useQuery({
     queryKey: ['org-members-admin', orgId],
     enabled: open,
     queryFn: async () => {
@@ -37,9 +70,11 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return (data?.members ?? []) as Member[];
+      return data as { members: Member[]; invites: Invite[] };
     },
   });
+  const members = data?.members ?? [];
+  const invites = data?.invites ?? [];
 
   const submit = async (userId: string) => {
     if (password.length < 8) {
@@ -63,20 +98,130 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
     }
   };
 
+  const inviteUser = async () => {
+    setInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-set-user-password', {
+        body: {
+          action: 'invite_extra_user',
+          organization_id: orgId,
+          email: newEmail,
+          role: newRole,
+          is_complimentary: freeUser,
+          reason,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(
+        data?.existing_user
+          ? 'Utente aggiunto all\u2019organizzazione'
+          : data?.email_sent
+            ? 'Invito inviato via email'
+            : 'Invito creato (email non inviata)',
+      );
+      setAdding(false);
+      setNewEmail(''); setReason(''); setFreeUser(false); setNewRole('designer');
+      qc.invalidateQueries({ queryKey: ['org-members-admin', orgId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Errore aggiunta utente');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const toggleComplimentary = async (m: Member) => {
+    const next = !m.is_complimentary;
+    let why = m.complimentary_reason ?? '';
+    if (next) {
+      why = window.prompt('Motivo dell\u2019eccezione fuori tier:', why) ?? '';
+      if (why.trim().length < 3) return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-set-user-password', {
+        body: {
+          action: 'set_complimentary',
+          organization_id: orgId,
+          user_id: m.user_id,
+          is_complimentary: next,
+          reason: why,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(next ? 'Utente segnato come omaggio' : 'Contrassegno omaggio rimosso');
+      qc.invalidateQueries({ queryKey: ['org-members-admin', orgId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Errore aggiornamento');
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); setEditing(null); setPassword(''); }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); setEditing(null); setPassword(''); setAdding(false); }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost" className="h-7 text-xs">
           <Users className="w-3.5 h-3.5 mr-1" /> Utenti
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Utenti — {orgName}</DialogTitle>
         </DialogHeader>
+
+        <div className="flex justify-end">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setAdding((v) => !v)}>
+            <UserPlus className="w-3.5 h-3.5 mr-1" /> Aggiungi utente
+          </Button>
+        </div>
+
+        {adding && (
+          <div className="rounded-md border p-3 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Email</Label>
+              <Input
+                type="email" className="h-8 text-xs" placeholder="nome@studio.com"
+                value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Ruolo</Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {APP_ROLES.map((r) => (
+                    <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-xs">Utente omaggio / fuori tier</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Non conteggiato nei limiti di piano. Registrato nell'audit log.
+                </p>
+              </div>
+              <Switch checked={freeUser} onCheckedChange={setFreeUser} />
+            </div>
+            {freeUser && (
+              <Input
+                className="h-8 text-xs" placeholder="Motivo dell'eccezione (obbligatorio)"
+                value={reason} onChange={(e) => setReason(e.target.value)}
+              />
+            )}
+            <Button
+              size="sm" className="h-8 text-xs w-full"
+              disabled={inviting || !newEmail || (freeUser && reason.trim().length < 3)}
+              onClick={inviteUser}
+            >
+              {inviting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Conferma'}
+            </Button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div>
-        ) : members.length === 0 ? (
+        ) : members.length === 0 && invites.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Nessun membro.</p>
         ) : (
           <div className="space-y-2">
@@ -88,9 +233,28 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
                       {m.display_name || m.email || m.user_id}
                     </div>
                     <div className="text-[11px] text-muted-foreground truncate">{m.email ?? '—'}</div>
+                    {m.roles && m.roles.length > 0 && (
+                      <div className="text-[11px] text-muted-foreground truncate">{m.roles.join(', ')}</div>
+                    )}
+                    {m.is_complimentary && m.complimentary_reason && (
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        Motivo: {m.complimentary_reason}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {m.is_owner && <Badge variant="secondary" className="text-[10px]">Owner</Badge>}
+                    {m.is_complimentary && (
+                      <Badge className="text-[10px] bg-amber-500/20 text-amber-500 border-amber-500/40">
+                        <Gift className="w-3 h-3 mr-1" /> Omaggio · fuori tier
+                      </Badge>
+                    )}
+                    <Button
+                      size="sm" variant="ghost" className="h-7 text-xs"
+                      onClick={() => toggleComplimentary(m)}
+                    >
+                      {m.is_complimentary ? 'Rimuovi omaggio' : 'Segna omaggio'}
+                    </Button>
                     <Button
                       size="sm" variant="outline" className="h-7 text-xs"
                       onClick={() => { setEditing(editing === m.user_id ? null : m.user_id); setPassword(''); }}
@@ -117,6 +281,24 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
                     </Button>
                   </div>
                 )}
+              </div>
+            ))}
+
+            {invites.map((i) => (
+              <div key={i.id} className="rounded-md border border-dashed p-3 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm truncate">{i.email}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    Invito in sospeso · {i.base_role}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {i.is_complimentary && (
+                    <Badge className="text-[10px] bg-amber-500/20 text-amber-500 border-amber-500/40">
+                      <Gift className="w-3 h-3 mr-1" /> Omaggio · fuori tier
+                    </Badge>
+                  )}
+                </div>
               </div>
             ))}
           </div>

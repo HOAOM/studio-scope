@@ -25,6 +25,12 @@ const json = (body: unknown, status = 200) =>
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+const APP_ROLES = [
+  'admin', 'designer', 'accountant', 'qs', 'head_of_payments', 'client', 'ceo',
+  'site_engineer', 'project_manager', 'procurement_manager', 'mep_engineer',
+  'coo', 'head_of_design', 'architectural_dept',
+]
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -60,12 +66,13 @@ Deno.serve(async (req) => {
 
       const { data: members, error: mErr } = await admin
         .from('organization_members')
-        .select('user_id, is_owner, joined_at')
+        .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason')
         .eq('organization_id', orgId)
       if (mErr) return json({ error: mErr.message }, 400)
 
       const ids = (members ?? []).map((m: { user_id: string }) => m.user_id)
       let profiles: Record<string, { email: string | null; display_name: string | null }> = {}
+      let rolesByUser: Record<string, string[]> = {}
       if (ids.length) {
         const { data: profs } = await admin
           .from('profiles')
@@ -74,18 +81,160 @@ Deno.serve(async (req) => {
         for (const p of profs ?? []) {
           profiles[p.id] = { email: p.email, display_name: p.display_name }
         }
+        const { data: roles } = await admin
+          .from('user_roles')
+          .select('user_id, role')
+          .eq('organization_id', orgId)
+          .in('user_id', ids)
+        for (const r of roles ?? []) {
+          ;(rolesByUser[r.user_id] ??= []).push(r.role)
+        }
       }
+
+      // Inviti in sospeso (inclusi quelli omaggio non ancora accettati)
+      const { data: invites } = await admin
+        .from('organization_invites')
+        .select('id, email, base_role, status, is_complimentary, complimentary_reason, expires_at')
+        .eq('organization_id', orgId)
+        .eq('status', 'pending')
 
       return json({
         members: (members ?? []).map((m: any) => ({
           user_id: m.user_id,
           is_owner: m.is_owner,
           joined_at: m.joined_at,
+          is_complimentary: m.is_complimentary === true,
+          complimentary_reason: m.complimentary_reason ?? null,
+          roles: rolesByUser[m.user_id] ?? [],
           email: profiles[m.user_id]?.email ?? null,
           display_name: profiles[m.user_id]?.display_name ?? null,
         })),
+        invites: invites ?? [],
       })
     }
+
+    if (action === 'invite_extra_user') {
+      const orgId = String(body?.organization_id ?? '')
+      const email = String(body?.email ?? '').trim().toLowerCase()
+      const role = String(body?.role ?? '')
+      const isComplimentary = body?.is_complimentary === true
+      const reason = String(body?.reason ?? '').slice(0, 500)
+
+      if (!UUID_RE.test(orgId)) return json({ error: 'organization_id non valido' }, 400)
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 255) {
+        return json({ error: 'Email non valida' }, 400)
+      }
+      if (!APP_ROLES.includes(role)) return json({ error: 'Ruolo non valido' }, 400)
+      if (isComplimentary && reason.length < 3) {
+        return json({ error: 'Indica il motivo dell\u2019eccezione fuori tier' }, 400)
+      }
+
+      const { data: org } = await admin
+        .from('organizations').select('name').eq('id', orgId).maybeSingle()
+      if (!org) return json({ error: 'Organizzazione non trovata' }, 404)
+
+      // Utente gia' esistente?
+      const { data: existingProfile } = await admin
+        .from('profiles').select('id, email').ilike('email', email).maybeSingle()
+
+      let targetUserId: string | null = existingProfile?.id ?? null
+      let emailSent = false
+      let acceptUrl: string | null = null
+
+      if (targetUserId) {
+        // Aggiunta diretta come membro dell'organizzazione
+        const { error: memErr } = await admin.from('organization_members').upsert({
+          organization_id: orgId,
+          user_id: targetUserId,
+          is_owner: false,
+          is_complimentary: isComplimentary,
+          complimentary_reason: isComplimentary ? reason : null,
+          complimentary_by: isComplimentary ? user.id : null,
+          complimentary_at: isComplimentary ? new Date().toISOString() : null,
+        }, { onConflict: 'organization_id,user_id' })
+        if (memErr) return json({ error: memErr.message }, 400)
+
+        const { error: roleErr } = await admin.from('user_roles').upsert({
+          user_id: targetUserId, role, organization_id: orgId,
+        }, { onConflict: 'user_id,role,organization_id' })
+        if (roleErr) return json({ error: roleErr.message }, 400)
+      } else {
+        // Invito: il flag omaggio viaggia sull'invito e viene propagato all'accettazione
+        const origin = req.headers.get('origin') ?? ''
+        const siteUrl = origin.replace(/\/$/, '') ||
+          Deno.env.get('SITE_URL') || 'https://studio-scope.lovable.app'
+
+        const { data: inv, error: invErr } = await admin
+          .from('organization_invites')
+          .insert({
+            organization_id: orgId,
+            email,
+            base_role: role,
+            is_owner: false,
+            invited_by: user.id,
+            token: crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''),
+            is_complimentary: isComplimentary,
+            complimentary_reason: isComplimentary ? reason : null,
+          })
+          .select('id, token')
+          .single()
+        if (invErr) return json({ error: invErr.message }, 400)
+
+        acceptUrl = `${siteUrl}/accept-invite?token=${inv.token}`
+        const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(email, {
+          redirectTo: acceptUrl,
+        })
+        emailSent = !mailErr
+      }
+
+      await admin.from('audit_log').insert({
+        entity_type: 'organization',
+        entity_id: orgId,
+        action: isComplimentary ? 'platform_admin_complimentary_user' : 'platform_admin_add_user',
+        user_id: user.id,
+        summary: isComplimentary
+          ? `Utente omaggio FUORI TIER ${email} (ruolo ${role}) aggiunto a ${org.name} dal platform admin ${user.email ?? user.id}. Motivo: ${reason}`
+          : `Utente ${email} (ruolo ${role}) aggiunto a ${org.name} dal platform admin ${user.email ?? user.id}`,
+      })
+
+      return json({ success: true, email_sent: emailSent, accept_url: acceptUrl, existing_user: !!targetUserId })
+    }
+
+    if (action === 'set_complimentary') {
+      const orgId = String(body?.organization_id ?? '')
+      const targetId = String(body?.user_id ?? '')
+      const isComplimentary = body?.is_complimentary === true
+      const reason = String(body?.reason ?? '').slice(0, 500)
+      if (!UUID_RE.test(orgId) || !UUID_RE.test(targetId)) return json({ error: 'Parametri non validi' }, 400)
+      if (isComplimentary && reason.length < 3) {
+        return json({ error: 'Indica il motivo dell\u2019eccezione fuori tier' }, 400)
+      }
+
+      const { error: upErr } = await admin
+        .from('organization_members')
+        .update({
+          is_complimentary: isComplimentary,
+          complimentary_reason: isComplimentary ? reason : null,
+          complimentary_by: isComplimentary ? user.id : null,
+          complimentary_at: isComplimentary ? new Date().toISOString() : null,
+        })
+        .eq('organization_id', orgId)
+        .eq('user_id', targetId)
+      if (upErr) return json({ error: upErr.message }, 400)
+
+      await admin.from('audit_log').insert({
+        entity_type: 'organization',
+        entity_id: orgId,
+        action: isComplimentary ? 'platform_admin_complimentary_user' : 'platform_admin_complimentary_revoked',
+        user_id: user.id,
+        summary: isComplimentary
+          ? `Contrassegno omaggio FUORI TIER attivato per l\u2019utente ${targetId} dal platform admin ${user.email ?? user.id}. Motivo: ${reason}`
+          : `Contrassegno omaggio rimosso per l\u2019utente ${targetId} dal platform admin ${user.email ?? user.id}`,
+      })
+
+      return json({ success: true })
+    }
+
 
     if (action === 'set_password') {
       const targetId = String(body?.user_id ?? '')
