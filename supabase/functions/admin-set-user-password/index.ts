@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
       const { data: members, error: mErr } = await admin
         .from('organization_members')
-        .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason')
+        .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason, is_over_tier_limit')
         .eq('organization_id', orgId)
       if (mErr) return json({ error: mErr.message }, 400)
 
