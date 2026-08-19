@@ -105,6 +105,7 @@ Deno.serve(async (req) => {
           joined_at: m.joined_at,
           is_complimentary: m.is_complimentary === true,
           complimentary_reason: m.complimentary_reason ?? null,
+          is_over_tier_limit: m.is_over_tier_limit === true,
           roles: rolesByUser[m.user_id] ?? [],
           email: profiles[m.user_id]?.email ?? null,
           display_name: profiles[m.user_id]?.display_name ?? null,
