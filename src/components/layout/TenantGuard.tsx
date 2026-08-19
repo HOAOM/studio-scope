@@ -74,9 +74,8 @@ export function TenantGuard({ children }: { children: ReactNode }) {
             </div>
             <CardTitle className="text-xl">Accesso non autorizzato</CardTitle>
             <CardDescription>
-              Il tuo account non fa parte dell'organizzazione <strong>{tenant.name}</strong> a cui
-              appartiene questo indirizzo. Esci e accedi con l'account corretto, oppure chiedi
-              all'amministratore di invitarti.
+              Accesso non autorizzato. Verifica email e password, oppure contatta l'amministratore
+              del tuo studio.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
