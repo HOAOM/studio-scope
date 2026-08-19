@@ -19,7 +19,7 @@ ALTER TABLE public.organization_invites
   ADD COLUMN IF NOT EXISTS complimentary_reason text;
 
 -- Conteggi tier: escludono gli utenti omaggio
-CREATE OR REPLACE FUNCTION public.org_seat_count(p_org uuid, p_include_invites boolean)
+CREATE OR REPLACE FUNCTION public.org_seat_count(p_org uuid, p_include_invites boolean DEFAULT true)
 RETURNS integer LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
 AS $fn$
   SELECT
