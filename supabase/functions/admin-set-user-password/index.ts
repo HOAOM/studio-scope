@@ -292,8 +292,11 @@ Deno.serve(async (req) => {
       if (!UUID_RE.test(targetId)) return json({ error: 'user_id non valido' }, 400)
       if (newPassword.length < 8) return json({ error: 'La password deve avere almeno 8 caratteri' }, 400)
 
+      // email_confirm: la password impostata dal platform admin vale come
+      // conferma dell'account (non tocca il flusso di conferma standard).
       const { data: updated, error: uErr } = await admin.auth.admin.updateUserById(targetId, {
         password: newPassword,
+        email_confirm: true,
       })
       if (uErr) return json({ error: uErr.message }, 400)
 
