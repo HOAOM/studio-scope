@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       // Inviti in sospeso (inclusi quelli omaggio non ancora accettati)
       const { data: invites } = await admin
         .from('organization_invites')
-        .select('id, email, base_role, status, is_complimentary, complimentary_reason, expires_at')
+        .select('id, email, base_role, status, is_complimentary, complimentary_reason, is_over_tier_limit, expires_at')
         .eq('organization_id', orgId)
         .eq('status', 'pending')
 
