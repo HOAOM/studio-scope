@@ -4,6 +4,8 @@ import { useTenant } from '@/hooks/useTenant';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { LOGIN_DENIED_FLAG } from '@/pages/Auth';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Loader2 } from 'lucide-react';
