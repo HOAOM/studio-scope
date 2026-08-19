@@ -20,6 +20,7 @@ import { DiscountCodesPanel } from '@/components/super-admin/DiscountCodesPanel'
 import { ReferralCodesPanel } from '@/components/super-admin/ReferralCodesPanel';
 import { GlobalMetricsPanel } from '@/components/super-admin/GlobalMetricsPanel';
 import { TierLimitsPanel } from '@/components/super-admin/TierLimitsPanel';
+import { CredentialsPanel } from '@/components/super-admin/CredentialsPanel';
 import { ImpersonateBanner } from '@/components/layout/ImpersonateBanner';
 
 export default function SuperAdmin() {
