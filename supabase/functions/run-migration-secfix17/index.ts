@@ -64,7 +64,7 @@ BEGIN
     WHERE om.organization_id = NEW.organization_id
       AND om.user_id = NEW.user_id
   ) THEN
-    RAISE EXCEPTION 'L''utente non e' || ' membro di questa organizzazione';
+    RAISE EXCEPTION 'Utente non membro di questa organizzazione';
   END IF;
   RETURN NEW;
 END;
