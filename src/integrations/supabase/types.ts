@@ -2534,6 +2534,7 @@ export type Database = {
         Returns: boolean
       }
       impersonating_org: { Args: never; Returns: string }
+      is_admin_in_shared_org: { Args: { _target: string }; Returns: boolean }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
