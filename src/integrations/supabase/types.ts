@@ -958,6 +958,7 @@ export type Database = {
           id: string
           invited_by: string | null
           is_complimentary: boolean
+          is_over_tier_limit: boolean
           is_owner: boolean
           organization_id: string
           status: string
@@ -974,6 +975,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           is_complimentary?: boolean
+          is_over_tier_limit?: boolean
           is_owner?: boolean
           organization_id: string
           status?: string
@@ -990,6 +992,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           is_complimentary?: boolean
+          is_over_tier_limit?: boolean
           is_owner?: boolean
           organization_id?: string
           status?: string
@@ -1012,9 +1015,12 @@ export type Database = {
           complimentary_reason: string | null
           id: string
           is_complimentary: boolean
+          is_over_tier_limit: boolean
           is_owner: boolean
           joined_at: string
           organization_id: string
+          over_tier_at: string | null
+          over_tier_by: string | null
           user_id: string
         }
         Insert: {
@@ -1023,9 +1029,12 @@ export type Database = {
           complimentary_reason?: string | null
           id?: string
           is_complimentary?: boolean
+          is_over_tier_limit?: boolean
           is_owner?: boolean
           joined_at?: string
           organization_id: string
+          over_tier_at?: string | null
+          over_tier_by?: string | null
           user_id: string
         }
         Update: {
@@ -1034,9 +1043,12 @@ export type Database = {
           complimentary_reason?: string | null
           id?: string
           is_complimentary?: boolean
+          is_over_tier_limit?: boolean
           is_owner?: boolean
           joined_at?: string
           organization_id?: string
+          over_tier_at?: string | null
+          over_tier_by?: string | null
           user_id?: string
         }
         Relationships: [
