@@ -25,6 +25,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Mail, Trash2, Copy, UserPlus, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ORG_ROLES, roleLabel } from '@/lib/roles';
@@ -53,7 +54,7 @@ export function MembersPanel() {
   const { activeOrg, isLoading } = useActiveOrg();
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('member');
+  const [role, setRole] = useState<string>('designer');
   const [domainWarning, setDomainWarning] = useState<string | null>(null);
 
   /** Verifica coerenza dominio email con quello dell'organizzazione (owner/primo membro). */
@@ -255,14 +256,18 @@ export function MembersPanel() {
                   required
                 />
               </div>
-              <div className="w-full md:w-48 space-y-1.5">
-                <Label htmlFor="invite-role">Role label</Label>
-                <Input
-                  id="invite-role"
-                  placeholder="member, designer, ..."
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                />
+              <div className="w-full md:w-56 space-y-1.5">
+                <Label htmlFor="invite-role">Role</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger id="invite-role">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORG_ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button type="submit" disabled={invite.isPending || !email}>
                 {invite.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
