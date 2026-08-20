@@ -80,6 +80,9 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
   const { data, isLoading } = useQuery({
     queryKey: ['org-members-admin', orgId],
     enabled: open,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('admin-set-user-password', {
         body: { action: 'list_members', organization_id: orgId },

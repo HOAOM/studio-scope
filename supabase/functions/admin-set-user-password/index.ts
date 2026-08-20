@@ -64,15 +64,32 @@ Deno.serve(async (req) => {
       const orgId = String(body?.organization_id ?? '')
       if (!UUID_RE.test(orgId)) return json({ error: 'organization_id non valido' }, 400)
 
-      const { data: members, error: mErr } = await admin
-        .from('organization_members')
-        .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason, is_over_tier_limit')
-        .eq('organization_id', orgId)
-      if (mErr) return json({ error: mErr.message }, 400)
+      // Membri, inviti e ruoli in parallelo (i ruoli sono già filtrati per org)
+      const [membersRes, invitesRes, rolesRes] = await Promise.all([
+        admin
+          .from('organization_members')
+          .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason, is_over_tier_limit')
+          .eq('organization_id', orgId),
+        admin
+          .from('organization_invites')
+          .select('id, email, base_role, status, is_complimentary, complimentary_reason, is_over_tier_limit, expires_at')
+          .eq('organization_id', orgId)
+          .eq('status', 'pending'),
+        admin
+          .from('user_roles')
+          .select('user_id, role')
+          .eq('organization_id', orgId),
+      ])
+      if (membersRes.error) return json({ error: membersRes.error.message }, 400)
+      const members = membersRes.data
+      const invites = invitesRes.data
 
       const ids = (members ?? []).map((m: { user_id: string }) => m.user_id)
-      let profiles: Record<string, { email: string | null; display_name: string | null }> = {}
-      let rolesByUser: Record<string, string[]> = {}
+      const profiles: Record<string, { email: string | null; display_name: string | null }> = {}
+      const rolesByUser: Record<string, string[]> = {}
+      for (const r of rolesRes.data ?? []) {
+        ;(rolesByUser[r.user_id] ??= []).push(r.role)
+      }
       if (ids.length) {
         const { data: profs } = await admin
           .from('profiles')
@@ -81,22 +98,7 @@ Deno.serve(async (req) => {
         for (const p of profs ?? []) {
           profiles[p.id] = { email: p.email, display_name: p.display_name }
         }
-        const { data: roles } = await admin
-          .from('user_roles')
-          .select('user_id, role')
-          .eq('organization_id', orgId)
-          .in('user_id', ids)
-        for (const r of roles ?? []) {
-          ;(rolesByUser[r.user_id] ??= []).push(r.role)
-        }
       }
-
-      // Inviti in sospeso (inclusi quelli omaggio non ancora accettati)
-      const { data: invites } = await admin
-        .from('organization_invites')
-        .select('id, email, base_role, status, is_complimentary, complimentary_reason, is_over_tier_limit, expires_at')
-        .eq('organization_id', orgId)
-        .eq('status', 'pending')
 
       return json({
         members: (members ?? []).map((m: any) => ({
