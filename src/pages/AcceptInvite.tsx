@@ -100,7 +100,30 @@ export default function AcceptInvite() {
                 {new Date(peek.expires_at).toLocaleDateString()}.
               </p>
 
-              {!user ? (
+              {peek.status === 'accepted' ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 text-sm p-3 bg-green-500/10 text-green-700 dark:text-green-400 rounded">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>
+                      Questo invito è già stato accettato. Se hai già un account, accedi normalmente.
+                    </span>
+                  </div>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => navigate('/auth')}
+                  >
+                    Vai al login
+                  </Button>
+                </div>
+              ) : isInviteExpired(peek) ? (
+                <div className="flex items-start gap-2 text-sm p-3 bg-destructive/10 text-destructive rounded">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>
+                    Questo invito non è più valido o è scaduto. Chiedi un nuovo invito all'amministratore del tuo studio.
+                  </span>
+                </div>
+              ) : !user ? (
                 <Button
                   className="w-full"
                   onClick={() =>
