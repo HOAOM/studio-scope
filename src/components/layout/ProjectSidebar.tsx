@@ -36,6 +36,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export type ProjectSection =
   | 'overview'
@@ -84,6 +85,10 @@ interface Props {
 export function ProjectSidebar({ value, onChange, badges = {} }: Props) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+  const { canSeeSection, isLoading: permsLoading } = usePermissions();
+
+  const visibleItems = permsLoading ? [] : ITEMS.filter((i) => canSeeSection(i.value as any));
+  const visibleAddons = permsLoading ? [] : ADDON_ITEMS.filter((i) => canSeeSection(i.value as any));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
