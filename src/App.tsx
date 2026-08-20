@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import UserProfile from "./pages/UserProfile";
 import AcceptInvite from "./pages/AcceptInvite";
+import SetPassword from "./pages/SetPassword";
 import SuperAdmin from "./pages/SuperAdmin";
 import SsoLogin from "./pages/SsoLogin";
 import { Loader2 } from "lucide-react";
@@ -34,6 +35,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Utente entrato via link di invito: nessuna azione permessa finché non
+  // imposta una password propria.
+  if ((user.user_metadata as any)?.must_set_password === true) {
+    return <SetPassword />;
   }
 
   return (
