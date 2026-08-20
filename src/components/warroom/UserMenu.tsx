@@ -18,6 +18,7 @@ import { OrgSwitcher } from '@/components/layout/OrgSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
+import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 
 function useMyProfile() {
@@ -43,6 +44,7 @@ export function UserMenu() {
   const { data: profile } = useMyProfile();
   const { data: conversations = [] } = useDirectConversations();
   const { isPlatformAdmin } = usePlatformAdmin();
+  const { isOrgAdmin } = usePermissions();
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, c) => sum + c.unreadCount, 0),
@@ -99,10 +101,12 @@ export function UserMenu() {
             <User className="w-4 h-4 mr-2" />
             Profile
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
-            <Shield className="w-4 h-4 mr-2" />
-            Admin
-          </DropdownMenuItem>
+          {isOrgAdmin && (
+            <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
+              <Shield className="w-4 h-4 mr-2" />
+              Admin
+            </DropdownMenuItem>
+          )}
           {isPlatformAdmin && (
             <DropdownMenuItem onClick={() => navigate('/super-admin')} className="cursor-pointer">
               <Crown className="w-4 h-4 mr-2 text-yellow-500" />
