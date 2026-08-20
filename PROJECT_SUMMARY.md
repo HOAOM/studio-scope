@@ -1,8 +1,8 @@
 # Studio Scope — Documento Riepilogativo Totale
 
-> **Ultimo aggiornamento:** 20 agosto 2026 14:55 UTC — fix punto 2 completato  
+> **Ultimo aggiornamento:** 20 agosto 2026 14:59 UTC — fix punto 3 completato  
 > **Stato progetto:** beta multi-tenant pronta, in attesa di rilascio  
-> **Versione corrente:** 2.6.0-beta (punto di ritorno post-fix RBAC; modale super-admin ingrandita)
+> **Versione corrente:** 2.6.0-beta (post-fix RBAC + modale super-admin + rimozione bug button)
 > **Manutenzione di questo file:** aggiornato automaticamente ad ogni fase/cambio significativo
 
 ---
