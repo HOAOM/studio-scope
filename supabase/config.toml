@@ -90,6 +90,3 @@ project_id = "grpzbxwafkcvecphnyyb"
   [functions.run-migration-secfix17]
     verify_jwt = false
 
-
-  [functions.run-migration-referral-commissions]
-    verify_jwt = false
