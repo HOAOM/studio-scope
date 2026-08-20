@@ -163,6 +163,13 @@ export default function AcceptInvite() {
   );
 }
 
+function isInviteExpired(peek: Peek): boolean {
+  if (peek.status === 'expired' || peek.status === 'revoked') return true;
+  if (peek.status !== 'pending') return false;
+  const expiresAt = new Date(peek.expires_at);
+  return !isNaN(expiresAt.getTime()) && expiresAt < new Date();
+}
+
 function humanError(code: string): string {
   switch (code) {
     case 'missing_token': return 'No invite token provided.';
