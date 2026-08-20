@@ -74,15 +74,9 @@ async function createOrganization(body: any) {
 
   const sb = admin();
 
-  // 1) ensure user exists (invite or fetch)
-  let userId: string | null = null;
-  const { data: existing } = await sb.auth.admin.listUsers();
-  const match = existing?.users?.find(
-    (u) => u.email?.toLowerCase() === body.owner_email.toLowerCase(),
-  );
-  if (match) {
-    userId = match.id;
-  } else {
+  // 1) ensure user exists (invite or fetch) — lookup mirato, non listUsers()
+  let userId: string | null = await findUserIdByEmail(sb, body.owner_email);
+  if (!userId) {
     const { data: invited, error: inviteErr } =
       await sb.auth.admin.inviteUserByEmail(body.owner_email, {
         data: { display_name: body.owner_display_name ?? null },
