@@ -14,6 +14,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
+import { getUnsubscribeToken } from "../_shared/unsubscribeToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -206,6 +207,7 @@ Deno.serve(async (req) => {
     const actionLink = (link as any)?.properties?.action_link;
     if (!linkErr && actionLink) {
       const messageId = crypto.randomUUID();
+      const unsubscribeToken = await getUnsubscribeToken(admin, email);
       await admin.from("email_send_log").insert({
         message_id: messageId,
         template_name: "org_invite",
@@ -227,6 +229,9 @@ Deno.serve(async (req) => {
           html: inviteEmailHtml(orgName, actionLink),
           text: `Sei stato invitato a unirti a ${orgName} su ${SITE_NAME}. Accedi qui: ${actionLink}`,
           purpose: "transactional",
+          // Obbligatorio per le email transazionali: senza, l'API risponde
+          // 400 missing_unsubscribe e il messaggio finisce in DLQ.
+          unsubscribe_token: unsubscribeToken,
           label: "org_invite",
           queued_at: new Date().toISOString(),
         },
