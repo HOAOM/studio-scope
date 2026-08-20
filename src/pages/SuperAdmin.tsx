@@ -18,6 +18,7 @@ import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import { OrganizationsTable } from '@/components/super-admin/OrganizationsTable';
 import { DiscountCodesPanel } from '@/components/super-admin/DiscountCodesPanel';
 import { ReferralCodesPanel } from '@/components/super-admin/ReferralCodesPanel';
+import { ReferralCommissionsPanel } from '@/components/super-admin/ReferralCommissionsPanel';
 import { GlobalMetricsPanel } from '@/components/super-admin/GlobalMetricsPanel';
 import { TierLimitsPanel } from '@/components/super-admin/TierLimitsPanel';
 import { CredentialsPanel } from '@/components/super-admin/CredentialsPanel';
@@ -74,7 +75,10 @@ export default function SuperAdmin() {
           <TabsContent value="credentials"><CredentialsPanel /></TabsContent>
           <TabsContent value="metrics"><GlobalMetricsPanel /></TabsContent>
           <TabsContent value="discounts"><DiscountCodesPanel /></TabsContent>
-          <TabsContent value="referrals"><ReferralCodesPanel /></TabsContent>
+          <TabsContent value="referrals" className="space-y-6">
+            <ReferralCommissionsPanel />
+            <ReferralCodesPanel />
+          </TabsContent>
           <TabsContent value="limits"><TierLimitsPanel /></TabsContent>
         </Tabs>
       </main>
