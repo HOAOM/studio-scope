@@ -216,6 +216,10 @@ Deno.serve(async (req) => {
         queue_name: "transactional_emails",
         payload: {
           message_id: messageId,
+          // L'API email richiede run_id (auth) oppure idempotency_key
+          // (app/transactional): senza questo il send fallisce con 400 e
+          // l'invito a un utente già esistente non arriva mai.
+          idempotency_key: `org_invite:${inviteId}:${Date.now()}`,
           to: email,
           from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
           sender_domain: SENDER_DOMAIN,
