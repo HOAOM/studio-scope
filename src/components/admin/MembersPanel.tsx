@@ -76,42 +76,61 @@ export function MembersPanel() {
   };
 
 
-  const { data: members = [] } = useQuery<OrgMemberRow[]>({
-    queryKey: ['org-members', activeOrg?.organization_id],
+  /**
+   * Una sola query che carica membri, ruoli e inviti in parallelo (Promise.all).
+   * I profili richiedono gli id dei membri, quindi restano un secondo round-trip.
+   */
+  const { data: directory } = useQuery<{
+    members: OrgMemberRow[];
+    orgRoles: { id: string; user_id: string; role: string }[];
+    invites: OrgInviteRow[];
+  }>({
+    queryKey: ['org-directory', activeOrg?.organization_id],
     enabled: !!activeOrg,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data: m, error } = await (supabase as any)
-        .from('organization_members')
-        .select('id, user_id, is_owner, joined_at')
-        .eq('organization_id', activeOrg!.organization_id);
-      if (error) throw error;
-      // best-effort profile join
-      const ids = (m ?? []).map((x: any) => x.user_id);
-      if (ids.length === 0) return [];
-      const { data: profiles } = await (supabase as any)
-        .rpc('directory_profiles', { p_ids: ids });
-      const map = new Map((profiles ?? []).map((p: any) => [p.id, p]));
-      return (m as any[]).map((row) => ({
-        ...row,
-        email: (map.get(row.user_id) as any)?.email,
-        display_name: (map.get(row.user_id) as any)?.display_name,
-      }));
+      const orgId = activeOrg!.organization_id;
+      const [mRes, rRes, iRes] = await Promise.all([
+        (supabase as any)
+          .from('organization_members')
+          .select('id, user_id, is_owner, joined_at')
+          .eq('organization_id', orgId),
+        (supabase as any)
+          .from('user_roles')
+          .select('id, user_id, role')
+          .eq('organization_id', orgId),
+        (supabase as any)
+          .from('organization_invites')
+          .select('id, email, base_role, status, expires_at, token, created_at')
+          .eq('organization_id', orgId)
+          .order('created_at', { ascending: false }),
+      ]);
+      if (mRes.error) throw mRes.error;
+      if (rRes.error) throw rRes.error;
+      if (iRes.error) throw iRes.error;
+
+      const rows = (mRes.data ?? []) as any[];
+      let members: OrgMemberRow[] = rows;
+      const ids = rows.map((x) => x.user_id);
+      if (ids.length) {
+        const { data: profiles } = await (supabase as any)
+          .rpc('directory_profiles', { p_ids: ids });
+        const map = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+        members = rows.map((row) => ({
+          ...row,
+          email: (map.get(row.user_id) as any)?.email,
+          display_name: (map.get(row.user_id) as any)?.display_name,
+        }));
+      }
+      return { members, orgRoles: rRes.data ?? [], invites: iRes.data ?? [] };
     },
   });
 
-  // Level 1 — organization roles (multi-role per person, one seat)
-  const { data: orgRoles = [] } = useQuery<{ id: string; user_id: string; role: string }[]>({
-    queryKey: ['org-user-roles', activeOrg?.organization_id],
-    enabled: !!activeOrg,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('user_roles')
-        .select('id, user_id, role')
-        .eq('organization_id', activeOrg!.organization_id);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const members = directory?.members ?? [];
+  const orgRoles = directory?.orgRoles ?? [];
+  const invites = directory?.invites ?? [];
 
   const toggleRole = useMutation({
     mutationFn: async ({ userId, role, on }: { userId: string; role: string; on: boolean }) => {
@@ -128,23 +147,8 @@ export function MembersPanel() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['org-user-roles'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['org-directory'] }),
     onError: (e: any) => toast.error(e?.message ?? 'Aggiornamento ruolo fallito'),
-  });
-
-
-  const { data: invites = [] } = useQuery<OrgInviteRow[]>({
-    queryKey: ['org-invites', activeOrg?.organization_id],
-    enabled: !!activeOrg,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('organization_invites')
-        .select('id, email, base_role, status, expires_at, token, created_at')
-        .eq('organization_id', activeOrg!.organization_id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
   });
 
   const invite = useMutation({
