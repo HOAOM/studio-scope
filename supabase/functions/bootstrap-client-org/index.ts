@@ -68,10 +68,9 @@ Deno.serve(async (req) => {
   if (!ALLOWED_TIERS.includes(tier as any)) return json({ error: "invalid_tier" }, 400);
 
   // 1. Find or create user
-  const { data: users } = await admin.auth.admin.listUsers();
-  let owner = users?.users?.find((u) => u.email?.toLowerCase() === owner_email);
+  let ownerId = await findUserIdByEmail(admin, owner_email);
   let tempPassword: string | undefined;
-  if (!owner) {
+  if (!ownerId) {
     tempPassword = crypto.randomUUID().slice(0, 12) + "A1!";
     const { data: created, error: cerr } = await admin.auth.admin.createUser({
       email: owner_email,
@@ -79,7 +78,7 @@ Deno.serve(async (req) => {
       password: tempPassword,
     });
     if (cerr) return json({ error: "user_create_failed", detail: cerr.message }, 500);
-    owner = created.user!;
+    ownerId = created.user!.id;
   }
 
   // 2. Create organization (handle slug collision)
@@ -98,7 +97,7 @@ Deno.serve(async (req) => {
 
   // 3. Membership + subscription
   await admin.from("organization_members").insert({
-    organization_id: org.id, user_id: owner.id, is_owner: true,
+    organization_id: org.id, user_id: ownerId, is_owner: true,
   });
   await admin.from("organization_subscriptions").insert({
     organization_id: org.id,
@@ -134,7 +133,7 @@ Deno.serve(async (req) => {
     ok: true,
     organization_id: org.id,
     slug: finalSlug,
-    owner_user_id: owner.id,
+    owner_user_id: ownerId,
     magic_link,
     temp_password: tempPassword,
     discount_applied,

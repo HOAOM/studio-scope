@@ -148,14 +148,13 @@ Deno.serve(async (req) => {
       //    that does not reveal whether the address is registered.
       //    NB: la registrazione pubblica è disattivata, quindi qui NON si può usare
       //    signInWithOtp (422 signup_disabled): si usano le admin API / recovery.
-      const { data: list } = await sb.auth.admin.listUsers();
-      const existing = list?.users?.find((u) => u.email?.toLowerCase() === owner_email);
-      if (existing) {
+      const existingId = await findUserIdByEmail(sb, owner_email);
+      if (existingId) {
         // Se è già owner di un'organizzazione, NON si crea un secondo studio.
         const { data: ownedOrg } = await sb
           .from("organization_members")
           .select("organization_id")
-          .eq("user_id", existing.id)
+          .eq("user_id", existingId)
           .eq("is_owner", true)
           .limit(1)
           .maybeSingle();
