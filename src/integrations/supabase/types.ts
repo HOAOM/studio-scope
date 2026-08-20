@@ -1889,6 +1889,120 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_commission_rates: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          percentage: number
+          referral_code_id: string
+          set_by: string | null
+          valid_from: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          percentage: number
+          referral_code_id: string
+          set_by?: string | null
+          valid_from?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          percentage?: number
+          referral_code_id?: string
+          set_by?: string | null
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_commission_rates_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_payouts: {
+        Row: {
+          claimable_from: string
+          claimed_at: string | null
+          commission_amount: number
+          commission_percentage: number
+          created_at: string
+          id: string
+          locked_price: number
+          payment_amount: number
+          payment_date: string
+          payment_id: string | null
+          referral_code_id: string
+          referred_org_id: string
+          referrer_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claimable_from: string
+          claimed_at?: string | null
+          commission_amount: number
+          commission_percentage: number
+          created_at?: string
+          id?: string
+          locked_price: number
+          payment_amount: number
+          payment_date?: string
+          payment_id?: string | null
+          referral_code_id: string
+          referred_org_id: string
+          referrer_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claimable_from?: string
+          claimed_at?: string | null
+          commission_amount?: number
+          commission_percentage?: number
+          created_at?: string
+          id?: string
+          locked_price?: number
+          payment_amount?: number
+          payment_date?: string
+          payment_id?: string | null
+          referral_code_id?: string
+          referred_org_id?: string
+          referrer_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_payouts_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_payouts_referred_org_id_fkey"
+            columns: ["referred_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_payouts_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_redemptions: {
         Row: {
           id: string
@@ -2698,10 +2812,24 @@ export type Database = {
         Args: { p_email: string; p_org: string }
         Returns: Json
       }
+      record_referral_payment: {
+        Args: {
+          _amount: number
+          _org_id: string
+          _payment_date?: string
+          _payment_id?: string
+        }
+        Returns: string
+      }
       redeem_discount: {
         Args: { p_code: string; p_org: string }
         Returns: boolean
       }
+      referral_rate_at: {
+        Args: { _at?: string; _code_id: string }
+        Returns: number
+      }
+      refresh_referral_payout_status: { Args: never; Returns: number }
       register_login: {
         Args: {
           p_city?: string
