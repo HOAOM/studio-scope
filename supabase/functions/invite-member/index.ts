@@ -32,6 +32,33 @@ function randomToken(): string {
   return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Valori validi dell'enum public.app_role — devono restare allineati a src/lib/roles.ts */
+const APP_ROLES = [
+  "admin", "designer", "accountant", "qs", "head_of_payments", "client", "ceo",
+  "site_engineer", "project_manager", "procurement_manager", "mep_engineer",
+  "coo", "head_of_design", "architectural_dept",
+] as const;
+
+const SITE_NAME = "Kroneel";
+const FROM_DOMAIN = "kroneel.com";
+const SENDER_DOMAIN = "notify.kroneel.com";
+
+function inviteEmailHtml(orgName: string, url: string): string {
+  return `<!doctype html><html lang="it"><body style="background:#ffffff;font-family:Helvetica,Arial,sans-serif;margin:0">
+  <div style="max-width:520px;padding:32px 28px">
+    <p style="font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#111;margin:0 0 28px">${SITE_NAME}</p>
+    <h1 style="font-size:22px;font-weight:600;color:#111;margin:0 0 20px">Sei stato invitato</h1>
+    <p style="font-size:15px;color:#4a4a4a;line-height:1.6;margin:0 0 22px">
+      Sei stato invitato a unirti a <strong>${orgName}</strong> su ${SITE_NAME}.
+      Clicca sul pulsante qui sotto per accedere e accettare l'invito.
+    </p>
+    <a href="${url}" style="background:#111;color:#fff;font-size:14px;border-radius:4px;padding:13px 22px;text-decoration:none;display:inline-block">Accedi e accetta l'invito</a>
+    <p style="font-size:12px;color:#9a9a9a;line-height:1.6;margin:34px 0 0">
+      Se non ti aspettavi questo invito, puoi ignorare questa email.
+    </p>
+  </div></body></html>`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
