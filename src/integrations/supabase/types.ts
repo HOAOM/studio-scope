@@ -2597,6 +2597,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      find_user_id_by_email: { Args: { p_email: string }; Returns: string }
       gen_referral_slug: { Args: never; Returns: string }
       get_my_org_subscription_summary: {
         Args: never
