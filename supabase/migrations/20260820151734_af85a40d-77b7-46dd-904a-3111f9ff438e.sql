@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.peek_org_invite(text) TO anon;
