@@ -97,7 +97,7 @@ export function ProjectSidebar({ value, onChange, badges = {} }: Props) {
           {!collapsed && <SidebarGroupLabel>Project</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {ITEMS.map((item) => {
+              {visibleItems.map((item) => {
                 const isActive = value === item.value;
                 const badge = badges[item.value];
                 return (
@@ -131,11 +131,12 @@ export function ProjectSidebar({ value, onChange, badges = {} }: Props) {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {visibleAddons.length > 0 && (
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Addon</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {ADDON_ITEMS.map((item) => {
+              {visibleAddons.map((item) => {
                 const isActive = value === item.value;
                 return (
                   <SidebarMenuItem key={item.value}>
@@ -162,6 +163,7 @@ export function ProjectSidebar({ value, onChange, badges = {} }: Props) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
