@@ -13,6 +13,7 @@
  * Body: { organization_id: uuid, email: string, base_role?: string, is_owner?: bool }
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -183,17 +184,14 @@ Deno.serve(async (req) => {
 
   // Send magic link if user does not exist; otherwise send a real invite email
   // with a fresh magic link (re-invite after revoke, second organization, ...).
-  const { data: existingUsers } = await admin.auth.admin.listUsers();
-  const existingUser = existingUsers?.users?.find(
-    (u) => u.email?.toLowerCase() === email,
-  );
+  const existingUserId = await findUserIdByEmail(admin, email);
 
   const { data: orgRow } = await admin
     .from("organizations").select("name").eq("id", organization_id).maybeSingle();
   const orgName = orgRow?.name ?? "the organization";
 
   let emailSent = false;
-  if (!existingUser) {
+  if (!existingUserId) {
     const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: acceptUrl,
       data: { must_set_password: true },
@@ -238,6 +236,6 @@ Deno.serve(async (req) => {
     invite_id: inviteId,
     accept_url: acceptUrl,
     email_sent: emailSent,
-    existing_user: !!existingUser,
+    existing_user: !!existingUserId,
   });
 });

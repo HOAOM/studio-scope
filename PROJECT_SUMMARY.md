@@ -263,3 +263,8 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 - `my_org_limits_usage` restituisce anche `max_users_per_role` e `max_addons`.
 - `organization_domain_audit`: lettura ristretta ad admin/owner dell'organizzazione (prima tutti i membri vedevano le email).
 - Anagrafiche master: policy già scoped per organizzazione — verificato in test live che un admin non può scrivere quelle di un'altra org.
+
+### 2026-08-20 — Performance fix 4.2: lookup utenti per email
+- Nuovo indice `profiles_lower_email_idx` su `lower(email)` e RPC interna `find_user_id_by_email(text)` (SECURITY DEFINER, EXECUTE solo `service_role`).
+- Helper condiviso `supabase/functions/_shared/findUserByEmail.ts`.
+- Sostituito `auth.admin.listUsers()` (paginato a 50 → lento e con falsi negativi) con il lookup mirato in: `invite-member`, `bootstrap-client-org`, `public-onboarding`, `site-api`, `tmp-cleanup`.

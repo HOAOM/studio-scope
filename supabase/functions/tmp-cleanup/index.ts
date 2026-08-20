@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 
 Deno.serve(async () => {
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -17,11 +18,10 @@ Deno.serve(async () => {
     results[org] = error?.message ?? "deleted";
   }
 
-  const { data: users } = await sb.auth.admin.listUsers();
   for (const email of emails) {
-    const u = users?.users?.find((x) => x.email?.toLowerCase() === email);
-    if (u) {
-      const { error } = await sb.auth.admin.deleteUser(u.id);
+    const uid = await findUserIdByEmail(sb, email);
+    if (uid) {
+      const { error } = await sb.auth.admin.deleteUser(uid);
       results[email] = error?.message ?? "deleted";
     } else {
       results[email] = "not_found";
