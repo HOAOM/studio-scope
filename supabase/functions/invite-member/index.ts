@@ -181,18 +181,56 @@ Deno.serve(async (req) => {
     Deno.env.get("SITE_URL") || "https://studio-scope.lovable.app";
   const acceptUrl = `${siteUrl}/accept-invite?token=${inviteToken}`;
 
-  // Send magic link if user does not exist; otherwise just return URL
+  // Send magic link if user does not exist; otherwise send a real invite email
+  // with a fresh magic link (re-invite after revoke, second organization, ...).
   const { data: existingUsers } = await admin.auth.admin.listUsers();
   const existingUser = existingUsers?.users?.find(
     (u) => u.email?.toLowerCase() === email,
   );
 
+  const { data: orgRow } = await admin
+    .from("organizations").select("name").eq("id", organization_id).maybeSingle();
+  const orgName = orgRow?.name ?? "the organization";
+
   let emailSent = false;
   if (!existingUser) {
     const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: acceptUrl,
+      data: { must_set_password: true },
     });
     emailSent = !inviteErr;
+  } else {
+    const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: acceptUrl },
+    });
+    const actionLink = (link as any)?.properties?.action_link;
+    if (!linkErr && actionLink) {
+      const messageId = crypto.randomUUID();
+      await admin.from("email_send_log").insert({
+        message_id: messageId,
+        template_name: "org_invite",
+        recipient_email: email,
+        status: "pending",
+      });
+      const { error: qErr } = await admin.rpc("enqueue_email", {
+        queue_name: "transactional_emails",
+        payload: {
+          message_id: messageId,
+          to: email,
+          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+          sender_domain: SENDER_DOMAIN,
+          subject: `Sei stato invitato a unirti a ${orgName}`,
+          html: inviteEmailHtml(orgName, actionLink),
+          text: `Sei stato invitato a unirti a ${orgName} su ${SITE_NAME}. Accedi qui: ${actionLink}`,
+          purpose: "transactional",
+          label: "org_invite",
+          queued_at: new Date().toISOString(),
+        },
+      });
+      emailSent = !qErr;
+    }
   }
 
   return json({
