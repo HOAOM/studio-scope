@@ -1,12 +1,14 @@
 /**
  * AcceptInvite — landing page for /accept-invite?token=...
  * Flow:
- *  1. Peek invite via public RPC to show org + email expected.
+ *  1. Peek invite via public RPC (parallel to auth bootstrap) to show org + email.
  *  2. If not logged in → redirect to /auth with returnTo back here.
- *  3. If logged in → call accept_org_invite RPC.
+ *  3. If logged in → call accept_org_invite RPC, then invalidate only the
+ *     org/role caches instead of reloading the whole app.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +28,7 @@ export default function AcceptInvite() {
   const token = params.get('token') ?? '';
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [peek, setPeek] = useState<Peek | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
@@ -33,17 +36,14 @@ export default function AcceptInvite() {
 
   useEffect(() => {
     if (!token) { setError('missing_token'); return; }
+    // Direct RPC (callable by anon): no edge-function cold start, and it runs
+    // in parallel with the auth bootstrap instead of waiting for it.
     (async () => {
-      // Public preview goes through the peek-invite edge function (service role),
-      // so the RPC does not need to be callable by anonymous visitors.
-      const { data, error } = await supabase.functions.invoke(
-        `peek-invite?token=${encodeURIComponent(token)}`,
-        { method: 'GET' },
-      );
+      const { data, error } = await (supabase as any).rpc('peek_org_invite', { p_token: token });
       if (error) { setError('invite_not_found'); return; }
-      const row = (data as any)?.invite;
+      const row = Array.isArray(data) ? data[0] : data;
       if (!row) { setError('invite_not_found'); return; }
-      setPeek(row);
+      setPeek(row as Peek);
     })();
   }, [token]);
 
@@ -57,8 +57,14 @@ export default function AcceptInvite() {
         setError(data?.error ?? 'accept_failed');
         return;
       }
+      // Targeted invalidation instead of a full page reload.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['my-organizations'] }),
+        queryClient.invalidateQueries({ queryKey: ['user_roles_self'] }),
+        queryClient.invalidateQueries({ queryKey: ['projects'] }),
+      ]);
       setDone(true);
-      setTimeout(() => navigate('/'), 1500);
+      setTimeout(() => navigate('/'), 1200);
     } catch (e: any) {
       setError(e?.message ?? 'accept_failed');
     } finally {
@@ -66,7 +72,8 @@ export default function AcceptInvite() {
     }
   };
 
-  if (loading) {
+  // Only block on auth when the invite preview is not ready yet.
+  if (loading && !peek && !error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin" />
