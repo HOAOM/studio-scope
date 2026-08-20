@@ -75,7 +75,10 @@ export default function SuperAdmin() {
           <TabsContent value="credentials"><CredentialsPanel /></TabsContent>
           <TabsContent value="metrics"><GlobalMetricsPanel /></TabsContent>
           <TabsContent value="discounts"><DiscountCodesPanel /></TabsContent>
-          <TabsContent value="referrals"><ReferralCodesPanel /></TabsContent>
+          <TabsContent value="referrals" className="space-y-6">
+            <ReferralCommissionsPanel />
+            <ReferralCodesPanel />
+          </TabsContent>
           <TabsContent value="limits"><TierLimitsPanel /></TabsContent>
         </Tabs>
       </main>
