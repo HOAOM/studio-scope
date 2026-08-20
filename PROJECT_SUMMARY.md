@@ -268,3 +268,8 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 - Nuovo indice `profiles_lower_email_idx` su `lower(email)` e RPC interna `find_user_id_by_email(text)` (SECURITY DEFINER, EXECUTE solo `service_role`).
 - Helper condiviso `supabase/functions/_shared/findUserByEmail.ts`.
 - Sostituito `auth.admin.listUsers()` (paginato a 50 → lento e con falsi negativi) con il lookup mirato in: `invite-member`, `bootstrap-client-org`, `public-onboarding`, `site-api`, `tmp-cleanup`.
+
+### 2026-08-20 — Fix reinvito email + performance fix 4.3 (accettazione invito)
+- `invite-member`: il ramo "utente già esistente" accodava l'email transazionale senza `run_id` né `idempotency_key` → l'API email rispondeva 400 `missing_parameter` e dopo 5 retry finiva in DLQ (nessuna email). Ora il payload include `idempotency_key: org_invite:<invite_id>:<timestamp>`.
+- Fix 4.3: eliminata l'edge function `peek-invite` (e la relativa voce in `config.toml`); `AcceptInvite.tsx` chiama direttamente la RPC `peek_org_invite`, ora con EXECUTE anche a `anon` (esposizione identica alla vecchia funzione pubblica, protetta dal token dell'invito).
+- Il peek parte in parallelo al bootstrap auth (nessun blocco sullo spinner) e dopo `accept_org_invite` si invalidano solo `my-organizations`, `user_roles_self`, `projects` invece di ricaricare l'app.
