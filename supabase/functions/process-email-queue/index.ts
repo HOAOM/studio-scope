@@ -260,7 +260,13 @@ Deno.serve(async (req) => {
             text: payload.text,
             purpose: payload.purpose,
             label: payload.label,
-            idempotency_key: payload.idempotency_key,
+            // Rigenerata a ogni retry: l'API rifiuta con 409 `run_failed` il
+            // riuso di una chiave già fallita, bloccando il messaggio per sempre.
+            idempotency_key: payload.idempotency_key
+              ? (msg.read_ct > 1
+                  ? `${payload.idempotency_key}:r${msg.read_ct}`
+                  : payload.idempotency_key)
+              : undefined,
             unsubscribe_token: payload.unsubscribe_token,
             message_id: payload.message_id,
           },
