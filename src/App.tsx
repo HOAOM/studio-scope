@@ -19,6 +19,7 @@ import { Loader2 } from "lucide-react";
 import { BugReportButton } from "@/components/test/BugReportButton";
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
 import { TenantGuard } from "@/components/layout/TenantGuard";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,32 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 
+function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { isOrgAdmin, isLoading } = usePermissions();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (!isOrgAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function PlatformOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { isPlatformAdmin, isLoading } = usePermissions();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (!isPlatformAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -85,7 +112,9 @@ const App = () => (
               path="/admin"
               element={
                 <ProtectedRoute>
-                  <AdminPanel />
+                  <AdminOnlyRoute>
+                    <AdminPanel />
+                  </AdminOnlyRoute>
                 </ProtectedRoute>
               }
             />
@@ -93,7 +122,9 @@ const App = () => (
               path="/super-admin"
               element={
                 <ProtectedRoute>
-                  <SuperAdmin />
+                  <PlatformOnlyRoute>
+                    <SuperAdmin />
+                  </PlatformOnlyRoute>
                 </ProtectedRoute>
               }
             />
