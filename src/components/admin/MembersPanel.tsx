@@ -174,7 +174,7 @@ export function MembersPanel() {
       return data as { accept_url: string; email_sent: boolean; existing_user: boolean };
     },
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['org-invites'] });
+      qc.invalidateQueries({ queryKey: ['org-directory'] });
       setEmail('');
       if (data.email_sent) {
         toast.success('Invite email sent');
@@ -195,7 +195,7 @@ export function MembersPanel() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['org-invites'] });
+      qc.invalidateQueries({ queryKey: ['org-directory'] });
       toast.success('Invite revoked');
     },
   });
@@ -207,7 +207,7 @@ export function MembersPanel() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['org-members'] });
+      qc.invalidateQueries({ queryKey: ['org-directory'] });
       toast.success('Member removed');
     },
     onError: (e: any) => toast.error(e?.message ?? 'Remove failed'),
