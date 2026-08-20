@@ -41,10 +41,12 @@ export function useSuppliers() {
 
 export function useCreateSupplier() {
   const qc = useQueryClient();
+  const { activeId } = useActiveOrg();
   return useMutation({
     mutationFn: async (input: Partial<Supplier>) => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
       const { data: userData } = await supabase.auth.getUser();
-      const payload = { ...input, created_by: userData.user?.id };
+      const payload = { ...input, created_by: userData.user?.id, organization_id: activeId };
       const { data, error } = await sb.from('suppliers').insert(payload).select().single();
       if (error) throw error;
       return data as Supplier;
