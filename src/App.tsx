@@ -16,7 +16,7 @@ import SetPassword from "./pages/SetPassword";
 import SuperAdmin from "./pages/SuperAdmin";
 import SsoLogin from "./pages/SsoLogin";
 import { Loader2 } from "lucide-react";
-import { BugReportButton } from "@/components/test/BugReportButton";
+
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
 import { TenantGuard } from "@/components/layout/TenantGuard";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -48,7 +48,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     <>
       <ImpersonateBanner />
       <TenantGuard>{children}</TenantGuard>
-      <BugReportButton />
     </>
   );
 }
