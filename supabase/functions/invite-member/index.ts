@@ -82,11 +82,17 @@ Deno.serve(async (req) => {
 
   const organization_id: string = body.organization_id;
   const email: string = String(body.email ?? "").trim().toLowerCase();
-  const base_role: string = body.base_role ?? "member";
+  const base_role: string = String(body.base_role ?? "").trim();
   const is_owner: boolean = !!body.is_owner;
 
   if (!organization_id || !email) return json({ error: "missing_fields" }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "invalid_email" }, 400);
+  if (!(APP_ROLES as readonly string[]).includes(base_role)) {
+    return json({
+      error: "invalid_role",
+      detail: `Ruolo non valido: "${base_role || "(vuoto)"}". Seleziona uno dei ruoli disponibili (${APP_ROLES.join(", ")}).`,
+    }, 400);
+  }
 
   const admin = createClient(SUPABASE_URL, SERVICE, {
     auth: { persistSession: false, autoRefreshToken: false },
