@@ -1,7 +1,8 @@
 # Studio Scope — Documento Riepilogativo Totale
 
-> **Ultimo aggiornamento:** 26 maggio 2026 — dopo Fase 6 + storage limits  
+> **Ultimo aggiornamento:** 20 agosto 2026 — checkpoint v2.6.0-beta  
 > **Stato progetto:** beta multi-tenant pronta, in attesa di rilascio  
+> **Versione corrente:** 2.6.0-beta (punto di ritorno prima dei fix RBAC/modale/performance)  
 > **Manutenzione di questo file:** aggiornato automaticamente ad ogni fase/cambio significativo
 
 ---
