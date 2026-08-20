@@ -13,6 +13,7 @@
  * Body: { organization_id: uuid, email: string, base_role?: string, is_owner?: bool }
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

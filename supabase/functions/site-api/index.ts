@@ -4,6 +4,7 @@
 // Auth: shared secret header `x-site-api-key` matching SITE_API_KEY env var.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

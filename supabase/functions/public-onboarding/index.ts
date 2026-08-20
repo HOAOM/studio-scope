@@ -10,6 +10,7 @@
 // Each client gets its own organization; data is isolated by organization_id + RLS.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;

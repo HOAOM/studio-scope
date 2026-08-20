@@ -11,6 +11,7 @@
  *  7. Return { organization_id, owner_user_id, accept_url, magic_link, temp_password? }.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
