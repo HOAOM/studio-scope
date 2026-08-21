@@ -77,8 +77,8 @@ Deno.serve(async (req) => {
       const orgId = String(body?.organization_id ?? '')
       if (!UUID_RE.test(orgId)) return json({ error: 'organization_id non valido' }, 400)
 
-      // Membri, inviti e ruoli in parallelo (i ruoli sono già filtrati per org)
-      const [membersRes, invitesRes, rolesRes] = await Promise.all([
+      // Membri, inviti, ruoli e limiti di tier in parallelo
+      const [membersRes, invitesRes, rolesRes, limitsRes] = await Promise.all([
         admin
           .from('organization_members')
           .select('user_id, is_owner, joined_at, is_complimentary, complimentary_reason, is_over_tier_limit')
@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
           .from('user_roles')
           .select('user_id, role')
           .eq('organization_id', orgId),
+        admin.rpc('get_tier_limits', { p_org: orgId }),
       ])
       if (membersRes.error) return json({ error: membersRes.error.message }, 400)
       const members = membersRes.data
@@ -113,6 +114,24 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Conteggio utenti per ruolo con la stessa semantica di
+      // org_role_user_count: esclude omaggi e utenti fuori tier.
+      const excluded = new Set(
+        (members ?? [])
+          .filter((m: any) => m.is_complimentary === true || m.is_over_tier_limit === true)
+          .map((m: any) => m.user_id),
+      )
+      const roleCounts: Record<string, number> = {}
+      const seen = new Set<string>()
+      for (const r of rolesRes.data ?? []) {
+        if (excluded.has(r.user_id)) continue
+        const key = `${r.role}:${r.user_id}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        roleCounts[r.role] = (roleCounts[r.role] ?? 0) + 1
+      }
+      const limitRow: any = Array.isArray(limitsRes.data) ? limitsRes.data[0] : limitsRes.data
+
       return json({
         members: (members ?? []).map((m: any) => ({
           user_id: m.user_id,
@@ -126,6 +145,9 @@ Deno.serve(async (req) => {
           display_name: profiles[m.user_id]?.display_name ?? null,
         })),
         invites: invites ?? [],
+        role_counts: roleCounts,
+        max_users_per_role: limitRow?.max_users_per_role ?? null,
+        tier: limitRow?.tier ?? null,
       })
     }
 
