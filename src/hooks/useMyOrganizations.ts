@@ -29,27 +29,48 @@ export function useMyOrganizations() {
   });
 }
 
+const ACTIVE_ORG_EVENT = 'studioscope.active-org-change';
+
+/** Scrive l'org attiva e notifica TUTTE le istanze dell'hook (stessa tab + altre tab). */
+function writeActiveOrg(id: string) {
+  localStorage.setItem(ACTIVE_ORG_KEY, id);
+  window.dispatchEvent(new Event(ACTIVE_ORG_EVENT));
+}
+
 export function useActiveOrg() {
   const { data: orgs, isLoading } = useMyOrganizations();
   const [activeId, setActiveIdState] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : localStorage.getItem(ACTIVE_ORG_KEY),
   );
 
+  // Sincronizzazione cross-istanza: senza questo, cambiare org in OrgSwitcher
+  // aggiornava solo lo state locale di quel componente e le query (progetti,
+  // ruoli, admin data…) restavano sulla vecchia org.
+  useEffect(() => {
+    const sync = () => setActiveIdState(localStorage.getItem(ACTIVE_ORG_KEY));
+    window.addEventListener(ACTIVE_ORG_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(ACTIVE_ORG_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
   // Auto-pick first org if nothing selected
   useEffect(() => {
     if (!orgs || orgs.length === 0) return;
     if (!activeId || !orgs.find((o) => o.organization_id === activeId)) {
-      const next = orgs[0].organization_id;
-      setActiveIdState(next);
-      localStorage.setItem(ACTIVE_ORG_KEY, next);
+      writeActiveOrg(orgs[0].organization_id);
+      setActiveIdState(orgs[0].organization_id);
     }
   }, [orgs, activeId]);
 
   const setActiveOrg = useCallback((id: string) => {
-    localStorage.setItem(ACTIVE_ORG_KEY, id);
+    writeActiveOrg(id);
     setActiveIdState(id);
   }, []);
 
   const activeOrg = orgs?.find((o) => o.organization_id === activeId) ?? null;
   return { orgs: orgs ?? [], activeOrg, activeId, setActiveOrg, isLoading };
 }
+
