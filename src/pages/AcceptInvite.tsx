@@ -1,16 +1,23 @@
 /**
  * AcceptInvite — landing page for /accept-invite?token=...
  * Flow:
+ *  0. Se l'email di invito porta token_hash+type (riscrittura in
+ *     auth-email-hook), consuma l'OTP qui con verifyOtp() dopo un signOut
+ *     locale: il link implicito /verify veniva bruciato dal prefetch dei client
+ *     di posta e l'invitato atterrava senza sessione.
  *  1. Peek invite via public RPC (parallel to auth bootstrap) to show org + email.
  *  2. If not logged in → redirect to /auth with returnTo back here.
  *  3. If logged in → call accept_org_invite RPC, then invalidate only the
  *     org/role caches instead of reloading the whole app.
+ *  4. Se l'utente deve ancora creare la propria password (must_set_password),
+ *     il gate viene applicato QUI, senza dipendere da ProtectedRoute.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import SetPassword from '@/pages/SetPassword';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -26,6 +33,8 @@ interface Peek {
 export default function AcceptInvite() {
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
+  const tokenHash = params.get('token_hash') ?? '';
+  const otpType = (params.get('type') ?? 'invite') as 'invite' | 'magiclink' | 'recovery';
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -33,6 +42,34 @@ export default function AcceptInvite() {
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [done, setDone] = useState(false);
+  const [verifying, setVerifying] = useState(!!tokenHash);
+
+  // Consumo esplicito del magic link / invito.
+  useEffect(() => {
+    if (!tokenHash) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Evita di operare sulla sessione di un altro account già presente in
+        // questo browser (tipico: l'admin che ha inviato l'invito).
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch { /* best effort */ }
+      const { error: vErr } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: otpType,
+      });
+      if (cancelled) return;
+      if (vErr) setError('invite_link_expired');
+      setVerifying(false);
+      // Ripulisce l'URL dal token consumato (evita retry su refresh).
+      const url = new URL(window.location.href);
+      url.searchParams.delete('token_hash');
+      url.searchParams.delete('type');
+      url.searchParams.delete('email');
+      window.history.replaceState({}, '', url.toString());
+    })();
+    return () => { cancelled = true; };
+  }, [tokenHash, otpType]);
 
   useEffect(() => {
     if (!token) { setError('missing_token'); return; }
@@ -46,6 +83,8 @@ export default function AcceptInvite() {
       setPeek(row as Peek);
     })();
   }, [token]);
+
+  const mustSetPassword = (user?.user_metadata as any)?.must_set_password === true;
 
   const accept = async () => {
     if (!token) return;
@@ -64,7 +103,9 @@ export default function AcceptInvite() {
         queryClient.invalidateQueries({ queryKey: ['projects'] }),
       ]);
       setDone(true);
-      setTimeout(() => navigate('/'), 1200);
+      // Se l'utente non ha ancora una password propria resta qui: il gate
+      // sottostante mostra SetPassword senza passare da ProtectedRoute.
+      if (!mustSetPassword) setTimeout(() => navigate('/'), 1200);
     } catch (e: any) {
       setError(e?.message ?? 'accept_failed');
     } finally {
@@ -73,12 +114,18 @@ export default function AcceptInvite() {
   };
 
   // Only block on auth when the invite preview is not ready yet.
-  if (loading && !peek && !error) {
+  if (verifying || (loading && !peek && !error)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin" />
       </div>
     );
+  }
+
+  // Gate password anche su questa rotta: l'utente entrato via link di invito
+  // deve creare la propria password prima di poter usare l'app.
+  if (user && mustSetPassword && (done || peek?.status === 'accepted')) {
+    return <SetPassword />;
   }
 
   return (
@@ -192,6 +239,7 @@ function humanError(code: string): string {
   switch (code) {
     case 'missing_token': return 'No invite token provided.';
     case 'invite_not_found': return 'Invite link not valid.';
+    case 'invite_link_expired': return 'Il link di accesso è scaduto o già usato. Accedi con email e password, oppure chiedi un nuovo invito.';
     case 'invite_expired': return 'This invite has expired. Ask the organization owner for a new one.';
     case 'invite_accepted': return 'This invite has already been accepted.';
     case 'invite_revoked': return 'This invite was revoked.';

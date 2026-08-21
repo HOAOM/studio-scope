@@ -239,11 +239,15 @@ async function handleWebhook(req: Request): Promise<Response> {
     data.redirect_to ?? verifyParams?.get('redirect_to') ?? undefined
   let confirmationUrl: string = data.url
 
+  // Stessa logica per /accept-invite: il link implicito /verify e' monouso e
+  // viene bruciato dal prefetch dei client di posta, lasciando l'invitato senza
+  // sessione (e quindi senza gate password). Con token_hash + type la pagina
+  // consuma l'OTP esplicitamente con verifyOtp().
   if (
     tokenHash &&
     redirectTo &&
-    (emailType === 'recovery' || emailType === 'invite') &&
-    /\/reset-password(\/|\?|$)/.test(redirectTo)
+    (emailType === 'recovery' || emailType === 'invite' || emailType === 'magiclink') &&
+    /\/(reset-password|accept-invite)(\/|\?|$)/.test(redirectTo)
   ) {
     const target = new URL(redirectTo)
     target.searchParams.set('token_hash', tokenHash)

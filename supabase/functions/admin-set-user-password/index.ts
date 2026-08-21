@@ -331,9 +331,16 @@ Deno.serve(async (req) => {
 
       // email_confirm: la password impostata dal platform admin vale come
       // conferma dell'account (non tocca il flusso di conferma standard).
+      // must_set_password viene azzerato: l'utente ha ora una password propria,
+      // altrimenti resterebbe bloccato sul gate /set-password a vita.
+      const { data: current } = await admin.auth.admin.getUserById(targetId)
       const { data: updated, error: uErr } = await admin.auth.admin.updateUserById(targetId, {
         password: newPassword,
         email_confirm: true,
+        user_metadata: {
+          ...(current?.user?.user_metadata ?? {}),
+          must_set_password: false,
+        },
       })
       if (uErr) return json({ error: uErr.message }, 400)
 
