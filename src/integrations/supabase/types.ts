@@ -3065,6 +3065,24 @@ export type Database = {
       }
       org_active_project_count: { Args: { p_org: string }; Returns: number }
       org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
+      org_chart_scope: {
+        Args: { p_org: string }
+        Returns: {
+          base_role: Database["public"]["Enums"]["app_role"]
+          can_edit: boolean
+          id: string
+          is_ancestor: boolean
+          manager_id: string
+          notes: string
+          organization_id: string
+          sort_order: number
+          team_id: string
+          title: string
+          user_id: string
+          x: number
+          y: number
+        }[]
+      }
       org_primary_email_domain: { Args: { p_org: string }; Returns: string }
       org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
       org_reports: {
