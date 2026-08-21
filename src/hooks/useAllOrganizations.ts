@@ -1,6 +1,6 @@
 /**
  * useAllOrganizations — admin-only view of every organization on the platform.
- * Backed by RPC admin_list_all_orgs which itself enforces has_role('admin').
+ * Backed by RPC admin_list_all_orgs which itself enforces is_platform_admin().
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
