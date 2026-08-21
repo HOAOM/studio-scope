@@ -85,6 +85,117 @@ export type Database = {
           },
         ]
       }
+      calendar_entries: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          end_time: string | null
+          entry_type: Database["public"]["Enums"]["calendar_entry_type"]
+          id: string
+          notes: string | null
+          organization_id: string
+          project_id: string | null
+          start_date: string
+          start_time: string | null
+          status: Database["public"]["Enums"]["calendar_entry_status"]
+          supplier_id: string | null
+          task_id: string | null
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          end_date: string
+          end_time?: string | null
+          entry_type?: Database["public"]["Enums"]["calendar_entry_type"]
+          id?: string
+          notes?: string | null
+          organization_id: string
+          project_id?: string | null
+          start_date: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["calendar_entry_status"]
+          supplier_id?: string | null
+          task_id?: string | null
+          team_id?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          end_date?: string
+          end_time?: string | null
+          entry_type?: Database["public"]["Enums"]["calendar_entry_type"]
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          project_id?: string | null
+          start_date?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["calendar_entry_status"]
+          supplier_id?: string | null
+          task_id?: string | null
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_entries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_entries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_entries_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_boards: {
         Row: {
           created_at: string
@@ -860,6 +971,79 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      org_positions: {
+        Row: {
+          base_role: Database["public"]["Enums"]["app_role"] | null
+          created_at: string
+          created_by: string | null
+          id: string
+          manager_id: string | null
+          notes: string | null
+          organization_id: string
+          sort_order: number
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+          x: number
+          y: number
+        }
+        Insert: {
+          base_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manager_id?: string | null
+          notes?: string | null
+          organization_id: string
+          sort_order?: number
+          team_id?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string | null
+          x?: number
+          y?: number
+        }
+        Update: {
+          base_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manager_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          sort_order?: number
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_positions_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "org_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_positions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_positions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_domain_audit: {
         Row: {
@@ -2226,8 +2410,10 @@ export type Database = {
           country: string | null
           created_at: string
           created_by: string | null
+          default_team_id: string | null
           email: string | null
           id: string
+          is_subcontractor: boolean
           name: string
           notes: string | null
           organization_id: string
@@ -2242,8 +2428,10 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          default_team_id?: string | null
           email?: string | null
           id?: string
+          is_subcontractor?: boolean
           name: string
           notes?: string | null
           organization_id: string
@@ -2258,8 +2446,10 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          default_team_id?: string | null
           email?: string | null
           id?: string
+          is_subcontractor?: boolean
           name?: string
           notes?: string | null
           organization_id?: string
@@ -2268,6 +2458,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "suppliers_default_team_id_fkey"
+            columns: ["default_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "suppliers_organization_id_fkey"
             columns: ["organization_id"]
@@ -2300,6 +2497,107 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          member_role: Database["public"]["Enums"]["team_member_role"]
+          organization_id: string
+          team_id: string
+          updated_at: string
+          user_id: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_role?: Database["public"]["Enums"]["team_member_role"]
+          organization_id: string
+          team_id: string
+          updated_at?: string
+          user_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_role?: Database["public"]["Enums"]["team_member_role"]
+          organization_id?: string
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          code: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          discipline: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          discipline?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          discipline?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tier_limits: {
         Row: {
@@ -2534,6 +2832,27 @@ export type Database = {
           },
         ]
       }
+      v_calendar: {
+        Row: {
+          all_day: boolean | null
+          assignee_id: string | null
+          end_date: string | null
+          end_time: string | null
+          entry_type: string | null
+          id: string | null
+          organization_id: string | null
+          project_id: string | null
+          source: string | null
+          start_date: string | null
+          start_time: string | null
+          status: string | null
+          supplier_id: string | null
+          task_id: string | null
+          team_id: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_org_invite: { Args: { p_token: string }; Returns: Json }
@@ -2736,6 +3055,17 @@ export type Database = {
       org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
       org_primary_email_domain: { Args: { p_org: string }; Returns: string }
       org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
+      org_reports: {
+        Args: { p_include_self?: boolean; p_position: string }
+        Returns: {
+          depth: number
+          id: string
+          manager_id: string
+          organization_id: string
+          title: string
+          user_id: string
+        }[]
+      }
       org_role_user_count: {
         Args: { p_org: string; p_role: Database["public"]["Enums"]["app_role"] }
         Returns: number
@@ -2919,6 +3249,19 @@ export type Database = {
         | "low-voltage"
         | "sanitary"
       boq_coverage_status: "present" | "missing" | "to-confirm"
+      calendar_entry_status:
+        | "requested"
+        | "confirmed"
+        | "rejected"
+        | "cancelled"
+      calendar_entry_type:
+        | "work"
+        | "leave"
+        | "permit"
+        | "sick"
+        | "travel"
+        | "holiday"
+        | "other"
       item_lifecycle_status:
         | "draft"
         | "estimated"
@@ -2971,6 +3314,7 @@ export type Database = {
         | "closing"
         | "custom"
       task_status: "todo" | "in_progress" | "done" | "blocked"
+      team_member_role: "member" | "lead"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3131,6 +3475,21 @@ export const Constants = {
         "sanitary",
       ],
       boq_coverage_status: ["present", "missing", "to-confirm"],
+      calendar_entry_status: [
+        "requested",
+        "confirmed",
+        "rejected",
+        "cancelled",
+      ],
+      calendar_entry_type: [
+        "work",
+        "leave",
+        "permit",
+        "sick",
+        "travel",
+        "holiday",
+        "other",
+      ],
       item_lifecycle_status: [
         "draft",
         "estimated",
@@ -3186,6 +3545,7 @@ export const Constants = {
         "custom",
       ],
       task_status: ["todo", "in_progress", "done", "blocked"],
+      team_member_role: ["member", "lead"],
     },
   },
 } as const
