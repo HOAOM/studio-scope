@@ -13,8 +13,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Camera, Save, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Camera, Save, User, Check, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+
 
 export default function UserProfile() {
   const { user } = useAuth();
@@ -24,6 +25,8 @@ export default function UserProfile() {
   const resolvedAvatarUrl = useFileUrl(avatarUrl);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) return;
@@ -50,9 +53,11 @@ export default function UserProfile() {
         .eq('id', user.id);
       if (error) throw error;
       toast.success('Profile updated');
+      setSaved(true);
     } catch { toast.error('Failed to update profile'); }
     setLoading(false);
   };
+
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) return;
@@ -146,9 +151,10 @@ export default function UserProfile() {
               <Label>Display Name</Label>
               <Input
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => { setDisplayName(e.target.value); setSaved(false); }}
                 placeholder="Your name"
               />
+
             </div>
 
             {/* Email (read-only) */}
@@ -157,10 +163,23 @@ export default function UserProfile() {
               <Input value={user?.email || ''} disabled className="bg-muted" />
             </div>
 
-            <Button onClick={handleSave} disabled={loading}>
-              <Save className="w-4 h-4 mr-2" />
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={handleSave} disabled={loading}>
+                <Save className="w-4 h-4 mr-2" />
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/')}>
+                <X className="w-4 h-4 mr-2" />
+                Close
+              </Button>
+              {saved && !loading && (
+                <span className="flex items-center gap-1 text-sm text-emerald-500">
+                  <Check className="w-4 h-4" />
+                  Saved
+                </span>
+              )}
+            </div>
+
           </CardContent>
         </Card>
       </main>
