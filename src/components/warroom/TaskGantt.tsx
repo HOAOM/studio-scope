@@ -107,8 +107,20 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     }));
 
     const itemRows = itemsToRows(items, projectStartDate, projectEndDate, linkedTasks);
-    return [...freeTaskRows, ...itemRows];
-  }, [tasks, items, projectStartDate, projectEndDate]);
+
+    // Mark rows executed by an external subcontractor (suppliers.is_subcontractor)
+    const supplierByItem = new Map(items.map(i => [i.id, (i.supplier || '').trim().toLowerCase()]));
+    const extByName = new Map(
+      subcontractors.map(s => [s.name.trim().toLowerCase(), s.name] as const),
+    );
+    const withExternal = itemRows.map(r => {
+      const key = r.itemId ? supplierByItem.get(r.itemId) : undefined;
+      const match = key ? extByName.get(key) : undefined;
+      return match ? { ...r, isExternal: true, externalName: match } : r;
+    });
+
+    return [...freeTaskRows, ...withExternal];
+  }, [tasks, items, projectStartDate, projectEndDate, subcontractors]);
 
   /* ── Filter ── */
   const filteredRows = useMemo(() => {
