@@ -29,7 +29,6 @@ import { SupplierManagement } from '@/components/admin/SupplierManagement';
 import { AuditLogPanel } from '@/components/admin/AuditLogPanel';
 import { MembersPanel } from '@/components/admin/MembersPanel';
 import { ProjectAssignmentsPanel } from '@/components/admin/ProjectAssignmentsPanel';
-import { OrgChartPanel } from '@/components/admin/OrgChartPanel';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -125,7 +124,16 @@ export default function AdminPanel() {
           </TabsContent>
 
           <TabsContent value="orgchart">
-            <OrgChartPanel />
+            <div className="rounded-lg border border-border bg-card p-6 space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Organigramma</h3>
+              <p className="text-xs text-muted-foreground max-w-xl">
+                L'organigramma ha ora una pagina dedicata a schermo intero, con ricerca, filtro squadra,
+                auto-layout e pannello di modifica laterale.
+              </p>
+              <Button size="sm" onClick={() => navigate('/org-chart')}>
+                Apri organigramma
+              </Button>
+            </div>
           </TabsContent>
 
 

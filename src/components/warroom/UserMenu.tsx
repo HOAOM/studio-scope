@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, MessageSquare, LogOut, Shield, Crown, CalendarDays } from 'lucide-react';
+import { User, MessageSquare, LogOut, Shield, Crown, CalendarDays, Network } from 'lucide-react';
 import { NotificationBell } from '@/components/warroom/NotificationBell';
 import { OrgSwitcher } from '@/components/layout/OrgSwitcher';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,6 +100,10 @@ export function UserMenu() {
           <DropdownMenuItem onClick={() => navigate('/calendar')} className="cursor-pointer">
             <CalendarDays className="w-4 h-4 mr-2" />
             Calendario
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/org-chart')} className="cursor-pointer">
+            <Network className="w-4 h-4 mr-2" />
+            Organigramma
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
             <User className="w-4 h-4 mr-2" />

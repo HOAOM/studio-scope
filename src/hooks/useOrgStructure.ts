@@ -129,7 +129,10 @@ export function useOrgDirectory() {
 function useInvalidatePositions() {
   const qc = useQueryClient();
   const { activeId } = useActiveOrg();
-  return () => qc.invalidateQueries({ queryKey: ['org-positions', activeId] });
+  return () => {
+    qc.invalidateQueries({ queryKey: ['org-positions', activeId] });
+    qc.invalidateQueries({ queryKey: ['org-chart-scope', activeId] });
+  };
 }
 
 export function useUpsertPosition() {
@@ -193,5 +196,48 @@ export function useSubcontractors() {
       if (error) throw error;
       return (data || []) as { id: string; name: string; is_subcontractor: boolean; default_team_id: string | null }[];
     },
+  });
+}
+
+/** Position visible to the current user, as computed server-side by org_chart_scope(). */
+export interface ScopedPosition extends OrgPosition {
+  /** true when the row is only part of the upward command line (read-only, dimmed) */
+  is_ancestor: boolean;
+  /** true when the current user may edit this position (mirrors can_manage_member) */
+  can_edit: boolean;
+}
+
+/**
+ * Positions visible to the current user (admin => whole org, otherwise own
+ * subtree + upward command line). Filtering happens inside the RPC.
+ */
+export function useOrgChartScope() {
+  const { activeId } = useActiveOrg();
+  return useQuery({
+    queryKey: ['org-chart-scope', activeId],
+    enabled: !!activeId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('org_chart_scope', { p_org: activeId });
+      if (error) throw error;
+      return (Array.isArray(data) ? data : []) as ScopedPosition[];
+    },
+  });
+}
+
+/** Update display_name / avatar_url of a profile (admins, or your own profile). */
+export function useUpdateProfileFields() {
+  const qc = useQueryClient();
+  const { activeId } = useActiveOrg();
+  return useMutation({
+    mutationFn: async ({ id, display_name, avatar_url }: { id: string; display_name?: string; avatar_url?: string | null }) => {
+      const patch: Record<string, unknown> = {};
+      if (display_name !== undefined) patch.display_name = display_name;
+      if (avatar_url !== undefined) patch.avatar_url = avatar_url;
+      if (!Object.keys(patch).length) return;
+      const { error } = await sb.from('profiles').update(patch).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['org-profiles', activeId] }),
   });
 }

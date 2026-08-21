@@ -16,6 +16,7 @@ import SetPassword from "./pages/SetPassword";
 import SuperAdmin from "./pages/SuperAdmin";
 import SsoLogin from "./pages/SsoLogin";
 import CalendarPage from "./pages/CalendarPage";
+import OrgChartPage from "./pages/OrgChartPage";
 import { Loader2 } from "lucide-react";
 
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
@@ -149,6 +150,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CalendarPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/org-chart"
+              element={
+                <ProtectedRoute>
+                  <OrgChartPage />
                 </ProtectedRoute>
               }
             />
