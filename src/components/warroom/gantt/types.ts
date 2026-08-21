@@ -74,6 +74,10 @@ export interface GanttRow {
   noteCount?: number;
   /** Item category */
   category?: string;
+  /** Work executed by an external subcontractor (suppliers.is_subcontractor) */
+  isExternal?: boolean;
+  /** Subcontractor display name */
+  externalName?: string;
 }
 
 export interface TimelineColumn {
