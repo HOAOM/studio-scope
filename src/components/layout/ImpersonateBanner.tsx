@@ -38,13 +38,28 @@ export async function startImpersonation(orgId: string, reason = 'super-admin vi
   setImpersonatedOrg(orgId);
 }
 
-/** Closes every open impersonation session and restores the admin's own org. */
-export async function stopImpersonation() {
-  await (supabase as any).rpc('platform_impersonation_end_all');
+/**
+ * Pulizia SINCRONA di tutto lo stato locale di impersonazione.
+ * Va chiamata anche al logout: senza questa, la chiave
+ * `studioscope.impersonateOrgId` (e l'org attiva impersonata) sopravviveva
+ * alla sessione e al login successivo, lasciando l'app in uno stato ibrido.
+ */
+export function clearImpersonationState() {
+  localStorage.removeItem(IMPERSONATE_KEY);
   localStorage.removeItem(ACTIVE_ORG_KEY);
   window.dispatchEvent(new Event(ACTIVE_ORG_EVENT));
-  setImpersonatedOrg(null);
+  window.dispatchEvent(new Event('studioscope.impersonate-change'));
 }
+
+/** Closes every open impersonation session and restores the admin's own org. */
+export async function stopImpersonation() {
+  try {
+    await (supabase as any).rpc('platform_impersonation_end_all');
+  } finally {
+    clearImpersonationState();
+  }
+}
+
 
 
 export function useImpersonatedOrgId() {

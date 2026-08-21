@@ -21,6 +21,11 @@ import { consumeSessionKillMessage } from '@/lib/sessionGuard';
 export const LOGIN_GENERIC_ERROR = 'Email o password non validi';
 /** Flag impostato da TenantGuard quando nega l'accesso su dominio tenant. */
 export const LOGIN_DENIED_FLAG = 'ss.login-denied';
+/** Messaggio distinto: credenziali valide ma account senza alcuna organizzazione. */
+export const LOGIN_NO_ORG_ERROR =
+  'Account senza organizzazione collegata. Contatta l\u2019amministratore del tuo studio.';
+/** Flag impostato da TenantGuard quando l'utente non ha alcuna membership. */
+export const LOGIN_NO_ORG_FLAG = 'ss.login-no-org';
 
 const authSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -41,7 +46,11 @@ export default function Auth() {
   useEffect(() => {
     const killed = consumeSessionKillMessage();
     if (killed) toast.error(killed, { duration: 10000 });
-    if (localStorage.getItem(LOGIN_DENIED_FLAG)) {
+    if (localStorage.getItem(LOGIN_NO_ORG_FLAG)) {
+      localStorage.removeItem(LOGIN_NO_ORG_FLAG);
+      localStorage.removeItem(LOGIN_DENIED_FLAG);
+      setFormError(LOGIN_NO_ORG_ERROR);
+    } else if (localStorage.getItem(LOGIN_DENIED_FLAG)) {
       localStorage.removeItem(LOGIN_DENIED_FLAG);
       setFormError(LOGIN_GENERIC_ERROR);
     }
@@ -95,8 +104,19 @@ export default function Auth() {
           belongs = !memberError && !!data;
         }
         if (!belongs) {
+          // Distinzione: nessuna membership in NESSUNA org = account orfano
+          // (messaggio esplicito). Membership altrove ma non su questo dominio
+          // = messaggio generico, per non rivelare l'esistenza dell'account.
+          let anyOrg = 0;
+          if (auth.user) {
+            const { count } = await supabase
+              .from('organization_members')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', auth.user.id);
+            anyOrg = count ?? 0;
+          }
           await signOut();
-          setFormError(LOGIN_GENERIC_ERROR);
+          setFormError(anyOrg === 0 ? LOGIN_NO_ORG_ERROR : LOGIN_GENERIC_ERROR);
           return;
         }
       }

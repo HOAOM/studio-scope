@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { registerLogin, closeLoginSessions, startSessionWatch } from '@/lib/sessionGuard';
+import { clearImpersonationState } from '@/components/layout/ImpersonateBanner';
 
 
 interface AuthContextType {
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN' && session) {
           setTimeout(() => { registerLogin(session); }, 0);
         }
-        if (event === 'SIGNED_OUT') watch(null);
+        if (event === 'SIGNED_OUT') { watch(null); clearImpersonationState(); }
         else if (session) watch(session);
       }
     );
@@ -78,6 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await closeLoginSessions();
+    // Chiude le sessioni di impersonazione aperte lato DB e ripulisce SEMPRE
+    // lo stato locale (impersonateOrgId + activeOrgId): altrimenti restava
+    // residuo tra un login e l'altro sullo stesso browser.
+    try {
+      await (supabase as any).rpc('platform_impersonation_end_all');
+    } catch {
+      /* best effort: l'utente non platform admin non ha permessi */
+    }
+    clearImpersonationState();
     await supabase.auth.signOut();
   };
 

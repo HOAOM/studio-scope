@@ -11,10 +11,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { useNavigate } from 'react-router-dom';
+import { useImpersonatedOrgId } from '@/components/layout/ImpersonateBanner';
 
 export function OrgSwitcher() {
-  const { orgs, activeOrg, setActiveOrg, isLoading } = useActiveOrg();
+  const { orgs: allOrgs, activeOrg, setActiveOrg, isLoading } = useActiveOrg();
+  const impersonateId = useImpersonatedOrgId();
   const navigate = useNavigate();
+
+  // In modalità "View as" il selettore è bloccato sull'org impersonata: le
+  // altre org (comprese quelle proprie del platform admin) non devono essere
+  // raggiungibili senza prima uscire dall'impersonazione.
+  const orgs = impersonateId
+    ? allOrgs.filter((o) => o.organization_id === impersonateId)
+    : allOrgs;
 
   if (isLoading) return null;
   if (orgs.length === 0) {
