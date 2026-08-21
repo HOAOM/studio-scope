@@ -24,6 +24,8 @@ export default function UserProfile() {
   const resolvedAvatarUrl = useFileUrl(avatarUrl);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) return;
@@ -50,9 +52,11 @@ export default function UserProfile() {
         .eq('id', user.id);
       if (error) throw error;
       toast.success('Profile updated');
+      setSaved(true);
     } catch { toast.error('Failed to update profile'); }
     setLoading(false);
   };
+
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) return;
