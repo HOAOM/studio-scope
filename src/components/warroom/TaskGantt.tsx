@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { useProjectMilestones, ProjectMilestone } from '@/hooks/useMilestones';
 import { GanttRow as GanttRowType, DragState, ZoomLevel, QuickFilter } from './gantt/types';
+import { useSubcontractors } from '@/hooks/useOrgStructure';
 import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES, ROLE_RESPONSIBILITY_STATUSES } from './gantt/constants';
 import { calcTaskProgress, itemsToRows, computeTimelineRange, computeColumns, computeMonthColumns, groupRows, dayToPercent } from './gantt/helpers';
 import { GanttGroupHeader } from './gantt/GanttGroupHeader';
