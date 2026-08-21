@@ -199,6 +199,18 @@ Deno.serve(async (req) => {
     });
     emailSent = !inviteErr;
   } else {
+    // Caso limite: utente già esistente ma senza password propria (creato da un
+    // invito precedente mai completato). Rimettiamo il flag così il gate
+    // /set-password lo obbliga a crearne una dopo il magic link.
+    const { data: hasPassword } = await admin.rpc("user_has_password", {
+      _user_id: existingUserId,
+    });
+    if (hasPassword === false) {
+      await admin.auth.admin.updateUserById(existingUserId, {
+        user_metadata: { must_set_password: true },
+      });
+    }
+
     const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
