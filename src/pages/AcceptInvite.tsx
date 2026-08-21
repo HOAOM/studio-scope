@@ -84,6 +84,8 @@ export default function AcceptInvite() {
     })();
   }, [token]);
 
+  const mustSetPassword = (user?.user_metadata as any)?.must_set_password === true;
+
   const accept = async () => {
     if (!token) return;
     setAccepting(true);
