@@ -239,6 +239,7 @@ function humanError(code: string): string {
   switch (code) {
     case 'missing_token': return 'No invite token provided.';
     case 'invite_not_found': return 'Invite link not valid.';
+    case 'invite_link_expired': return 'Il link di accesso è scaduto o già usato. Accedi con email e password, oppure chiedi un nuovo invito.';
     case 'invite_expired': return 'This invite has expired. Ask the organization owner for a new one.';
     case 'invite_accepted': return 'This invite has already been accepted.';
     case 'invite_revoked': return 'This invite was revoked.';
