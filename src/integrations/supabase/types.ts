@@ -2896,6 +2896,10 @@ export type Database = {
         Returns: boolean
       }
       can_access_project_file: { Args: { p_name: string }; Returns: boolean }
+      can_manage_member: {
+        Args: { _actor: string; _org: string; _target: string }
+        Returns: boolean
+      }
       can_see_costs: { Args: never; Returns: boolean }
       close_login_sessions: { Args: { p_reason?: string }; Returns: undefined }
       delete_email: {
@@ -3010,6 +3014,10 @@ export type Database = {
       }
       impersonating_org: { Args: never; Returns: string }
       is_admin_in_shared_org: { Args: { _target: string }; Returns: boolean }
+      is_direct_manager_of: {
+        Args: { _actor: string; _org: string; _target: string }
+        Returns: boolean
+      }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
@@ -3021,6 +3029,10 @@ export type Database = {
       is_project_org_admin: { Args: { p_project: string }; Returns: boolean }
       is_project_org_owner: { Args: { p_project_id: string }; Returns: boolean }
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean }
+      is_team_lead_of: {
+        Args: { _actor: string; _org: string; _target: string }
+        Returns: boolean
+      }
       is_user_project_member: {
         Args: { p_project: string; p_user: string }
         Returns: boolean
