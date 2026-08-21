@@ -123,6 +123,11 @@ export default function AdminPanel() {
             <ProjectAssignmentsPanel />
           </TabsContent>
 
+          <TabsContent value="orgchart">
+            <OrgChartPanel />
+          </TabsContent>
+
+
 
           <TabsContent value="floors">
             <Card className="bg-card border-border">
