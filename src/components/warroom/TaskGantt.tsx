@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { useProjectMilestones, ProjectMilestone } from '@/hooks/useMilestones';
 import { GanttRow as GanttRowType, DragState, ZoomLevel, QuickFilter } from './gantt/types';
+import { useSubcontractors } from '@/hooks/useOrgStructure';
 import { LEFT_PANEL_WIDTH, ROW_HEIGHT, ITEM_PHASE_STYLES, ROLE_RESPONSIBILITY_STATUSES } from './gantt/constants';
 import { calcTaskProgress, itemsToRows, computeTimelineRange, computeColumns, computeMonthColumns, groupRows, dayToPercent } from './gantt/helpers';
 import { GanttGroupHeader } from './gantt/GanttGroupHeader';
@@ -50,6 +51,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const { roles: userRoles } = useUserRole();
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const { data: milestones = [] } = useProjectMilestones(projectId);
+  const { data: subcontractors = [] } = useSubcontractors();
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
 
@@ -107,8 +109,20 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
     }));
 
     const itemRows = itemsToRows(items, projectStartDate, projectEndDate, linkedTasks);
-    return [...freeTaskRows, ...itemRows];
-  }, [tasks, items, projectStartDate, projectEndDate]);
+
+    // Mark rows executed by an external subcontractor (suppliers.is_subcontractor)
+    const supplierByItem = new Map(items.map(i => [i.id, (i.supplier || '').trim().toLowerCase()]));
+    const extByName = new Map<string, string>(
+      subcontractors.map((s: { name: string }) => [s.name.trim().toLowerCase(), s.name]),
+    );
+    const withExternal: GanttRowType[] = itemRows.map(r => {
+      const key = r.itemId ? supplierByItem.get(r.itemId) : undefined;
+      const match = key ? extByName.get(key) : undefined;
+      return match ? { ...r, isExternal: true, externalName: match } : r;
+    });
+
+    return [...freeTaskRows, ...withExternal];
+  }, [tasks, items, projectStartDate, projectEndDate, subcontractors]);
 
   /* ── Filter ── */
   const filteredRows = useMemo(() => {

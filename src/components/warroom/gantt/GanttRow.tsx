@@ -135,6 +135,14 @@ export function GanttRowComponent({
               {row.type === 'item' ? (row.sublabel || row.label) : row.label}
             </p>
           </div>
+          {row.isExternal && (
+            <span
+              className="text-[7px] font-bold px-1 py-px rounded border leading-tight flex-shrink-0 bg-orange-500/15 text-orange-500 border-orange-500/30"
+              title={row.externalName ? `Subappaltatore: ${row.externalName}` : 'Subappaltatore esterno'}
+            >
+              EXT
+            </span>
+          )}
           <ItemTags tags={row.tags} revisionNumber={row.revisionNumber} />
           
           {/* Task/note indicators */}

@@ -29,6 +29,7 @@ import { SupplierManagement } from '@/components/admin/SupplierManagement';
 import { AuditLogPanel } from '@/components/admin/AuditLogPanel';
 import { MembersPanel } from '@/components/admin/MembersPanel';
 import { ProjectAssignmentsPanel } from '@/components/admin/ProjectAssignmentsPanel';
+import { OrgChartPanel } from '@/components/admin/OrgChartPanel';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -102,6 +103,7 @@ export default function AdminPanel() {
           <TabsList className="bg-secondary flex-wrap h-auto">
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="assignments">Assegnazioni progetto</TabsTrigger>
+            <TabsTrigger value="orgchart">Organigramma</TabsTrigger>
             <TabsTrigger value="floors">Floors</TabsTrigger>
             <TabsTrigger value="rooms">Rooms</TabsTrigger>
             <TabsTrigger value="types">Item Types</TabsTrigger>
@@ -121,6 +123,11 @@ export default function AdminPanel() {
           <TabsContent value="assignments">
             <ProjectAssignmentsPanel />
           </TabsContent>
+
+          <TabsContent value="orgchart">
+            <OrgChartPanel />
+          </TabsContent>
+
 
 
           <TabsContent value="floors">

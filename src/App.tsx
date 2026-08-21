@@ -15,6 +15,7 @@ import AcceptInvite from "./pages/AcceptInvite";
 import SetPassword from "./pages/SetPassword";
 import SuperAdmin from "./pages/SuperAdmin";
 import SsoLogin from "./pages/SsoLogin";
+import CalendarPage from "./pages/CalendarPage";
 import { Loader2 } from "lucide-react";
 
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
@@ -140,6 +141,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <UserProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <CalendarPage />
                 </ProtectedRoute>
               }
             />
