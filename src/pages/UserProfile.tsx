@@ -162,10 +162,23 @@ export default function UserProfile() {
               <Input value={user?.email || ''} disabled className="bg-muted" />
             </div>
 
-            <Button onClick={handleSave} disabled={loading}>
-              <Save className="w-4 h-4 mr-2" />
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={handleSave} disabled={loading}>
+                <Save className="w-4 h-4 mr-2" />
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/')}>
+                <X className="w-4 h-4 mr-2" />
+                Close
+              </Button>
+              {saved && !loading && (
+                <span className="flex items-center gap-1 text-sm text-emerald-500">
+                  <Check className="w-4 h-4" />
+                  Saved
+                </span>
+              )}
+            </div>
+
           </CardContent>
         </Card>
       </main>
