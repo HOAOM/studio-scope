@@ -13,8 +13,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Camera, Save, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Camera, Save, User, Check, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+
 
 export default function UserProfile() {
   const { user } = useAuth();
