@@ -50,6 +50,7 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
   const { roles: userRoles } = useUserRole();
   const { data: tasks = [], isLoading } = useProjectTasks(projectId);
   const { data: milestones = [] } = useProjectMilestones(projectId);
+  const { data: subcontractors = [] } = useSubcontractors();
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
 
