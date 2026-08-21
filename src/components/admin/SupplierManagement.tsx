@@ -53,6 +53,7 @@ export function SupplierManagement() {
                 <th className="text-left p-3">Nome</th>
                 <th className="text-left p-3">Referente</th>
                 <th className="text-left p-3">Email</th>
+                <th className="text-left p-3">Tipo</th>
                 <th className="text-left p-3">Categorie</th>
                 <th className="text-left p-3">Rating</th>
                 <th className="text-right p-3">Azioni</th>
@@ -64,6 +65,13 @@ export function SupplierManagement() {
                   <td className="p-3 font-medium">{s.name}</td>
                   <td className="p-3 text-muted-foreground">{s.contact_person || '—'}</td>
                   <td className="p-3 text-muted-foreground">{s.email || '—'}</td>
+                  <td className="p-3">
+                    {s.is_subcontractor ? (
+                      <Badge variant="outline" className="text-[10px] border-orange-500/50 text-orange-400 bg-orange-500/10">EXT</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1">
                       {s.categories?.slice(0, 3).map(c => <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>)}

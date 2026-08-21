@@ -29,6 +29,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: Props) {
   });
   const [categories, setCategories] = useState<string[]>([]);
   const [rating, setRating] = useState(0);
+  const [isSubcontractor, setIsSubcontractor] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -43,6 +44,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: Props) {
       });
       setCategories(supplier?.categories || []);
       setRating(supplier?.rating || 0);
+      setIsSubcontractor(supplier?.is_subcontractor ?? false);
     }
   }, [open, supplier]);
 
@@ -55,7 +57,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: Props) {
       toast.error('Il nome è obbligatorio');
       return;
     }
-    const payload = { ...form, categories, rating };
+    const payload = { ...form, categories, rating, is_subcontractor: isSubcontractor };
     try {
       if (isEdit && supplier) {
         await update.mutateAsync({ id: supplier.id, ...payload });
@@ -124,6 +126,20 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: Props) {
                 </button>
               ))}
               <span className="ml-2 text-xs text-muted-foreground">{rating}/5</span>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-md border border-border bg-secondary/40 p-3">
+            <Checkbox
+              id="is_subcontractor"
+              checked={isSubcontractor}
+              onCheckedChange={(checked) => setIsSubcontractor(checked === true)}
+            />
+            <div className="space-y-1 leading-none">
+              <Label htmlFor="is_subcontractor" className="cursor-pointer">Subappaltatore</Label>
+              <p className="text-xs text-muted-foreground">
+                Se attivo, il fornitore comparirà nel Gantt con badge EXT e potrà essere assegnato a squadre esterne.
+              </p>
             </div>
           </div>
 

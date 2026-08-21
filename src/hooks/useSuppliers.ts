@@ -14,6 +14,7 @@ export interface Supplier {
   categories: string[];
   rating: number;
   notes: string | null;
+  is_subcontractor: boolean;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
