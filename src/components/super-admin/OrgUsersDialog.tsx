@@ -63,20 +63,7 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
   const [reason, setReason] = useState('');
   const [inviting, setInviting] = useState(false);
 
-  // Quota del tier per il ruolo selezionato nel form "Aggiungi utente"
-  const { data: quota } = useQuery({
-    queryKey: ['org-role-quota', orgId, newRole],
-    enabled: open && adding,
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-set-user-password', {
-        body: { action: 'role_quota', organization_id: orgId, role: newRole },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as { used: number; max: number | null; full: boolean };
-    },
-  });
-
+  // Membri + inviti + quote di tier: UNA sola chiamata edge function
   const { data, isLoading } = useQuery({
     queryKey: ['org-members-admin', orgId],
     enabled: open,
@@ -89,11 +76,25 @@ export function OrgUsersDialog({ orgId, orgName }: { orgId: string; orgName: str
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return data as { members: Member[]; invites: Invite[] };
+      return data as {
+        members: Member[];
+        invites: Invite[];
+        role_counts: Record<string, number>;
+        max_users_per_role: number | null;
+      };
     },
   });
   const members = data?.members ?? [];
   const invites = data?.invites ?? [];
+
+  // Quota del ruolo selezionato, derivata dai dati gia' caricati
+  const quota = data
+    ? (() => {
+        const used = data.role_counts?.[newRole] ?? 0;
+        const max = data.max_users_per_role ?? null;
+        return { used, max, full: max !== null && used >= max };
+      })()
+    : undefined;
 
   const submit = async (userId: string) => {
     if (password.length < 8) {
