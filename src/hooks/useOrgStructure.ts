@@ -108,7 +108,7 @@ export function useOrgPositions() {
 export function useOrgDirectory() {
   const { activeId } = useActiveOrg();
   return useQuery({
-    queryKey: ['org-directory', activeId],
+    queryKey: ['org-profiles', activeId],
     enabled: !!activeId,
     staleTime: 5 * 60_000,
     queryFn: async () => {
