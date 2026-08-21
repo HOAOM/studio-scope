@@ -97,6 +97,10 @@ export function UserMenu() {
               </Badge>
             )}
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/calendar')} className="cursor-pointer">
+            <CalendarDays className="w-4 h-4 mr-2" />
+            Calendario
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
             <User className="w-4 h-4 mr-2" />
             Profile
