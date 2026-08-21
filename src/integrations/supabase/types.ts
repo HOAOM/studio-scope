@@ -3005,13 +3005,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
       impersonating_org: { Args: never; Returns: string }
       is_admin_in_shared_org: { Args: { _target: string }; Returns: boolean }
       is_direct_manager_of: {
