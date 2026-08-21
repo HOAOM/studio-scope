@@ -4,7 +4,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { LOGIN_DENIED_FLAG } from '@/pages/Auth';
+import { LOGIN_DENIED_FLAG, LOGIN_NO_ORG_FLAG } from '@/pages/Auth';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,10 +62,21 @@ export function TenantGuard({ children }: { children: ReactNode }) {
   // lo stesso identico messaggio generico di password errata.
   useEffect(() => {
     if (tenant && realMember === false) {
-      localStorage.setItem(LOGIN_DENIED_FLAG, '1');
-      void signOut().finally(() => {
+      void (async () => {
+        const { data: auth } = await supabase.auth.getUser();
+        let anyOrg = 0;
+        if (auth.user) {
+          const { count } = await supabase
+            .from('organization_members')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', auth.user.id);
+          anyOrg = count ?? 0;
+        }
+        if (anyOrg === 0) localStorage.setItem(LOGIN_NO_ORG_FLAG, '1');
+        else localStorage.setItem(LOGIN_DENIED_FLAG, '1');
+        await signOut().catch(() => {});
         window.location.replace('/auth');
-      });
+      })();
     }
   }, [tenant, realMember, signOut]);
 
