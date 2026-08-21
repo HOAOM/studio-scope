@@ -56,21 +56,29 @@ export function useActiveOrg() {
     };
   }, []);
 
-  // Auto-pick first org if nothing selected
+  // Auto-pick first org if nothing selected / selezione non più valida.
+  // La risoluzione avviene anche in modo SINCRONO qui sotto (resolvedId) per
+  // evitare il flash con l'org precedente prima che l'effect giri.
+  const storedValid = !!orgs && orgs.some((o) => o.organization_id === activeId);
+  const resolvedId = orgs && orgs.length > 0
+    ? (storedValid ? activeId : orgs[0].organization_id)
+    : activeId;
+
   useEffect(() => {
     if (!orgs || orgs.length === 0) return;
-    if (!activeId || !orgs.find((o) => o.organization_id === activeId)) {
-      writeActiveOrg(orgs[0].organization_id);
-      setActiveIdState(orgs[0].organization_id);
+    if (resolvedId && resolvedId !== activeId) {
+      writeActiveOrg(resolvedId);
+      setActiveIdState(resolvedId);
     }
-  }, [orgs, activeId]);
+  }, [orgs, activeId, resolvedId]);
 
   const setActiveOrg = useCallback((id: string) => {
     writeActiveOrg(id);
     setActiveIdState(id);
   }, []);
 
-  const activeOrg = orgs?.find((o) => o.organization_id === activeId) ?? null;
-  return { orgs: orgs ?? [], activeOrg, activeId, setActiveOrg, isLoading };
+  const activeOrg = orgs?.find((o) => o.organization_id === resolvedId) ?? null;
+  return { orgs: orgs ?? [], activeOrg, activeId: resolvedId, setActiveOrg, isLoading };
 }
+
 
