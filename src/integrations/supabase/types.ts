@@ -3202,6 +3202,7 @@ export type Database = {
         Returns: number
       }
       touch_login_session: { Args: { p_session_id: string }; Returns: boolean }
+      user_has_password: { Args: { _user_id: string }; Returns: boolean }
       users_share_org: { Args: { _a: string; _b: string }; Returns: boolean }
       validate_discount: {
         Args: {
