@@ -111,10 +111,10 @@ export function TaskGantt({ projectId, projectStartDate, projectEndDate, items =
 
     // Mark rows executed by an external subcontractor (suppliers.is_subcontractor)
     const supplierByItem = new Map(items.map(i => [i.id, (i.supplier || '').trim().toLowerCase()]));
-    const extByName = new Map(
-      subcontractors.map(s => [s.name.trim().toLowerCase(), s.name] as const),
+    const extByName = new Map<string, string>(
+      subcontractors.map((s: { name: string }) => [s.name.trim().toLowerCase(), s.name]),
     );
-    const withExternal = itemRows.map(r => {
+    const withExternal: GanttRowType[] = itemRows.map(r => {
       const key = r.itemId ? supplierByItem.get(r.itemId) : undefined;
       const match = key ? extByName.get(key) : undefined;
       return match ? { ...r, isExternal: true, externalName: match } : r;
