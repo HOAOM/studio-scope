@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { registerLogin, closeLoginSessions, startSessionWatch } from '@/lib/sessionGuard';
 import { clearImpersonationState } from '@/components/layout/ImpersonateBanner';
 
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let stopWatch: (() => void) | null = null;
@@ -35,9 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
         if (event === 'SIGNED_IN' && session) {
+          queryClient.invalidateQueries({ queryKey: ['platform-admin-grade'] });
           setTimeout(() => { registerLogin(session); }, 0);
         }
-        if (event === 'SIGNED_OUT') { watch(null); clearImpersonationState(); }
+        if (event === 'SIGNED_OUT') { watch(null); clearImpersonationState(); queryClient.clear(); }
         else if (session) watch(session);
       }
     );
