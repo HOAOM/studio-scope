@@ -151,9 +151,10 @@ export default function UserProfile() {
               <Label>Display Name</Label>
               <Input
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => { setDisplayName(e.target.value); setSaved(false); }}
                 placeholder="Your name"
               />
+
             </div>
 
             {/* Email (read-only) */}
