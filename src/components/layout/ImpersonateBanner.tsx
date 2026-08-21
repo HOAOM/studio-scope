@@ -13,6 +13,7 @@ import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 
 export const IMPERSONATE_KEY = 'studioscope.impersonateOrgId';
 const ACTIVE_ORG_KEY = 'studioscope.activeOrgId';
+const ACTIVE_ORG_EVENT = 'studioscope.active-org-change';
 
 export function setImpersonatedOrg(id: string | null) {
   if (id) localStorage.setItem(IMPERSONATE_KEY, id);
@@ -33,6 +34,7 @@ export async function startImpersonation(orgId: string, reason = 'super-admin vi
   });
   if (error) throw error;
   localStorage.setItem(ACTIVE_ORG_KEY, orgId);
+  window.dispatchEvent(new Event(ACTIVE_ORG_EVENT));
   setImpersonatedOrg(orgId);
 }
 
@@ -40,6 +42,7 @@ export async function startImpersonation(orgId: string, reason = 'super-admin vi
 export async function stopImpersonation() {
   await (supabase as any).rpc('platform_impersonation_end_all');
   localStorage.removeItem(ACTIVE_ORG_KEY);
+  window.dispatchEvent(new Event(ACTIVE_ORG_EVENT));
   setImpersonatedOrg(null);
 }
 
