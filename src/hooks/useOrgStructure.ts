@@ -129,7 +129,10 @@ export function useOrgDirectory() {
 function useInvalidatePositions() {
   const qc = useQueryClient();
   const { activeId } = useActiveOrg();
-  return () => qc.invalidateQueries({ queryKey: ['org-positions', activeId] });
+  return () => {
+    qc.invalidateQueries({ queryKey: ['org-positions', activeId] });
+    qc.invalidateQueries({ queryKey: ['org-chart-scope', activeId] });
+  };
 }
 
 export function useUpsertPosition() {
