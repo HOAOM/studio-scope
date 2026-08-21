@@ -101,7 +101,9 @@ export default function AcceptInvite() {
         queryClient.invalidateQueries({ queryKey: ['projects'] }),
       ]);
       setDone(true);
-      setTimeout(() => navigate('/'), 1200);
+      // Se l'utente non ha ancora una password propria resta qui: il gate
+      // sottostante mostra SetPassword senza passare da ProtectedRoute.
+      if (!mustSetPassword) setTimeout(() => navigate('/'), 1200);
     } catch (e: any) {
       setError(e?.message ?? 'accept_failed');
     } finally {
@@ -110,12 +112,18 @@ export default function AcceptInvite() {
   };
 
   // Only block on auth when the invite preview is not ready yet.
-  if (loading && !peek && !error) {
+  if (verifying || (loading && !peek && !error)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin" />
       </div>
     );
+  }
+
+  // Gate password anche su questa rotta: l'utente entrato via link di invito
+  // deve creare la propria password prima di poter usare l'app.
+  if (user && mustSetPassword && (done || peek?.status === 'accepted')) {
+    return <SetPassword />;
   }
 
   return (
