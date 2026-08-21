@@ -102,6 +102,7 @@ export default function AdminPanel() {
           <TabsList className="bg-secondary flex-wrap h-auto">
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="assignments">Assegnazioni progetto</TabsTrigger>
+            <TabsTrigger value="orgchart">Organigramma</TabsTrigger>
             <TabsTrigger value="floors">Floors</TabsTrigger>
             <TabsTrigger value="rooms">Rooms</TabsTrigger>
             <TabsTrigger value="types">Item Types</TabsTrigger>
