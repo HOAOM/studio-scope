@@ -23,6 +23,9 @@ export function useAllOrganizations(enabled = true) {
   return useQuery<AllOrgRow[]>({
     queryKey: ['admin-all-orgs'],
     enabled,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('admin_list_all_orgs');
       if (error) throw error;
@@ -35,6 +38,9 @@ export function useGlobalMetrics(enabled = true) {
   return useQuery({
     queryKey: ['admin-global-metrics'],
     enabled,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('admin_global_metrics');
       if (error) throw error;
