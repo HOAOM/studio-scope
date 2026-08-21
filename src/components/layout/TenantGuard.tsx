@@ -69,13 +69,20 @@ export function TenantGuard({ children }: { children: ReactNode }) {
     }
   }, [tenant, realMember, signOut]);
 
-  if (tenantLoading || (tenant && (orgsLoading || memberLoading))) {
+  // Su dominio tenant non renderizziamo nulla finché l'org attiva non è
+  // ESATTAMENTE quella del tenant: altrimenti il primo paint userebbe l'org
+  // precedente in localStorage (flash con i progetti dell'altro studio).
+  const tenantOrgNotReady =
+    !!tenant && belongs && activeId !== tenant.organization_id;
+
+  if (tenantLoading || (tenant && (orgsLoading || memberLoading)) || tenantOrgNotReady) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
+
 
 
   if (tenant && !belongs) {
