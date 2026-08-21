@@ -29,6 +29,7 @@ import { SupplierManagement } from '@/components/admin/SupplierManagement';
 import { AuditLogPanel } from '@/components/admin/AuditLogPanel';
 import { MembersPanel } from '@/components/admin/MembersPanel';
 import { ProjectAssignmentsPanel } from '@/components/admin/ProjectAssignmentsPanel';
+import { OrgChartPanel } from '@/components/admin/OrgChartPanel';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
 
 type AppRole = Database['public']['Enums']['app_role'];
