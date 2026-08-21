@@ -129,6 +129,20 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: Props) {
             </div>
           </div>
 
+          <div className="flex items-start gap-3 rounded-md border border-border bg-secondary/40 p-3">
+            <Checkbox
+              id="is_subcontractor"
+              checked={isSubcontractor}
+              onCheckedChange={(checked) => setIsSubcontractor(checked === true)}
+            />
+            <div className="space-y-1 leading-none">
+              <Label htmlFor="is_subcontractor" className="cursor-pointer">Subappaltatore</Label>
+              <p className="text-xs text-muted-foreground">
+                Se attivo, il fornitore comparirà nel Gantt con badge EXT e potrà essere assegnato a squadre esterne.
+              </p>
+            </div>
+          </div>
+
           <div>
             <Label>Note interne</Label>
             <Textarea rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" />
