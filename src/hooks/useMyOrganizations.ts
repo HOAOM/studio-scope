@@ -71,6 +71,6 @@ export function useActiveOrg() {
   }, []);
 
   const activeOrg = orgs?.find((o) => o.organization_id === activeId) ?? null;
-  return { orgs, activeOrg, activeId, setActiveOrg, isLoading };
+  return { orgs: orgs ?? [], activeOrg, activeId, setActiveOrg, isLoading };
 }
 
