@@ -10,6 +10,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** true se il bootstrap auth non si è risolto entro il timeout */
+  bootstrapTimedOut: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -17,25 +19,44 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Oltre questa soglia mostriamo un messaggio esplicito invece dello spinner. */
+const BOOTSTRAP_TIMEOUT_MS = 10000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [bootstrapTimedOut, setBootstrapTimedOut] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     let stopWatch: (() => void) | null = null;
+    let settled = false;
     const watch = (s: Session | null) => {
       stopWatch?.();
       stopWatch = s ? startSessionWatch(s) : null;
     };
+    const settle = () => {
+      settled = true;
+      setLoading(false);
+      setBootstrapTimedOut(false);
+    };
+
+    // Rete bloccata / storage rotto / getSession che non risolve mai: evitiamo
+    // lo spinner infinito e lasciamo decidere all'utente.
+    const timer = window.setTimeout(() => {
+      if (!settled) {
+        setLoading(false);
+        setBootstrapTimedOut(true);
+      }
+    }, BOOTSTRAP_TIMEOUT_MS);
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        settle();
         if (event === 'SIGNED_IN' && session) {
           queryClient.invalidateQueries({ queryKey: ['platform-admin-grade'] });
           setTimeout(() => { registerLogin(session); }, 0);
@@ -47,18 +68,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (session) watch(session);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        settle();
+        if (session) watch(session);
+      })
+      .catch((e) => {
+        console.error('[auth] getSession failed', e);
+        setLoading(false);
+        setBootstrapTimedOut(true);
+      });
 
     return () => {
+      window.clearTimeout(timer);
       subscription.unsubscribe();
       stopWatch?.();
     };
   }, []);
+
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
