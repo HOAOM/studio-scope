@@ -12,6 +12,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requestSiteUrl } from "../_shared/orgSiteUrl.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
