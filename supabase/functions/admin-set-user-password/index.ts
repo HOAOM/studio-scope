@@ -10,6 +10,7 @@
  *  - set_password  { user_id, new_password }
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { orgSiteUrl } from '../_shared/orgSiteUrl.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
