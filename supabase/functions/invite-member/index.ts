@@ -14,7 +14,9 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
+import { orgSiteUrl } from "../_shared/orgSiteUrl.ts";
 import { getUnsubscribeToken } from "../_shared/unsubscribeToken.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -177,11 +179,12 @@ Deno.serve(async (req) => {
   }
 
 
-  // Resolve site URL for redirect
-  const origin = req.headers.get("origin") ?? req.headers.get("referer") ?? "";
-  const siteUrl = origin.replace(/\/$/, "") ||
-    Deno.env.get("SITE_URL") || "https://studio-scope.lovable.app";
+  // Host di atterraggio: SEMPRE quello dell'organizzazione che invita
+  // (custom_domain -> <slug>.<base> -> origin), mai l'origin dell'admin che
+  // per un platform admin sarebbe il dominio sbagliato.
+  const siteUrl = await orgSiteUrl(admin, organization_id, req);
   const acceptUrl = `${siteUrl}/accept-invite?token=${inviteToken}`;
+
 
   // Send magic link if user does not exist; otherwise send a real invite email
   // with a fresh magic link (re-invite after revoke, second organization, ...).

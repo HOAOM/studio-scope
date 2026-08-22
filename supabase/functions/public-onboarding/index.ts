@@ -12,6 +12,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requestSiteUrl } from "../_shared/orgSiteUrl.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -168,8 +169,11 @@ Deno.serve(async (req) => {
             409,
           );
         }
-        const originExisting = req.headers.get("origin") ?? "";
-        const siteUrlExisting = originExisting.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
+        // Onboarding: l'organizzazione non esiste ancora e il custom_domain
+        // scelto non ha ancora DNS attivo, quindi l'unico host sicuro e'
+        // quello del sito pubblico da cui arriva la richiesta (normalizzato
+        // a https://<host>, senza path/query).
+        const siteUrlExisting = requestSiteUrl(req);
         const anon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
           auth: { persistSession: false, autoRefreshToken: false },
         });
@@ -183,11 +187,11 @@ Deno.serve(async (req) => {
 
       // New address: l'invito admin crea l'account e invia l'email di attivazione
       // (bypassa il blocco della registrazione pubblica, che resta disattivata).
-      const originNew = req.headers.get("origin") ?? "";
-      const siteUrlNew = originNew.replace(/\/$/, "") || `https://${BASE_DOMAIN}`;
+      const siteUrlNew = requestSiteUrl(req);
       const { data: invited, error: cerr } = await sb.auth.admin.inviteUserByEmail(owner_email, {
         redirectTo: `${siteUrlNew}/reset-password`,
       });
+
 
       if (cerr || !invited?.user) {
         return json({ error: "user_create_failed", detail: cerr?.message ?? null }, 500);

@@ -10,6 +10,7 @@
  *  - set_password  { user_id, new_password }
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { orgSiteUrl } from '../_shared/orgSiteUrl.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -230,10 +231,11 @@ Deno.serve(async (req) => {
         }, { onConflict: 'user_id,role,organization_id' })
         if (roleErr) return json({ error: roleErr.message }, 400)
       } else {
-        // Invito: i flag viaggiano sull'invito e vengono propagati all'accettazione
-        const origin = req.headers.get('origin') ?? ''
-        const siteUrl = origin.replace(/\/$/, '') ||
-          Deno.env.get('SITE_URL') || 'https://studio-scope.lovable.app'
+        // Invito: i flag viaggiano sull'invito e vengono propagati all'accettazione.
+        // L'host e' quello dell'organizzazione invitante, non l'origin del
+        // platform admin (che sarebbe il pannello super-admin).
+        const siteUrl = await orgSiteUrl(admin, orgId, req)
+
 
         const { data: inv, error: invErr } = await admin
           .from('organization_invites')

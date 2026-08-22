@@ -12,6 +12,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
+import { orgSiteUrl } from "../_shared/orgSiteUrl.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -116,9 +117,7 @@ Deno.serve(async (req) => {
   }
 
   // 5. Magic link
-  const origin = req.headers.get("origin") ?? "";
-  const siteUrl = origin.replace(/\/$/, "") ||
-    Deno.env.get("SITE_URL") || "https://studio-scope.lovable.app";
+  const siteUrl = await orgSiteUrl(admin, org.id, req);
   let magic_link: string | null = null;
   if (send_invite_email) {
     const { data: link } = await admin.auth.admin.generateLink({
