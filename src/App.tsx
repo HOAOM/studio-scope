@@ -17,16 +17,42 @@ import SuperAdmin from "./pages/SuperAdmin";
 import SsoLogin from "./pages/SsoLogin";
 import CalendarPage from "./pages/CalendarPage";
 import OrgChartPage from "./pages/OrgChartPage";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
 import { TenantGuard } from "@/components/layout/TenantGuard";
+import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { usePermissions } from "@/hooks/usePermissions";
 
 const queryClient = new QueryClient();
 
+function AuthTimeoutScreen() {
+  return (
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+      <div className="w-full max-w-md space-y-4">
+        <div className="flex items-center gap-2 text-destructive">
+          <AlertTriangle className="w-5 h-5" />
+          <h1 className="text-lg font-semibold">Impossibile verificare la sessione</h1>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Il controllo dell'accesso non si è completato: può dipendere da una
+          connessione instabile o dal blocco dei dati di sessione nel browser
+          (navigazione privata o cookie di terze parti disattivati).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => window.location.reload()}>Riprova</Button>
+          <Button variant="outline" onClick={() => window.location.replace("/auth")}>
+            Vai al login
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, bootstrapTimedOut } = useAuth();
 
   if (loading) {
     return (
@@ -34,6 +60,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (bootstrapTimedOut && !user) {
+    return <AuthTimeoutScreen />;
   }
 
   if (!user) {
@@ -53,6 +83,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     </>
   );
 }
+
 
 
 function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
