@@ -14,7 +14,9 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
+import { orgSiteUrl } from "../_shared/orgSiteUrl.ts";
 import { getUnsubscribeToken } from "../_shared/unsubscribeToken.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
