@@ -10,9 +10,11 @@ import { Loader2, UserPlus, Trash2, KeyRound, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
+import { useActiveOrg } from '@/hooks/useMyOrganizations';
 
 type AppRole = Database['public']['Enums']['app_role'];
 const ROLES = Constants.public.Enums.app_role;
+
 
 interface Profile {
   id: string;
