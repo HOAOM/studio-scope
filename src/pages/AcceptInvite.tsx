@@ -86,6 +86,15 @@ export default function AcceptInvite() {
 
   const mustSetPassword = (user?.user_metadata as any)?.must_set_password === true;
 
+  // Redirect automatico non appena l'invito è accettato e il gate password è
+  // stato superato (o non era necessario). Non usare setTimeout dentro accept()
+  // perché mustSetPassword può cambiare dopo il render successivo a SetPassword.
+  useEffect(() => {
+    if (!done || mustSetPassword) return;
+    const t = setTimeout(() => navigate('/'), 1200);
+    return () => clearTimeout(t);
+  }, [done, mustSetPassword, navigate]);
+
   const accept = async () => {
     if (!token) return;
     setAccepting(true);
@@ -103,9 +112,6 @@ export default function AcceptInvite() {
         queryClient.invalidateQueries({ queryKey: ['projects'] }),
       ]);
       setDone(true);
-      // Se l'utente non ha ancora una password propria resta qui: il gate
-      // sottostante mostra SetPassword senza passare da ProtectedRoute.
-      if (!mustSetPassword) setTimeout(() => navigate('/'), 1200);
     } catch (e: any) {
       setError(e?.message ?? 'accept_failed');
     } finally {
