@@ -39,10 +39,52 @@ export function normalizeHost(raw: string | null | undefined): string | null {
   }
 }
 
+/**
+ * Domini radice accettabili come destinazione dei link email. Origin/Referer
+ * sono header controllabili dal client: senza allow-list un attaccante puo'
+ * far generare mail legittime con link verso un dominio suo (phishing).
+ */
+const ALLOWED_ROOT_HOSTS = [
+  "kroneel.com",
+  "amz.ee",
+  "denardi.eu",
+  "lovable.app",
+  "lovableproject.com",
+  "lovable.dev",
+  "localhost",
+  "127.0.0.1",
+];
+
+function allowedRoots(): string[] {
+  const extra = (envGet("ALLOWED_SITE_HOSTS") ?? "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  const base = (envGet("TENANT_SUBDOMAIN_BASE") ?? "").trim().toLowerCase();
+  return [...ALLOWED_ROOT_HOSTS, ...extra, ...(base ? [base] : [])];
+}
+
+/** true se l'host normalizzato appartiene a un dominio consentito. */
+export function isAllowedSiteUrl(normalized: string | null): boolean {
+  if (!normalized) return false;
+  let host: string;
+  try {
+    host = new URL(normalized).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return allowedRoots().some((root) => host === root || host.endsWith(`.${root}`));
+}
+
+function allowedOrNull(raw: string | null | undefined): string | null {
+  const normalized = normalizeHost(raw);
+  return isAllowedSiteUrl(normalized) ? normalized : null;
+}
+
 export function requestSiteUrl(req: Request): string {
   return (
-    normalizeHost(req.headers.get("origin")) ??
-    normalizeHost(req.headers.get("referer")) ??
+    allowedOrNull(req.headers.get("origin")) ??
+    allowedOrNull(req.headers.get("referer")) ??
     normalizeHost(envGet("SITE_URL")) ??
     DEFAULT_SITE
   );
