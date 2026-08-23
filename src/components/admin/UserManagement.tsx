@@ -185,7 +185,7 @@ export function UserManagement() {
                               <SelectValue placeholder="Nessun ruolo" />
                             </SelectTrigger>
                             <SelectContent>
-                              {ROLES.map(r => (
+                              {assignableRoles.map(r => (
                                 <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
                               ))}
                             </SelectContent>
@@ -229,7 +229,7 @@ export function UserManagement() {
                 <Select value={inviteRole} onValueChange={v => setInviteRole(v as AppRole)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {assignableRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
