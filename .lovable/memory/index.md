@@ -8,7 +8,7 @@
 - **Architecture**: Modular `TaskGantt.tsx` in `src/components/warroom/gantt/` (do not use legacy `GanttChart.tsx`). DB upgrades must be side-by-side; never drop historical data.
 - **UI UX**: Extreme horizontal density for BOQ with sticky headers. 95vw/95vh for Item Detail Modal. Lifecycle checklist in Info tab.
 - **Rilascio**: DB/edge live subito, `src/**` live SOLO dopo publish. Dichiarare ogni fix per canale. `bunx vitest run` prima di chiudere.
-- **Versioning**: V1 baseline saved. From next update: v2.1, v2.2... naming for easy rollback.
+- **Versioning**: checkpoint di riferimento v2.5.2 (23/08/2026). Ogni publish futuro incrementa la patch: 2.5.3, 2.5.4... Aggiornare `VERSION` + `CHANGELOG` in `src/lib/version.ts`. Vedi preferences/versioning-policy.
 
 ## Memories
 - [Migration approval](mem://preferences/migration-approval) — se chiede di vedere una migrazione prima, fermarsi e attendere conferma esplicita
