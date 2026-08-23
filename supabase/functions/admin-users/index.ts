@@ -156,6 +156,9 @@ Deno.serve(async (req) => {
       if (!email) throw new Error('Email is required')
       const orgId = targetOrg()
       if (!orgId) throw new Error('organization_id is required')
+      assertCanGrantAdminRole(role, orgId)
+
+
 
       const userPassword = password || (crypto.randomUUID().slice(0, 12) + 'A1!')
 
