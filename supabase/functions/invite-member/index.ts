@@ -127,6 +127,16 @@ Deno.serve(async (req) => {
     return json({ error: "forbidden: not org owner" }, 403);
   }
 
+  // Il ruolo protetto 'admin' può essere invitato SOLO dall'owner dell'org o da
+  // un platform admin — rispecchia le policy RLS su user_roles e accept_org_invite().
+  if (base_role === "admin" && !isPlatform && !ownerCheck?.is_owner) {
+    return json({
+      error: "forbidden: owner_only_role",
+      detail: "Solo il proprietario dell'organizzazione può invitare un utente con ruolo admin.",
+    }, 403);
+  }
+
+
   // Make sure invite is not duplicate-pending
   const { data: existingInvite } = await admin
     .from("organization_invites")

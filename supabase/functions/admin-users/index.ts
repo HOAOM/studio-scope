@@ -46,14 +46,20 @@ Deno.serve(async (req) => {
     const { data: platformAdmin } = await adminClient.rpc('is_platform_admin', { _user_id: caller.id })
     const isPlatformAdmin = platformAdmin === true
 
-    const adminOrgs = new Set<string>()
-    if (!isPlatformAdmin) {
+    // Organizzazioni di cui il chiamante è OWNER (non semplice org admin).
+    const ownerOrgs = new Set<string>()
+    {
       const { data: ownedOrgs } = await adminClient
         .from('organization_members')
-        .select('organization_id, is_owner')
+        .select('organization_id')
         .eq('user_id', caller.id)
         .eq('is_owner', true)
-      for (const r of ownedOrgs ?? []) adminOrgs.add(r.organization_id)
+      for (const r of ownedOrgs ?? []) ownerOrgs.add(r.organization_id)
+    }
+
+    const adminOrgs = new Set<string>()
+    if (!isPlatformAdmin) {
+      for (const o of ownerOrgs) adminOrgs.add(o)
 
       const { data: adminRoles } = await adminClient
         .from('user_roles')
@@ -66,6 +72,43 @@ Deno.serve(async (req) => {
     }
 
     const orgList = [...adminOrgs]
+
+    /**
+     * Solo l'owner dell'organizzazione (o un platform admin) può creare/assegnare
+     * il ruolo protetto 'admin'. Rispecchia le policy RLS su public.user_roles
+     * (WITH CHECK role <> 'admin') e la logica di accept_org_invite().
+     */
+    const assertCanGrantAdminRole = (role: string | undefined, orgId: string | null) => {
+      if (role !== 'admin') return
+      if (isPlatformAdmin) return
+      if (orgId && ownerOrgs.has(orgId)) return
+      throw new Error("Solo il proprietario dell'organizzazione può assegnare il ruolo admin")
+    }
+
+    /** true se userId è owner dell'organizzazione indicata. */
+    const isOwnerOfOrg = async (userId: string, orgId: string): Promise<boolean> => {
+      const { data } = await adminClient
+        .from('organization_members')
+        .select('is_owner')
+        .eq('organization_id', orgId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      return data?.is_owner === true
+    }
+
+    /** Numero di utenti che sono contemporaneamente owner e admin dell'org. */
+    const adminOwnerCount = async (orgId: string): Promise<number> => {
+      const [{ data: owners }, { data: admins }] = await Promise.all([
+        adminClient.from('organization_members').select('user_id').eq('organization_id', orgId).eq('is_owner', true),
+        adminClient.from('user_roles').select('user_id').eq('organization_id', orgId).eq('role', 'admin'),
+      ])
+      const ownerIds = new Set((owners ?? []).map((r: { user_id: string }) => r.user_id))
+      const adminIds = new Set((admins ?? []).map((r: { user_id: string }) => r.user_id))
+      let n = 0
+      for (const id of ownerIds) if (adminIds.has(id)) n++
+      return n
+    }
+
 
     /** Organizzazioni (fra quelle amministrate) a cui appartiene un utente. */
     const userOrgs = async (userId: string): Promise<string[]> => {
@@ -113,6 +156,9 @@ Deno.serve(async (req) => {
       if (!email) throw new Error('Email is required')
       const orgId = targetOrg()
       if (!orgId) throw new Error('organization_id is required')
+      assertCanGrantAdminRole(role, orgId)
+
+
 
       const userPassword = password || (crypto.randomUUID().slice(0, 12) + 'A1!')
 
@@ -149,6 +195,17 @@ Deno.serve(async (req) => {
       if (user_id === caller.id) throw new Error('Cannot delete yourself')
       await assertUserInScope(user_id)
 
+      // Anti lock-out: l'owner di un'organizzazione non può essere rimosso da un
+      // org admin; solo un platform admin può farlo.
+      if (!isPlatformAdmin) {
+        for (const o of adminOrgs) {
+          if (await isOwnerOfOrg(user_id, o)) {
+            throw new Error("Non puoi eliminare il proprietario dell'organizzazione")
+          }
+        }
+      }
+
+
       if (!isPlatformAdmin) {
         // Un org admin non può cancellare un account condiviso con altre org:
         // lo rimuove solo dalla propria organizzazione.
@@ -176,6 +233,24 @@ Deno.serve(async (req) => {
       if (!user_id || !new_role) throw new Error('user_id and new_role required')
       await assertUserInScope(user_id)
       const orgId = targetOrg()
+      assertCanGrantAdminRole(new_role, orgId)
+
+      if (orgId) {
+        const targetIsOwner = await isOwnerOfOrg(user_id, orgId)
+        // Anti lock-out 1: solo owner/platform admin possono modificare i ruoli
+        // del proprietario dell'organizzazione.
+        if (targetIsOwner && !isPlatformAdmin && !ownerOrgs.has(orgId)) {
+          throw new Error("Solo il proprietario dell'organizzazione può modificare i propri ruoli")
+        }
+        // Anti lock-out 2: non si rimuove l'ultimo owner con ruolo admin.
+        if (old_role === 'admin' && new_role !== 'admin' && targetIsOwner) {
+          if ((await adminOwnerCount(orgId)) <= 1) {
+            throw new Error("Impossibile rimuovere l'ultimo admin proprietario dell'organizzazione")
+          }
+        }
+      }
+
+
 
       let del = adminClient.from('user_roles').delete().eq('user_id', user_id)
       if (old_role) del = del.eq('role', old_role)

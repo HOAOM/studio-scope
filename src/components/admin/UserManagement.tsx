@@ -10,9 +10,11 @@ import { Loader2, UserPlus, Trash2, KeyRound, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Constants } from '@/integrations/supabase/types';
 import type { Database } from '@/integrations/supabase/types';
+import { useActiveOrg } from '@/hooks/useMyOrganizations';
 
 type AppRole = Database['public']['Enums']['app_role'];
 const ROLES = Constants.public.Enums.app_role;
+
 
 interface Profile {
   id: string;
@@ -28,7 +30,12 @@ interface UserRoleRow {
 }
 
 export function UserManagement() {
+  const { activeOrg } = useActiveOrg();
+  const isOwner = !!activeOrg?.is_owner;
+  /** Il ruolo protetto 'admin' è assegnabile solo dall'owner dell'organizzazione. */
+  const assignableRoles = ROLES.filter((r) => isOwner || r !== 'admin');
   const [profiles, setProfiles] = useState<Profile[]>([]);
+
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -178,7 +185,7 @@ export function UserManagement() {
                               <SelectValue placeholder="Nessun ruolo" />
                             </SelectTrigger>
                             <SelectContent>
-                              {ROLES.map(r => (
+                              {assignableRoles.map(r => (
                                 <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
                               ))}
                             </SelectContent>
@@ -222,7 +229,7 @@ export function UserManagement() {
                 <Select value={inviteRole} onValueChange={v => setInviteRole(v as AppRole)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {assignableRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
