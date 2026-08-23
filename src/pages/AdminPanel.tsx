@@ -36,7 +36,10 @@ type AppRole = Database['public']['Enums']['app_role'];
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: isAdmin, isLoading: checkingAdmin } = useIsAdmin();
+  // Gate allineato al resto dell'app: isOrgAdmin include i platform admin
+  // (anche in modalità "View as", dove la RPC is_org_admin riconosce ora
+  // l'organizzazione impersonata).
+  const { isOrgAdmin: isAdmin, isLoading: checkingAdmin } = usePermissions();
   const { activeId } = useActiveOrg();
 
 
