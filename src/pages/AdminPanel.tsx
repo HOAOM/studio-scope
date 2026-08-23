@@ -10,7 +10,9 @@ import {
   useItemTypes, useUpsertItemType, useDeleteItemType,
   useSubcategories, useUpsertSubcategory, useDeleteSubcategory,
   useCostCategories, useUpsertCostCategory, useDeleteCostCategory,
-  useIsAdmin,
+} from '@/hooks/useAdminData';
+import { usePermissions } from '@/hooks/usePermissions';
+import {
 } from '@/hooks/useAdminData';
 import { MasterDataTable } from '@/components/admin/MasterDataTable';
 import { UserManagement } from '@/components/admin/UserManagement';
