@@ -195,6 +195,17 @@ Deno.serve(async (req) => {
       if (user_id === caller.id) throw new Error('Cannot delete yourself')
       await assertUserInScope(user_id)
 
+      // Anti lock-out: l'owner di un'organizzazione non può essere rimosso da un
+      // org admin; solo un platform admin può farlo.
+      if (!isPlatformAdmin) {
+        for (const o of adminOrgs) {
+          if (await isOwnerOfOrg(user_id, o)) {
+            throw new Error("Non puoi eliminare il proprietario dell'organizzazione")
+          }
+        }
+      }
+
+
       if (!isPlatformAdmin) {
         // Un org admin non può cancellare un account condiviso con altre org:
         // lo rimuove solo dalla propria organizzazione.
