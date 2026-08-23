@@ -267,9 +267,10 @@ export function MembersPanel() {
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ORG_ROLES.map((r) => (
+                    {ORG_ROLES.filter((r) => isOwner || r !== 'admin').map((r) => (
                       <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>
                     ))}
+
                   </SelectContent>
                 </Select>
               </div>
