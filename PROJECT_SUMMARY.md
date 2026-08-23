@@ -120,16 +120,18 @@ Documentazione completa per il web expert: file `SITE_INTEGRATION_API.md` nella 
 
 | Nome | Scopo | Auth |
 |------|-------|------|
-| `site-api` | API pubblica per sito esterno (Fase 6) | `x-site-api-key` |
-| `admin-users` | Gestione utenti/ruoli da pannello admin | JWT admin |
-| `run-migration-phase1` | Migration fondamenta multi-tenant | JWT admin |
-| `run-migration-phase2` | Migration abbonamenti | JWT admin |
-| `run-migration-phase3` | Migration etichette ruoli | JWT admin |
-| `run-migration-phase4` | Migration archive + limiti | JWT admin |
-| `run-migration-phase5` | Migration referral + sconti | JWT admin |
-| `run-migration-phase7` | Migration storage limits | JWT admin |
+| `site-api` | API pubblica per il sito kroneel.com | `x-site-api-key` |
+| `public-onboarding` | Signup/onboarding dal sito pubblico | pubblica |
+| `bootstrap-client-org` | Creazione org + owner | JWT |
+| `invite-member` | Invito membro a un'organizzazione | JWT owner/admin org |
+| `accept`/`admin-users` | Gestione utenti/ruoli dal pannello admin | JWT admin |
+| `admin-set-user-password` | Reset password membro (super-admin) | JWT platform admin |
+| `admin-delete-organization` | Eliminazione organizzazione | JWT platform admin |
+| `auth-email-hook` | Riscrittura link auth (token_hash) | hook Supabase |
+| `process-email-queue` | Invio email accodate + retry | JWT/cron |
 
-Le migration sono **idempotenti** — possono essere rieseguite senza danno.
+**Le 43 edge function `run-migration-*` e le 5 `run-*-tests` sono state rimosse (23 ago 2026).** Erano script usa-e-getta già applicati; il loro SQL è archiviato in `docs/db-history/*.sql` come storico **non rieseguibile automaticamente**. Da qui in avanti ogni cambio di schema passa dallo strumento di migrazione nativo.
+
 
 ---
 
