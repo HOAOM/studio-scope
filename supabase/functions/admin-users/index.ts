@@ -233,6 +233,24 @@ Deno.serve(async (req) => {
       if (!user_id || !new_role) throw new Error('user_id and new_role required')
       await assertUserInScope(user_id)
       const orgId = targetOrg()
+      assertCanGrantAdminRole(new_role, orgId)
+
+      if (orgId) {
+        const targetIsOwner = await isOwnerOfOrg(user_id, orgId)
+        // Anti lock-out 1: solo owner/platform admin possono modificare i ruoli
+        // del proprietario dell'organizzazione.
+        if (targetIsOwner && !isPlatformAdmin && !ownerOrgs.has(orgId)) {
+          throw new Error("Solo il proprietario dell'organizzazione può modificare i propri ruoli")
+        }
+        // Anti lock-out 2: non si rimuove l'ultimo owner con ruolo admin.
+        if (old_role === 'admin' && new_role !== 'admin' && targetIsOwner) {
+          if ((await adminOwnerCount(orgId)) <= 1) {
+            throw new Error("Impossibile rimuovere l'ultimo admin proprietario dell'organizzazione")
+          }
+        }
+      }
+
+
 
       let del = adminClient.from('user_roles').delete().eq('user_id', user_id)
       if (old_role) del = del.eq('role', old_role)
