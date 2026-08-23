@@ -17,6 +17,11 @@
 
 const DEFAULT_SITE = "https://studio-scope.lovable.app";
 
+/** Accesso all'env compatibile sia con Deno sia con i test in Node/vitest. */
+function envGet(key: string): string | undefined {
+  return (globalThis as any).Deno?.env?.get(key);
+}
+
 /** Estrae `https://<host>` da una stringa URL, o null se non parsabile. */
 export function normalizeHost(raw: string | null | undefined): string | null {
   if (!raw) return null;
@@ -38,7 +43,7 @@ export function requestSiteUrl(req: Request): string {
   return (
     normalizeHost(req.headers.get("origin")) ??
     normalizeHost(req.headers.get("referer")) ??
-    normalizeHost(Deno.env.get("SITE_URL")) ??
+    normalizeHost(envGet("SITE_URL")) ??
     DEFAULT_SITE
   );
 }
@@ -66,7 +71,7 @@ export async function orgSiteUrl(
     if (fromCustom) return fromCustom;
 
     // Fallback su sottodominio di piattaforma solo se il wildcard e' attivo.
-    const base = (Deno.env.get("TENANT_SUBDOMAIN_BASE") ?? "").trim();
+    const base = (envGet("TENANT_SUBDOMAIN_BASE") ?? "").trim();
     if (base && org?.slug) {
       const fromSlug = normalizeHost(`${org.slug}.${base}`);
       if (fromSlug) return fromSlug;

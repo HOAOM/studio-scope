@@ -7,12 +7,14 @@
 - **Tech Stack**: Use `exceljs` for parsing (NEVER `xlsx`).
 - **Architecture**: Modular `TaskGantt.tsx` in `src/components/warroom/gantt/` (do not use legacy `GanttChart.tsx`). DB upgrades must be side-by-side; never drop historical data.
 - **UI UX**: Extreme horizontal density for BOQ with sticky headers. 95vw/95vh for Item Detail Modal. Lifecycle checklist in Info tab.
+- **Rilascio**: DB/edge live subito, `src/**` live SOLO dopo publish. Dichiarare ogni fix per canale. `bunx vitest run` prima di chiudere.
 - **Versioning**: V1 baseline saved. From next update: v2.1, v2.2... naming for easy rollback.
 
 ## Memories
 - [Migration approval](mem://preferences/migration-approval) — se chiede di vedere una migrazione prima, fermarsi e attendere conferma esplicita
 
 - [v2.5 Design Gate](mem://versioning/v2.5-design-gate) — Design Approval requires Material+Color+Reference Image on selected option
+- [Canali di rilascio e fix](mem://preferences/release-channels-and-fix-protocol) — publish gate frontend, verifica per canale, no edge function di migrazione
 - [User Context](mem://business-context/user-role-and-goal) — Centralized "War Room" dashboard for Operation Managers
 - [Visual Direction](mem://style/visual-direction) — Executive dark theme, high contrast KPIs, no superfluous animations
 - [Database Structure](mem://infrastructure/database) — Supabase RLS, supplier_documents, company_settings, internal messages

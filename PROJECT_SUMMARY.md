@@ -1,6 +1,6 @@
 # Studio Scope — Documento Riepilogativo Totale
 
-> **Ultimo aggiornamento:** 20 agosto 2026 14:59 UTC — fix punto 3 completato  
+> **Ultimo aggiornamento:** 23 agosto 2026 — pulizia edge function, rete di test, sezione rilascio  
 > **Stato progetto:** beta multi-tenant pronta, in attesa di rilascio  
 > **Versione corrente:** 2.6.0-beta (post-fix RBAC + modale super-admin + rimozione bug button)
 > **Manutenzione di questo file:** aggiornato automaticamente ad ogni fase/cambio significativo
@@ -120,16 +120,18 @@ Documentazione completa per il web expert: file `SITE_INTEGRATION_API.md` nella 
 
 | Nome | Scopo | Auth |
 |------|-------|------|
-| `site-api` | API pubblica per sito esterno (Fase 6) | `x-site-api-key` |
-| `admin-users` | Gestione utenti/ruoli da pannello admin | JWT admin |
-| `run-migration-phase1` | Migration fondamenta multi-tenant | JWT admin |
-| `run-migration-phase2` | Migration abbonamenti | JWT admin |
-| `run-migration-phase3` | Migration etichette ruoli | JWT admin |
-| `run-migration-phase4` | Migration archive + limiti | JWT admin |
-| `run-migration-phase5` | Migration referral + sconti | JWT admin |
-| `run-migration-phase7` | Migration storage limits | JWT admin |
+| `site-api` | API pubblica per il sito kroneel.com | `x-site-api-key` |
+| `public-onboarding` | Signup/onboarding dal sito pubblico | pubblica |
+| `bootstrap-client-org` | Creazione org + owner | JWT |
+| `invite-member` | Invito membro a un'organizzazione | JWT owner/admin org |
+| `admin-users` | Gestione utenti/ruoli dal pannello admin | JWT admin |
+| `admin-set-user-password` | Reset password membro (super-admin) | JWT platform admin |
+| `admin-delete-organization` | Eliminazione organizzazione | JWT platform admin |
+| `auth-email-hook` | Riscrittura link auth (token_hash) | hook Supabase |
+| `process-email-queue` | Invio email accodate + retry | JWT/cron |
 
-Le migration sono **idempotenti** — possono essere rieseguite senza danno.
+**Le 43 edge function `run-migration-*` e le 5 `run-*-tests` sono state rimosse (23 ago 2026).** Erano script usa-e-getta già applicati; il loro SQL è archiviato in `docs/db-history/*.sql` come storico **non rieseguibile automaticamente**. Da qui in avanti ogni cambio di schema passa dallo strumento di migrazione nativo.
+
 
 ---
 
@@ -274,3 +276,46 @@ Le migration sono **idempotenti** — possono essere rieseguite senza danno.
 - Fix 4.3: eliminata l'edge function `peek-invite` (e la relativa voce in `config.toml`); `AcceptInvite.tsx` chiama direttamente la RPC `peek_org_invite`, ora con EXECUTE anche a `anon` (esposizione identica alla vecchia funzione pubblica, protetta dal token dell'invito).
 - Il peek parte in parallelo al bootstrap auth (nessun blocco sullo spinner) e dopo `accept_org_invite` si invalidano solo `my-organizations`, `user_roles_self`, `projects` invece di ricaricare l'app.
 - Secondo giro (stesso invito): risolto il 400 `missing_parameter`, emerso 400 `missing_unsubscribe` (le email transazionali richiedono `unsubscribe_token`) e poi 409 `run_failed` sui retry, che riusavano la stessa chiave di idempotenza già fallita → DLQ. Fix: nuovo helper `_shared/unsubscribeToken.ts` (crea/riusa il token in `email_unsubscribe_tokens`) usato da `invite-member`, e `process-email-queue` che suffissa `idempotency_key` con `:r<read_ct>` a ogni retry.
+
+---
+
+## Canali di rilascio — cosa è live e dove (23 ago 2026)
+
+Regola che ha causato l'errore del 22 agosto: **frontend e backend NON vanno live insieme.**
+
+| Canale | Cosa contiene | Quando diventa live |
+|--------|---------------|---------------------|
+| **DB / migrazioni** | schema, RLS, policy, trigger, funzioni SQL | subito dopo l'applicazione della migrazione |
+| **Edge functions** | `supabase/functions/**` | subito dopo il deploy |
+| **Frontend** | tutto `src/**` (pagine, hook, componenti) | **solo dopo un publish esplicito** |
+
+Conseguenze operative:
+
+- Un fix in `src/**` verificato con typecheck è corretto nel codice ma **non è in produzione** finché non si pubblica. Va sempre dichiarato come `LIVE SOLO DOPO PUBLISH`.
+- La preview (`id-preview--…lovable.app`) mostra sempre l'ultimo codice; i domini pubblici mostrano l'ultimo build pubblicato.
+- Dopo il publish i domini custom possono impiegare qualche minuto in più del dominio `.lovable.app`.
+
+### Domini e allow-list dei redirect auth
+
+| Dominio | Uso | In allow-list redirect |
+|---------|-----|------------------------|
+| `studio-scope.lovable.app` | fallback di piattaforma | sì |
+| `*.amz.ee` (igor, gabriele, enrico, marco, uno, due, tre) | tenant di test | sì, perché connessi come custom domain |
+| `kroneel.com` | sito pubblico | sì |
+| `<slug>.kroneel.com` | futuri tenant | **no** — nessun wildcard esiste |
+
+L'allow-list **non è modificabile dagli strumenti dell'agente**: ogni nuovo dominio tenant va connesso in Project settings → Domains, altrimenti Supabase scarta il redirect e ricade sul dominio generico. Per questo il fallback `<slug>.<base>` in `_shared/orgSiteUrl.ts` resta disattivato finché `TENANT_SUBDOMAIN_BASE` non viene impostata.
+
+### Definizione di "fatto"
+
+Ogni fix si chiude con una riga per canale, es.:
+
+```text
+[db]       policy user_roles scoped per org — live, verificata con query
+[edge]     invite-member orgSiteUrl        — deployata, live
+[frontend] AcceptInvite gate password      — nel codice, LIVE SOLO DOPO PUBLISH
+```
+
+### Rete anti-regressione
+
+`bunx vitest run` — 26 test su: coerenza stati/macro-fasi e transizioni per ruolo (`workflow.ts`), visibilità costi, KPI, giorni lavorativi, messaggi dei limiti di piano (`tierLimits.ts`), precedenza degli host degli inviti (`_shared/orgSiteUrl.ts`). Da eseguire prima di dichiarare chiuso qualunque fix che tocchi workflow, ruoli, limiti o inviti.
