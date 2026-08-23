@@ -30,7 +30,12 @@ interface UserRoleRow {
 }
 
 export function UserManagement() {
+  const { activeOrg } = useActiveOrg();
+  const isOwner = !!activeOrg?.is_owner;
+  /** Il ruolo protetto 'admin' è assegnabile solo dall'owner dell'organizzazione. */
+  const assignableRoles = ROLES.filter((r) => isOwner || r !== 'admin');
   const [profiles, setProfiles] = useState<Profile[]>([]);
+
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
