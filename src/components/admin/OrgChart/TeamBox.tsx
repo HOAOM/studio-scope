@@ -49,7 +49,7 @@ export function TeamBox({
         )}
       </div>
       {header && <div className="px-2 pt-2">{header}</div>}
-      <div className="p-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">{children}</div>
+      <div className="p-2 grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">{children}</div>
     </div>
   );
 }
