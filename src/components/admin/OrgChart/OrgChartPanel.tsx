@@ -33,6 +33,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const move = useMoveOrgNode();
   const remove = useDeleteOrgNode();
   const setCostVisibility = useSetCostVisibility();
+  const seed = useSeedOrgChart();
 
   const [selected, setSelected] = useState<OrgNode | null>(null);
   const [search, setSearch] = useState('');
