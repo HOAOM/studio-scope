@@ -1,6 +1,7 @@
 /**
- * PersonCard — scheda persona dell'organigramma v3.
- * Maniglia di trascinamento separata dal click che apre il pannello dettaglio.
+ * PersonCard — scheda persona dell'organigramma v3, resa compatta.
+ * Albero classico: nessun contenimento, solo schede collegate da linee.
+ * La squadra è un badge colorato sulla scheda, non un contenitore.
  */
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -9,7 +10,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import type { OrgNode, TodayEntry } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile } from '@/hooks/useOrgStructure';
-import { GripVertical, Lock, Star } from 'lucide-react';
+import { GripVertical, Link2, Lock, Star } from 'lucide-react';
+import { hexToRgba } from './TeamBox';
+
+export interface TeamBadge {
+  name: string;
+  color?: string | null;
+}
 
 export interface PersonCardProps {
   node: OrgNode;
@@ -17,11 +24,14 @@ export interface PersonCardProps {
   today?: TodayEntry;
   extraTeams: number;
   isLead?: boolean;
+  team?: TeamBadge;
   /** L'utente può modificare l'organigramma in generale. */
   canEdit?: boolean;
   /** Questa specifica scheda è trascinabile. */
   draggable?: boolean;
   onOpen: (node: OrgNode) => void;
+  /** Avvia la modalità "click per collegare" partendo da questa scheda. */
+  onStartLink?: (node: OrgNode) => void;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,7 +48,7 @@ export function StatusDot({ today }: { today?: TodayEntry }) {
         <span
           aria-label={STATUS_LABEL[status]}
           className={cn(
-            'inline-block w-2.5 h-2.5 rounded-full shrink-0 border',
+            'inline-block w-2 h-2 rounded-full shrink-0 border',
             status === 'working' && 'bg-status-safe border-status-safe',
             status === 'absent' && 'bg-background border-status-unsafe relative overflow-hidden',
             status === 'idle' && 'bg-muted border-border',
@@ -74,7 +84,7 @@ export function DragHandle({
         <TooltipTrigger asChild>
           <span
             data-testid={`lock-${nodeId}`}
-            className="flex h-6 w-5 shrink-0 cursor-not-allowed items-center justify-center text-muted-foreground/60"
+            className="flex h-5 w-4 shrink-0 cursor-not-allowed items-center justify-center text-muted-foreground/60"
           >
             <Lock className="h-3 w-3" />
           </span>
@@ -97,9 +107,9 @@ export function DragHandle({
           role="button"
           aria-label="Trascina per riassegnare"
           style={{ touchAction: 'none' }}
-          className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-accent active:cursor-grabbing"
+          className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-accent active:cursor-grabbing"
         >
-          <GripVertical className="h-3.5 w-3.5" />
+          <GripVertical className="h-3 w-3" />
         </span>
       </TooltipTrigger>
       <TooltipContent>Trascina per riassegnare</TooltipContent>
@@ -107,9 +117,29 @@ export function DragHandle({
   );
 }
 
+/** Pulsante "collega a…": alternativa al drag per agganciare un nodo padre. */
+export function LinkButton({ node, onStartLink }: { node: OrgNode; onStartLink: (n: OrgNode) => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          data-testid={`link-${node.id}`}
+          aria-label="Collega a un responsabile"
+          onClick={(e) => { e.stopPropagation(); onStartLink(node); }}
+          className="flex h-5 w-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <Link2 className="h-3 w-3" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>Collega a un responsabile</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function PersonCard({
-  node, profile, today, extraTeams, isLead, canEdit = false, draggable, onOpen, variant = 'card',
-}: PersonCardProps & { variant?: 'card' | 'lead' }) {
+  node, profile, today, extraTeams, isLead, team, canEdit = false, draggable, onOpen, onStartLink,
+}: PersonCardProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
     id: `node:${node.id}`,
     data: { kind: 'node', nodeId: node.id },
@@ -119,89 +149,64 @@ export function PersonCard({
   const name = profile?.display_name || profile?.email || 'Posizione vacante';
   const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
-  // Variante "lead": riga compatta dentro l'intestazione colorata della colonna.
-  if (variant === 'lead') {
-    return (
-      <div
-        ref={setNodeRef}
-        style={{ transform: CSS.Translate.toString(transform), zIndex: isDragging ? 50 : undefined }}
-        className={cn(
-          'flex items-center gap-2 rounded-lg border border-border/70 bg-background/80 px-2 py-1.5 min-w-0',
-          isDragging && 'opacity-70 shadow-lg ring-1 ring-primary',
-        )}
-      >
-        <DragHandle
-          nodeId={node.id}
-          draggable={!!draggable}
-          canEdit={canEdit}
-          setNodeRef={setActivatorNodeRef}
-          listeners={listeners}
-          attributes={attributes}
-        />
-        <button
-          type="button"
-          onClick={() => onOpen(node)}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-accent/50"
-        >
-          <Avatar className="h-8 w-8 shrink-0 ring-2 ring-background">
-            <AvatarImage src={profile?.avatar_url || undefined} alt={name} />
-            <AvatarFallback className="text-[10px]">{initials || '—'}</AvatarFallback>
-          </Avatar>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5">
-              <Star className="h-3 w-3 shrink-0" />
-              <span className="truncate text-xs font-semibold">{name}</span>
-              <StatusDot today={today} />
-            </span>
-            <span className="block truncate text-[10px] text-muted-foreground">{node.title}</span>
-          </span>
-        </button>
-      </div>
-    );
-  }
-
-  // Variante standard: scheda pulita, avatar tondo in alto, nome, ruolo sotto.
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), zIndex: isDragging ? 50 : undefined }}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        zIndex: isDragging ? 50 : undefined,
+        borderLeft: team?.color ? `3px solid ${team.color}` : undefined,
+      }}
+      data-testid={`card-${node.id}`}
       className={cn(
-        'relative w-full min-w-0 rounded-xl border border-border bg-background px-3 pb-3 pt-3 text-center shadow-sm transition-shadow hover:shadow-md',
+        'relative w-[200px] rounded-lg border border-border bg-card px-2 py-1.5 shadow-sm transition-shadow hover:shadow-md',
         node.is_ancestor && 'opacity-60 border-dashed',
         isDragging && 'opacity-70 shadow-lg ring-1 ring-primary',
       )}
     >
-      <div className="absolute right-1 top-1">
-        <DragHandle
-          nodeId={node.id}
-          draggable={!!draggable}
-          canEdit={canEdit}
-          setNodeRef={setActivatorNodeRef}
-          listeners={listeners}
-          attributes={attributes}
-        />
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => onOpen(node)}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded text-left transition-colors hover:bg-accent/40"
+        >
+          <Avatar className="h-8 w-8 shrink-0 ring-1 ring-border">
+            <AvatarImage src={profile?.avatar_url || undefined} alt={name} />
+            <AvatarFallback className="text-[10px]">{initials || '—'}</AvatarFallback>
+          </Avatar>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1">
+              {isLead && <Star className="h-2.5 w-2.5 shrink-0" />}
+              <span className="truncate text-xs font-semibold leading-tight">{name}</span>
+              <StatusDot today={today} />
+            </span>
+            <span className="block truncate text-[10px] leading-tight text-muted-foreground">{node.title}</span>
+            {team && (
+              <span
+                className="mt-0.5 inline-block max-w-full truncate rounded px-1 text-[9px]"
+                style={{ background: hexToRgba(team.color, 0.18), color: team.color || undefined }}
+              >
+                {team.name}
+                {extraTeams > 0 ? ` +${extraTeams}` : ''}
+              </span>
+            )}
+            {!team && extraTeams > 0 && (
+              <span className="rounded bg-secondary px-1 text-[9px] text-muted-foreground">+{extraTeams} squadre</span>
+            )}
+          </span>
+        </button>
+        <span className="flex flex-col items-center">
+          <DragHandle
+            nodeId={node.id}
+            draggable={!!draggable}
+            canEdit={canEdit}
+            setNodeRef={setActivatorNodeRef}
+            listeners={listeners}
+            attributes={attributes}
+          />
+          {canEdit && node.can_edit && onStartLink && <LinkButton node={node} onStartLink={onStartLink} />}
+        </span>
       </div>
-      <button
-        type="button"
-        onClick={() => onOpen(node)}
-        className="flex w-full min-w-0 flex-col items-center gap-1.5 rounded-lg text-center transition-colors hover:bg-accent/40"
-      >
-        <Avatar className="h-11 w-11 shrink-0 ring-2 ring-border">
-          <AvatarImage src={profile?.avatar_url || undefined} alt={name} />
-          <AvatarFallback className="text-[11px]">{initials || '—'}</AvatarFallback>
-        </Avatar>
-        <span className="flex w-full min-w-0 items-center justify-center gap-1.5">
-          {isLead && <Star className="h-3 w-3 shrink-0" />}
-          <span className="truncate text-[13px] font-semibold leading-tight">{name}</span>
-          <StatusDot today={today} />
-        </span>
-        <span className="flex w-full min-w-0 items-center justify-center gap-1">
-          <span className="truncate text-[11px] text-muted-foreground">{node.title}</span>
-          {extraTeams > 0 && (
-            <span className="rounded bg-secondary px-1 text-[9px] text-muted-foreground">+{extraTeams}</span>
-          )}
-        </span>
-      </button>
     </div>
   );
 }
@@ -213,8 +218,8 @@ export function TeamMemberChip({
   const name = profile?.display_name || profile?.email || 'Membro';
   const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   return (
-    <div className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/70 bg-background/60 px-3 py-2 min-w-0">
-      <Avatar className="h-8 w-8 shrink-0">
+    <div className="flex w-[200px] items-center gap-2 rounded-lg border border-dashed border-border/70 bg-background/60 px-2 py-1.5">
+      <Avatar className="h-7 w-7 shrink-0">
         <AvatarImage src={profile?.avatar_url || undefined} alt={name} />
         <AvatarFallback className="text-[9px]">{initials || '—'}</AvatarFallback>
       </Avatar>
@@ -226,4 +231,3 @@ export function TeamMemberChip({
     </div>
   );
 }
-
