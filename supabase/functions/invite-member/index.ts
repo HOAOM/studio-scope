@@ -16,6 +16,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 import { orgSiteUrl } from "../_shared/orgSiteUrl.ts";
 import { getUnsubscribeToken } from "../_shared/unsubscribeToken.ts";
+import { assertOrgContext } from "../_shared/orgContext.ts";
+
 
 
 const corsHeaders = {
