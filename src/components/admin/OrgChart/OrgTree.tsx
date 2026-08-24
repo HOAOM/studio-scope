@@ -26,9 +26,10 @@ export interface OrgTreeContext {
 }
 
 export function OrgNodeView({
-  node, ctx, color,
-}: { node: OrgNode; ctx: OrgTreeContext; color?: string | null }) {
+  node, ctx, color, asColumn = false,
+}: { node: OrgNode; ctx: OrgTreeContext; color?: string | null; asColumn?: boolean }) {
   const [collapsed, setCollapsed] = useState(node.depth >= 4);
+  const draggable = ctx.canEdit && node.can_edit;
   const draggable = ctx.canEdit && node.can_edit;
 
   if (node.node_kind === 'contractor') {
