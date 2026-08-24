@@ -246,6 +246,14 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         }}
         onClose={() => setSelected(null)}
       />
+
+      <DragOverlay dropAnimation={null}>
+        {dragLabel ? (
+          <div className="pointer-events-none rounded-md border border-primary bg-card px-2.5 py-1.5 text-xs font-medium shadow-lg">
+            {dragLabel}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
