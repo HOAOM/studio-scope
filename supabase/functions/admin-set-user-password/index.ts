@@ -231,35 +231,24 @@ Deno.serve(async (req) => {
         }, { onConflict: 'user_id,role,organization_id' })
         if (roleErr) return json({ error: roleErr.message }, 400)
       } else {
-        // Invito: i flag viaggiano sull'invito e vengono propagati all'accettazione.
-        // L'host e' quello dell'organizzazione invitante, non l'origin del
-        // platform admin (che sarebbe il pannello super-admin).
-        const siteUrl = await orgSiteUrl(admin, orgId, req)
-
-
-        const { data: inv, error: invErr } = await admin
-          .from('organization_invites')
-          .insert({
-            organization_id: orgId,
-            email,
-            base_role: role,
-            is_owner: false,
-            invited_by: user.id,
-            token: crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''),
-            is_complimentary: isComplimentary,
-            complimentary_reason: isComplimentary ? reason : null,
-            is_over_tier_limit: overTier,
-          })
-          .select('id, token')
-          .single()
-        if (invErr) return json({ error: invErr.message }, 400)
-
-        acceptUrl = `${siteUrl}/accept-invite?token=${inv.token}`
-        const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(email, {
-          redirectTo: acceptUrl,
+        // Invito: passa dall'helper condiviso (host dell'org, gate password,
+        // riuso invito pendente, email anche al secondo invito).
+        const res = await sendOrgInvite(admin, {
+          organizationId: orgId,
+          email,
+          baseRole: role,
+          isOwner: false,
+          invitedBy: user.id,
+          isComplimentary,
+          complimentaryReason: isComplimentary ? reason : null,
+          isOverTierLimit: overTier,
+          req,
         })
-        emailSent = !mailErr
+        if (res.error) return json({ error: res.error }, 400)
+        acceptUrl = res.accept_url
+        emailSent = res.email_sent
       }
+
 
       const quotaText = `Quota ruolo ${role}: ${quota.used}/${quota.max ?? 'illimitato'}`
       await admin.from('audit_log').insert({
