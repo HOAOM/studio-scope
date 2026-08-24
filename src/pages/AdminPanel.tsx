@@ -36,6 +36,7 @@ type AppRole = Database['public']['Enums']['app_role'];
 
 export default function AdminPanel() {
   const navigate = useNavigate();
+  const initialTab = new URLSearchParams(window.location.search).get('tab') || 'members';
   const { user } = useAuth();
   // Gate allineato al resto dell'app: isOrgAdmin include i platform admin
   // (anche in modalità "View as", dove la RPC is_org_admin riconosce ora
