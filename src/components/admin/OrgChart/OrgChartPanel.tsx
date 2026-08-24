@@ -172,7 +172,12 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     : null;
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDragLabel(null)}
+    >
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-xs">
