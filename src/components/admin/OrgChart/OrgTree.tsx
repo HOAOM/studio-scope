@@ -9,7 +9,7 @@ import type { OrgNode, TodayEntry } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { PersonCard, TeamMemberChip } from './PersonCard';
 import { ContractorCard, type Contractor } from './ContractorCard';
-import { DropZone, TeamBox, UnitBox, COLUMN_PALETTE } from './TeamBox';
+import { DropZone, TeamBox, UnitBox, CombList, COLUMN_PALETTE } from './TeamBox';
 
 export interface OrgTreeContext {
   profiles: Map<string, DirectoryProfile>;
@@ -229,7 +229,7 @@ function Columns({ nodes, ctx }: { nodes: OrgNode[]; ctx: OrgTreeContext }) {
     <div className="flex flex-wrap items-start gap-4">
       {nodes.map((n, i) => (
         <div key={n.id} className="min-w-[240px] max-w-[320px] flex-1">
-          <OrgNodeView node={n} ctx={ctx} color={COLUMN_PALETTE[i % COLUMN_PALETTE.length]} />
+          <OrgNodeView node={n} ctx={ctx} asColumn color={COLUMN_PALETTE[i % COLUMN_PALETTE.length]} />
         </div>
       ))}
     </div>
