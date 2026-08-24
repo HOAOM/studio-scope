@@ -16,6 +16,30 @@ export interface MyOrg {
 }
 
 const ACTIVE_ORG_KEY = 'studioscope.activeOrgId';
+/** Deve restare allineata a IMPERSONATE_KEY in ImpersonateBanner.tsx (import evitato per non creare cicli). */
+const IMPERSONATE_KEY = 'studioscope.impersonateOrgId';
+
+/**
+ * Risoluzione PURA dell'organizzazione attiva.
+ *
+ * Regola non negoziabile: se e' aperta una sessione di View-as (impersonazione),
+ * l'org impersonata VINCE SEMPRE, anche se il platform admin non ne e' membro.
+ * Senza questa regola ogni scrittura "ambientale" (inviti, membri, organigramma,
+ * calendario, fornitori, company settings...) finiva silenziosamente nell'org
+ * del platform admin.
+ */
+export function resolveActiveOrgId(args: {
+  orgs: Pick<MyOrg, 'organization_id'>[] | undefined;
+  storedId: string | null;
+  impersonatedId: string | null;
+}): string | null {
+  const { orgs, storedId, impersonatedId } = args;
+  if (impersonatedId) return impersonatedId;
+  if (!orgs || orgs.length === 0) return storedId;
+  const storedValid = orgs.some((o) => o.organization_id === storedId);
+  return storedValid ? storedId : orgs[0].organization_id;
+}
+
 
 export function useMyOrganizations() {
   return useQuery<MyOrg[]>({
