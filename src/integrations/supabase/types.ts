@@ -337,6 +337,44 @@ export type Database = {
           },
         ]
       }
+      cost_visibility_overrides: {
+        Row: {
+          can_see_costs: boolean
+          created_at: string
+          id: string
+          organization_id: string
+          set_by: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_see_costs: boolean
+          created_at?: string
+          id?: string
+          organization_id: string
+          set_by?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_see_costs?: boolean
+          created_at?: string
+          id?: string
+          organization_id?: string
+          set_by?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_visibility_overrides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           attachment_name: string | null
@@ -975,13 +1013,16 @@ export type Database = {
       org_positions: {
         Row: {
           base_role: Database["public"]["Enums"]["app_role"] | null
+          catalog_id: string | null
           created_at: string
           created_by: string | null
           id: string
           manager_id: string | null
+          node_kind: string
           notes: string | null
           organization_id: string
           sort_order: number
+          supplier_id: string | null
           team_id: string | null
           title: string
           updated_at: string
@@ -991,13 +1032,16 @@ export type Database = {
         }
         Insert: {
           base_role?: Database["public"]["Enums"]["app_role"] | null
+          catalog_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           manager_id?: string | null
+          node_kind?: string
           notes?: string | null
           organization_id: string
           sort_order?: number
+          supplier_id?: string | null
           team_id?: string | null
           title: string
           updated_at?: string
@@ -1007,13 +1051,16 @@ export type Database = {
         }
         Update: {
           base_role?: Database["public"]["Enums"]["app_role"] | null
+          catalog_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           manager_id?: string | null
+          node_kind?: string
           notes?: string | null
           organization_id?: string
           sort_order?: number
+          supplier_id?: string | null
           team_id?: string | null
           title?: string
           updated_at?: string
@@ -1022,6 +1069,13 @@ export type Database = {
           y?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "org_positions_catalog_fk"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "position_catalog"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "org_positions_manager_id_fkey"
             columns: ["manager_id"]
@@ -1034,6 +1088,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_positions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
           {
@@ -1432,6 +1493,42 @@ export type Database = {
         }
         Relationships: []
       }
+      position_catalog: {
+        Row: {
+          area: string
+          created_at: string
+          id: string
+          is_lead: boolean
+          level: string
+          min_size: string
+          parent_title: string | null
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          id?: string
+          is_lead?: boolean
+          level: string
+          min_size?: string
+          parent_title?: string | null
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          id?: string
+          is_lead?: boolean
+          level?: string
+          min_size?: string
+          parent_title?: string | null
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
+      }
       presentations: {
         Row: {
           created_at: string
@@ -1477,6 +1574,7 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          phone: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1484,6 +1582,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id: string
+          phone?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1491,6 +1590,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          phone?: string | null
         }
         Relationships: []
       }
@@ -2502,6 +2602,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_primary: boolean
           member_role: Database["public"]["Enums"]["team_member_role"]
           organization_id: string
           team_id: string
@@ -2513,6 +2614,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_primary?: boolean
           member_role?: Database["public"]["Enums"]["team_member_role"]
           organization_id: string
           team_id: string
@@ -2524,6 +2626,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_primary?: boolean
           member_role?: Database["public"]["Enums"]["team_member_role"]
           organization_id?: string
           team_id?: string
@@ -2914,6 +3017,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          phone: string
         }[]
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
