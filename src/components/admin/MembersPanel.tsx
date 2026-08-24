@@ -51,7 +51,7 @@ interface OrgInviteRow {
 }
 
 export function MembersPanel() {
-  const { activeOrg, isLoading } = useActiveOrg();
+  const { activeOrg, isLoading, isImpersonating } = useActiveOrg();
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<string>('designer');
