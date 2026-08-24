@@ -103,7 +103,7 @@ export function CatalogPanel({ entries }: { entries: CatalogEntry[] }) {
                 <DragItem
                   key={e.id}
                   id={`catalog:${e.id}`}
-                  data={{ kind: 'catalog', catalogId: e.id, title: e.title, level: e.level, isLead: e.is_lead }}
+                  data={{ kind: 'catalog', catalogId: e.id, title: e.title, area: e.area, level: e.level, isLead: e.is_lead }}
                 >
                   <span className="truncate">{e.title}</span>
                   {e.is_lead && <span className="ml-auto text-[9px] text-muted-foreground">lead</span>}
