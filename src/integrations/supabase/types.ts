@@ -3017,6 +3017,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          phone: string
         }[]
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
