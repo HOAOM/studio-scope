@@ -3301,6 +3301,7 @@ export type Database = {
         Returns: Json
       }
       seed_master_data_for_org: { Args: { p_org: string }; Returns: undefined }
+      seed_org_chart_for_org: { Args: { p_org: string }; Returns: number }
       set_org_custom_domain: {
         Args: { p_domain: string; p_org: string }
         Returns: string
