@@ -116,7 +116,32 @@ export function OrgNodeView({
     );
   }
 
-  // unit / area, oppure persona con riporti: colonna con testata colorata
+  // Persona con riporti dentro una colonna: nessun box aggiuntivo,
+  // solo la scheda e i suoi riporti collegati a pettine.
+  if (node.node_kind === 'person' && !asColumn) {
+    return (
+      <div className="space-y-2">
+        <DropZone id={`drop:${node.id}`} nodeId={node.id} disabled={!ctx.canEdit}>
+          <PersonCard
+            node={node}
+            profile={node.user_id ? ctx.profiles.get(node.user_id) : undefined}
+            today={node.user_id ? ctx.today.get(node.user_id) : undefined}
+            extraTeams={node.user_id ? ctx.extraTeams.get(node.user_id) ?? 0 : 0}
+            draggable={draggable}
+            canEdit={ctx.canEdit}
+            onOpen={ctx.onOpen}
+          />
+        </DropZone>
+        <CombList color={color}>
+          {node.children.map((c) => (
+            <OrgNodeView key={c.id} node={c} ctx={ctx} color={color} />
+          ))}
+        </CombList>
+      </div>
+    );
+  }
+
+  // unit / area, oppure persona radice di colonna: testata colorata
   const label = node.node_kind === 'unit'
     ? node.title
     : `${ctx.profiles.get(node.user_id || '')?.display_name || node.title}`;
