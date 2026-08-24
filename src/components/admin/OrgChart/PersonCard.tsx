@@ -70,8 +70,10 @@ export function PersonCard({ node, profile, today, extraTeams, isLead, draggable
       {...listeners}
       type="button"
       onClick={() => onOpen(node)}
+      style={{ touchAction: 'none' }}
       className={cn(
         'flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-left transition-colors hover:bg-accent/50 w-full min-w-0',
+        draggable && 'cursor-grab active:cursor-grabbing',
         isLead && 'bg-transparent border-transparent hover:bg-black/10',
         node.is_ancestor && 'opacity-60 border-dashed',
         isDragging && 'opacity-40',
