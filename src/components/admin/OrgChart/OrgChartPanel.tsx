@@ -190,6 +190,24 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
               className="h-8 pl-7 text-xs"
             />
           </div>
+          {canEdit && !tree.length && (
+            <Button
+              size="sm"
+              disabled={seed.isPending}
+              onClick={() =>
+                seed.mutate(undefined, {
+                  onSuccess: (n) =>
+                    n > 0
+                      ? toast.success('Organigramma di base creato')
+                      : toast.info('Organigramma già presente'),
+                  onError: (e: any) => toast.error(e?.message || 'Creazione non riuscita'),
+                })
+              }
+            >
+              {seed.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Struttura di base
+            </Button>
+          )}
           {canEdit && (
             <Button
               size="sm"
