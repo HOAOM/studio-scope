@@ -2900,6 +2900,7 @@ export type Database = {
         Args: { _actor: string; _org: string; _target: string }
         Returns: boolean
       }
+      can_see_commercials: { Args: never; Returns: boolean }
       can_see_costs: { Args: never; Returns: boolean }
       close_login_sessions: { Args: { p_reason?: string }; Returns: undefined }
       delete_email: {
