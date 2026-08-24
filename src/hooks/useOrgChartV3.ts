@@ -415,31 +415,64 @@ export function useSetTeamMembership() {
   });
 }
 
-/** Interruttore individuale "può vedere costi, prezzi e margini". */
-export function useSetCostVisibility() {
+/**
+ * Permessi granulari per persona (tabella permission_overrides).
+ * `null` = nessun override, vale il ruolo assegnato.
+ */
+export const CAPABILITIES = [
+  'can_see_costs',
+  'can_see_prices',
+  'can_see_margins',
+  'can_edit_items',
+  'can_approve_gates',
+] as const;
+export type Capability = (typeof CAPABILITIES)[number];
+
+export type PermissionMap = Map<string, Partial<Record<Capability, boolean>>>;
+
+export function buildPermissionMap(rows: any[]): PermissionMap {
+  const map: PermissionMap = new Map();
+  for (const r of rows) {
+    const entry = map.get(r.user_id) || {};
+    entry[r.capability as Capability] = !!r.value;
+    map.set(r.user_id, entry);
+  }
+  return map;
+}
+
+export function useSetPermission() {
   const invalidate = useInvalidateChart();
   const { activeId } = useActiveOrg();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ userId, value }: { userId: string; value: boolean | null }) => {
+    mutationFn: async ({
+      userId, capability, value,
+    }: { userId: string; capability: Capability; value: boolean | null }) => {
       if (!activeId) throw new Error('Nessuna organizzazione attiva');
       if (value === null) {
         const { error } = await sb
-          .from('cost_visibility_overrides')
+          .from('permission_overrides')
           .delete()
           .eq('organization_id', activeId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .eq('capability', capability);
         if (error) throw error;
         return;
       }
-      const { error } = await sb
-        .from('cost_visibility_overrides')
-        .upsert(
-          { organization_id: activeId, user_id: userId, can_see_costs: value, set_by: user?.id ?? null },
-          { onConflict: 'organization_id,user_id' },
-        );
+      const { error } = await sb.from('permission_overrides').upsert(
+        {
+          organization_id: activeId,
+          user_id: userId,
+          capability,
+          value,
+          set_by: user?.id ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'organization_id,user_id,capability' },
+      );
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
 }
+
