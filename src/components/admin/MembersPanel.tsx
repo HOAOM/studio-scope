@@ -51,7 +51,7 @@ interface OrgInviteRow {
 }
 
 export function MembersPanel() {
-  const { activeOrg, isLoading } = useActiveOrg();
+  const { activeOrg, isLoading, isImpersonating } = useActiveOrg();
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<string>('designer');
@@ -159,6 +159,9 @@ export function MembersPanel() {
           organization_id: activeOrg.organization_id,
           email: email.trim().toLowerCase(),
           base_role: role,
+          // Intento esplicito: invito eseguito dal pannello admin sull'org
+          // attualmente in View-as (il server valida comunque la sessione).
+          console_intent: isImpersonating,
         },
       });
       if (error) {
@@ -229,7 +232,10 @@ export function MembersPanel() {
     );
   }
 
-  const isOwner = activeOrg.is_owner;
+  // In View-as il platform admin non è membro dell'org (is_owner=false): senza
+  // questo, il supporto non può invitare per conto del cliente. Il server
+  // ri-verifica comunque il contesto (assertOrgContext -> reason 'impersonation').
+  const isOwner = activeOrg.is_owner || isImpersonating;
 
   return (
     <div className="space-y-6">
