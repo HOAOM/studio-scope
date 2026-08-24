@@ -9,6 +9,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { assertOrgContext } from '../_shared/orgContext.ts'
+import { isValidAppRole, isValidInviteEmail, sendOrgInvite } from '../_shared/sendOrgInvite.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -166,42 +167,40 @@ Deno.serve(async (req) => {
 
 
     if (action === 'invite') {
-      const { email, role, password } = params
+      // Percorso storico (UserManagement): creava un utente con password
+      // generata, senza email e senza gate /set-password. Ora è reindirizzato
+      // sull'unico canale di invito condiviso.
+      const { email, role } = params
       if (!email) throw new Error('Email is required')
+      const cleanEmail = String(email).trim().toLowerCase()
+      if (!isValidInviteEmail(cleanEmail)) throw new Error('Email non valida')
+      if (!isValidAppRole(String(role ?? ''))) throw new Error('Ruolo non valido')
       const orgId = await targetOrg()
       if (!orgId) throw new Error('organization_id is required')
       assertCanGrantAdminRole(role, orgId)
 
-
-
-      const userPassword = password || (crypto.randomUUID().slice(0, 12) + 'A1!')
-
-      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        password: userPassword,
+      const res = await sendOrgInvite(adminClient, {
+        organizationId: orgId,
+        email: cleanEmail,
+        baseRole: role,
+        isOwner: false,
+        invitedBy: caller.id,
+        req,
       })
-      if (createError) throw createError
+      if (res.error) throw new Error(res.error)
 
-      if (newUser.user) {
-        await adminClient.from('organization_members').insert({
-          organization_id: orgId,
-          user_id: newUser.user.id,
-          is_owner: false,
-        })
-        if (role) {
-          await adminClient.from('user_roles').insert({
-            user_id: newUser.user.id,
-            role,
-            organization_id: orgId,
-          })
-        }
-      }
-
-      return new Response(JSON.stringify({ success: true, user_id: newUser.user?.id }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({
+          success: true,
+          invite_id: res.invite_id,
+          accept_url: res.accept_url,
+          email_sent: res.email_sent,
+          existing_user: res.existing_user,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
+
 
     if (action === 'delete') {
       const { user_id } = params

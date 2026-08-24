@@ -13,6 +13,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requestSiteUrl } from "../_shared/orgSiteUrl.ts";
+import { sendOrgInvite } from "../_shared/sendOrgInvite.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -185,19 +186,19 @@ Deno.serve(async (req) => {
       }
 
 
-      // New address: l'invito admin crea l'account e invia l'email di attivazione
-      // (bypassa il blocco della registrazione pubblica, che resta disattivata).
+      // New address: l'account viene creato subito (senza password: il gate
+      // /set-password scatta comunque) e l'email di attivazione parte dal
+      // canale condiviso subito dopo la creazione dell'organizzazione.
       const siteUrlNew = requestSiteUrl(req);
-      const { data: invited, error: cerr } = await sb.auth.admin.inviteUserByEmail(owner_email, {
-        redirectTo: `${siteUrlNew}/reset-password`,
+      const { data: created, error: cerr } = await sb.auth.admin.createUser({
+        email: owner_email,
+        email_confirm: true,
+        user_metadata: { must_set_password: true },
       });
-
-
-      if (cerr || !invited?.user) {
+      if (cerr || !created?.user) {
         return json({ error: "user_create_failed", detail: cerr?.message ?? null }, 500);
       }
-      const owner = invited.user;
-
+      const owner = created.user;
 
       // 2) organization
       const { data: org, error: oerr } = await sb
@@ -235,9 +236,18 @@ Deno.serve(async (req) => {
         discount_applied = !!data;
       }
 
-      // 5) l'email di attivazione è già stata inviata al punto 1 tramite invito
-      //    admin (mai restituita nella response: questo endpoint è pubblico).
-      const email_sent = true;
+      // 5) attivazione owner via canale unico condiviso. L'org non ha ancora
+      //    DNS attivo sul custom_domain scelto, quindi si resta sull'host del
+      //    sito pubblico da cui arriva la richiesta.
+      const activation = await sendOrgInvite(sb, {
+        organizationId: org.id,
+        email: owner_email,
+        mode: "owner_activation",
+        landingPath: "/reset-password",
+        siteUrlOverride: siteUrlNew,
+        req,
+      });
+      const email_sent = activation.email_sent;
 
 
       return json({

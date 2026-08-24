@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
+import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,7 +52,8 @@ interface OrgInviteRow {
 }
 
 export function MembersPanel() {
-  const { activeOrg, isLoading, isImpersonating } = useActiveOrg();
+  const { activeOrg, isLoading } = useActiveOrg();
+  const { isEffectiveOwner, consoleIntent } = useEffectiveOwner();
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<string>('designer');
@@ -161,7 +163,7 @@ export function MembersPanel() {
           base_role: role,
           // Intento esplicito: invito eseguito dal pannello admin sull'org
           // attualmente in View-as (il server valida comunque la sessione).
-          console_intent: isImpersonating,
+          console_intent: consoleIntent,
         },
       });
       if (error) {
@@ -232,10 +234,9 @@ export function MembersPanel() {
     );
   }
 
-  // In View-as il platform admin non è membro dell'org (is_owner=false): senza
-  // questo, il supporto non può invitare per conto del cliente. Il server
-  // ri-verifica comunque il contesto (assertOrgContext -> reason 'impersonation').
-  const isOwner = activeOrg.is_owner || isImpersonating;
+  // Diritti dell'owner: reali oppure ereditati in View-as (regola unica di
+  // piattaforma, vedi useEffectiveOwner / effectiveOwnerContext lato server).
+  const isOwner = isEffectiveOwner;
 
   return (
     <div className="space-y-6">

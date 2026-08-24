@@ -74,7 +74,11 @@ export function UserManagement() {
       });
       if (res.error) throw res.error;
       if (res.data?.error) throw new Error(res.data.error);
-      toast.success(`Utente ${inviteEmail} creato con ruolo ${inviteRole}`);
+      toast.success(
+        res.data?.email_sent
+          ? `Invito inviato a ${inviteEmail} con ruolo ${inviteRole}`
+          : `Invito creato per ${inviteEmail} (email non inviata, condividi il link)`,
+      );
       setInviteEmail('');
       setInviteOpen(false);
       fetchUsers();
@@ -217,7 +221,7 @@ export function UserManagement() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Invita Nuovo Utente</DialogTitle>
-              <DialogDescription>Crea un account per un nuovo membro del team.</DialogDescription>
+              <DialogDescription>Invia un invito via email a un nuovo membro del team.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
@@ -238,7 +242,7 @@ export function UserManagement() {
               <Button variant="outline" onClick={() => setInviteOpen(false)}>Annulla</Button>
               <Button onClick={handleInvite} disabled={inviting}>
                 {inviting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <UserPlus className="w-4 h-4 mr-1" />}
-                Crea Utente
+                Invia invito
               </Button>
             </DialogFooter>
           </DialogContent>

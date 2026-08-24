@@ -12,10 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
 import { useNavigate } from 'react-router-dom';
 import { useImpersonatedOrgId } from '@/components/layout/ImpersonateBanner';
+import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 
 export function OrgSwitcher() {
   const { orgs: allOrgs, activeOrg, setActiveOrg, isLoading } = useActiveOrg();
   const impersonateId = useImpersonatedOrgId();
+  const { isEffectiveOwner } = useEffectiveOwner();
   const navigate = useNavigate();
 
   // In modalità "View as" il selettore è bloccato sull'org impersonata: le
@@ -73,10 +75,16 @@ export function OrgSwitcher() {
             )}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/admin?tab=members')}>
-          Manage members & invites
-        </DropdownMenuItem>
+        {/* Voce riservata a chi ha davvero i diritti dell'owner: un membro
+            semplice non deve nemmeno vederla. */}
+        {isEffectiveOwner && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/admin?tab=members')}>
+              Manage members & invites
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
