@@ -66,43 +66,70 @@ export function useActiveOrg() {
   const [activeId, setActiveIdState] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : localStorage.getItem(ACTIVE_ORG_KEY),
   );
+  const [impersonatedId, setImpersonatedId] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : localStorage.getItem(IMPERSONATE_KEY),
+  );
 
   // Sincronizzazione cross-istanza: senza questo, cambiare org in OrgSwitcher
   // aggiornava solo lo state locale di quel componente e le query (progetti,
   // ruoli, admin data…) restavano sulla vecchia org.
   useEffect(() => {
-    const sync = () => setActiveIdState(localStorage.getItem(ACTIVE_ORG_KEY));
+    const sync = () => {
+      setActiveIdState(localStorage.getItem(ACTIVE_ORG_KEY));
+      setImpersonatedId(localStorage.getItem(IMPERSONATE_KEY));
+    };
     window.addEventListener(ACTIVE_ORG_EVENT, sync);
+    window.addEventListener('studioscope.impersonate-change', sync);
     window.addEventListener('storage', sync);
     return () => {
       window.removeEventListener(ACTIVE_ORG_EVENT, sync);
+      window.removeEventListener('studioscope.impersonate-change', sync);
       window.removeEventListener('storage', sync);
     };
   }, []);
 
-  // Auto-pick first org if nothing selected / selezione non più valida.
-  // La risoluzione avviene anche in modo SINCRONO qui sotto (resolvedId) per
-  // evitare il flash con l'org precedente prima che l'effect giri.
-  const storedValid = !!orgs && orgs.some((o) => o.organization_id === activeId);
-  const resolvedId = orgs && orgs.length > 0
-    ? (storedValid ? activeId : orgs[0].organization_id)
-    : activeId;
+  // Auto-pick first org if nothing selected / selezione non più valida, ma con
+  // priorità assoluta all'org impersonata (View-as).
+  const resolvedId = resolveActiveOrgId({ orgs, storedId: activeId, impersonatedId });
 
   useEffect(() => {
-    if (!orgs || orgs.length === 0) return;
+    if (!impersonatedId && (!orgs || orgs.length === 0)) return;
     if (resolvedId && resolvedId !== activeId) {
       writeActiveOrg(resolvedId);
       setActiveIdState(resolvedId);
     }
-  }, [orgs, activeId, resolvedId]);
+  }, [orgs, activeId, resolvedId, impersonatedId]);
 
   const setActiveOrg = useCallback((id: string) => {
     writeActiveOrg(id);
     setActiveIdState(id);
   }, []);
 
-  const activeOrg = orgs?.find((o) => o.organization_id === resolvedId) ?? null;
-  return { orgs: orgs ?? [], activeOrg, activeId: resolvedId, setActiveOrg, isLoading };
+  const realOrg = orgs?.find((o) => o.organization_id === resolvedId) ?? null;
+  // In View-as il platform admin non è membro dell'org: senza questo fallback
+  // `activeOrg` restava null e i pannelli ricadevano sull'org sbagliata o vuota.
+  const activeOrg: MyOrg | null =
+    realOrg ??
+    (impersonatedId
+      ? {
+          organization_id: impersonatedId,
+          name: 'Organizzazione impersonata',
+          slug: '',
+          is_owner: false,
+          tier: '',
+          status: '',
+        }
+      : null);
+
+  return {
+    orgs: orgs ?? [],
+    activeOrg,
+    activeId: resolvedId,
+    setActiveOrg,
+    isLoading,
+    isImpersonating: !!impersonatedId,
+  };
+
 }
 
 
