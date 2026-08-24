@@ -9,7 +9,7 @@ import type { OrgNode, TodayEntry } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { PersonCard, TeamMemberChip } from './PersonCard';
 import { ContractorCard, type Contractor } from './ContractorCard';
-import { DropZone, TeamBox, UnitBox, COLUMN_PALETTE } from './TeamBox';
+import { DropZone, TeamBox, UnitBox, CombList, COLUMN_PALETTE } from './TeamBox';
 
 export interface OrgTreeContext {
   profiles: Map<string, DirectoryProfile>;
@@ -26,8 +26,8 @@ export interface OrgTreeContext {
 }
 
 export function OrgNodeView({
-  node, ctx, color,
-}: { node: OrgNode; ctx: OrgTreeContext; color?: string | null }) {
+  node, ctx, color, asColumn = false,
+}: { node: OrgNode; ctx: OrgTreeContext; color?: string | null; asColumn?: boolean }) {
   const [collapsed, setCollapsed] = useState(node.depth >= 4);
   const draggable = ctx.canEdit && node.can_edit;
 
@@ -116,7 +116,32 @@ export function OrgNodeView({
     );
   }
 
-  // unit / area, oppure persona con riporti: colonna con testata colorata
+  // Persona con riporti dentro una colonna: nessun box aggiuntivo,
+  // solo la scheda e i suoi riporti collegati a pettine.
+  if (node.node_kind === 'person' && !asColumn) {
+    return (
+      <div className="space-y-2">
+        <DropZone id={`drop:${node.id}`} nodeId={node.id} disabled={!ctx.canEdit}>
+          <PersonCard
+            node={node}
+            profile={node.user_id ? ctx.profiles.get(node.user_id) : undefined}
+            today={node.user_id ? ctx.today.get(node.user_id) : undefined}
+            extraTeams={node.user_id ? ctx.extraTeams.get(node.user_id) ?? 0 : 0}
+            draggable={draggable}
+            canEdit={ctx.canEdit}
+            onOpen={ctx.onOpen}
+          />
+        </DropZone>
+        <CombList color={color}>
+          {node.children.map((c) => (
+            <OrgNodeView key={c.id} node={c} ctx={ctx} color={color} />
+          ))}
+        </CombList>
+      </div>
+    );
+  }
+
+  // unit / area, oppure persona radice di colonna: testata colorata
   const label = node.node_kind === 'unit'
     ? node.title
     : `${ctx.profiles.get(node.user_id || '')?.display_name || node.title}`;
@@ -204,7 +229,7 @@ function Columns({ nodes, ctx }: { nodes: OrgNode[]; ctx: OrgTreeContext }) {
     <div className="flex flex-wrap items-start gap-4">
       {nodes.map((n, i) => (
         <div key={n.id} className="min-w-[240px] max-w-[320px] flex-1">
-          <OrgNodeView node={n} ctx={ctx} color={COLUMN_PALETTE[i % COLUMN_PALETTE.length]} />
+          <OrgNodeView node={n} ctx={ctx} asColumn color={COLUMN_PALETTE[i % COLUMN_PALETTE.length]} />
         </div>
       ))}
     </div>
