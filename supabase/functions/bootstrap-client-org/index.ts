@@ -12,7 +12,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
-import { orgSiteUrl } from "../_shared/orgSiteUrl.ts";
+import { sendOrgInvite } from "../_shared/sendOrgInvite.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -116,16 +116,19 @@ Deno.serve(async (req) => {
     discount_applied = applied;
   }
 
-  // 5. Magic link
-  const siteUrl = await orgSiteUrl(admin, org.id, req);
+  // 5. Attivazione owner — canale unico condiviso (host dell'org + gate password)
   let magic_link: string | null = null;
+  let email_sent = false;
   if (send_invite_email) {
-    const { data: link } = await admin.auth.admin.generateLink({
-      type: "magiclink",
+    const res = await sendOrgInvite(admin, {
+      organizationId: org.id,
       email: owner_email,
-      options: { redirectTo: `${siteUrl}/` },
+      mode: "owner_activation",
+      landingPath: "/",
+      req,
     });
-    magic_link = link?.properties?.action_link ?? null;
+    magic_link = res.magic_link;
+    email_sent = res.email_sent;
   }
 
   return json({
@@ -134,6 +137,7 @@ Deno.serve(async (req) => {
     slug: finalSlug,
     owner_user_id: ownerId,
     magic_link,
+    email_sent,
     temp_password: tempPassword,
     discount_applied,
   });
