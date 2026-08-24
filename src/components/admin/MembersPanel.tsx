@@ -229,7 +229,10 @@ export function MembersPanel() {
     );
   }
 
-  const isOwner = activeOrg.is_owner;
+  // In View-as il platform admin non è membro dell'org (is_owner=false): senza
+  // questo, il supporto non può invitare per conto del cliente. Il server
+  // ri-verifica comunque il contesto (assertOrgContext -> reason 'impersonation').
+  const isOwner = activeOrg.is_owner || isImpersonating;
 
   return (
     <div className="space-y-6">
