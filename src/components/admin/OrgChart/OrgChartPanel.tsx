@@ -90,7 +90,34 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     return ((data?.subcontractors || []) as Contractor[]).filter((s) => !placed.has(s.id));
   }, [data]);
 
+  const handleDragStart = (e: DragStartEvent) => {
+    const payload = e.active.data.current as any;
+    if (payload?.kind === 'node') {
+      const find = (nodes: OrgNode[]): OrgNode | undefined => {
+        for (const n of nodes) {
+          if (n.id === payload.nodeId) return n;
+          const hit = find(n.children);
+          if (hit) return hit;
+        }
+        return undefined;
+      };
+      const n = find(tree);
+      setDragLabel(
+        (n?.user_id ? ctx.profiles.get(n.user_id)?.display_name : undefined) || n?.title || 'Scheda',
+      );
+    } else if (payload?.kind === 'person') {
+      setDragLabel(ctx.profiles.get(payload.userId)?.display_name || 'Persona');
+    } else if (payload?.kind === 'supplier') {
+      setDragLabel(unplacedContractors.find((s) => s.id === payload.supplierId)?.name || 'Appaltatore');
+    } else if (payload?.kind === 'catalog') {
+      setDragLabel(payload.title || 'Posizione');
+    } else {
+      setDragLabel(null);
+    }
+  };
+
   const handleDragEnd = async (e: DragEndEvent) => {
+    setDragLabel(null);
     if (!canEdit) return;
     const target = e.over?.data?.current as { nodeId: string | null } | undefined;
     if (!e.over) return;
