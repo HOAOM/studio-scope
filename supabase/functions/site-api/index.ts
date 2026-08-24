@@ -171,11 +171,20 @@ async function createOrganization(body: any) {
     }
   }
 
+  // 6) attivazione owner via canale unico condiviso
+  const activation = await sendOrgInvite(sb, {
+    organizationId: org.id,
+    email: body.owner_email,
+    mode: "owner_activation",
+    landingPath: "/",
+  });
+
   return json({
     ok: true,
     organization_id: org.id,
     slug: org.slug,
     owner_user_id: userId,
+    email_sent: activation.email_sent,
     tier,
     code_applied: codeApplied,
     referral_applied: referralApplied,
