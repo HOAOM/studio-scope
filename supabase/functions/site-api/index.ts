@@ -4,6 +4,7 @@
 // Auth: shared secret header `x-site-api-key` matching SITE_API_KEY env var.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { sendOrgInvite } from "../_shared/sendOrgInvite.ts";
 import { findUserIdByEmail } from "../_shared/findUserByEmail.ts";
 
 const corsHeaders = {
@@ -75,20 +76,28 @@ async function createOrganization(body: any) {
 
   const sb = admin();
 
-  // 1) ensure user exists (invite or fetch) — lookup mirato, non listUsers()
+  // 1) ensure user exists — lookup mirato, non listUsers().
+  //    L'email di attivazione NON parte qui: viene inviata dopo la creazione
+  //    dell'organizzazione tramite il canale unico condiviso (sendOrgInvite),
+  //    così l'host di atterraggio è quello dell'org e il gate password è
+  //    sempre applicato.
   let userId: string | null = await findUserIdByEmail(sb, body.owner_email);
   if (!userId) {
-    const { data: invited, error: inviteErr } =
-      await sb.auth.admin.inviteUserByEmail(body.owner_email, {
-        data: { display_name: body.owner_display_name ?? null },
-      });
-    if (inviteErr || !invited?.user) {
+    const { data: created, error: createErr } = await sb.auth.admin.createUser({
+      email: body.owner_email,
+      email_confirm: true,
+      user_metadata: {
+        display_name: body.owner_display_name ?? null,
+        must_set_password: true,
+      },
+    });
+    if (createErr || !created?.user) {
       return json(
-        { error: "could not create owner user", detail: inviteErr?.message },
+        { error: "could not create owner user", detail: createErr?.message },
         500,
       );
     }
-    userId = invited.user.id;
+    userId = created.user.id;
   }
 
   // 2) create org
