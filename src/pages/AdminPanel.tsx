@@ -102,7 +102,7 @@ export default function AdminPanel() {
       </header>
 
       <main className="container py-8">
-        <Tabs defaultValue="members" className="space-y-6">
+        <Tabs defaultValue={initialTab} className="space-y-6">
           <TabsList className="bg-secondary flex-wrap h-auto">
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="assignments">Assegnazioni progetto</TabsTrigger>
