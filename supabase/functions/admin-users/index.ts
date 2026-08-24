@@ -139,17 +139,30 @@ Deno.serve(async (req) => {
       }
     }
 
-    /** Organizzazione target per le azioni di scrittura. */
-    const targetOrg = (): string | null => {
+    /**
+     * Organizzazione target per le azioni di scrittura.
+     * Per un platform admin non membro dell'org, il contesto deve essere
+     * esplicito: sessione View-as aperta su quell'org, oppure console
+     * super-admin (`console_intent: true`, org scelta a mano nella UI).
+     */
+    const targetOrg = async (): Promise<string | null> => {
       const requested = params.organization_id as string | undefined
-      if (requested) {
-        if (!isPlatformAdmin && !adminOrgs.has(requested)) {
-          throw new Error('Organizzazione non consentita')
-        }
-        return requested
+      const orgId = requested ?? orgList[0] ?? null
+      if (requested && !isPlatformAdmin && !adminOrgs.has(requested)) {
+        throw new Error('Organizzazione non consentita')
       }
-      return orgList[0] ?? null
+      if (orgId) {
+        await assertOrgContext(adminClient, {
+          userId: caller.id,
+          targetOrgId: orgId,
+          isPlatformAdmin,
+          isOrgMember: adminOrgs.has(orgId) || ownerOrgs.has(orgId),
+          consoleIntent: params.console_intent === true,
+        })
+      }
+      return orgId
     }
+
 
     if (action === 'invite') {
       const { email, role, password } = params
