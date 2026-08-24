@@ -159,6 +159,9 @@ export function MembersPanel() {
           organization_id: activeOrg.organization_id,
           email: email.trim().toLowerCase(),
           base_role: role,
+          // Intento esplicito: invito eseguito dal pannello admin sull'org
+          // attualmente in View-as (il server valida comunque la sessione).
+          console_intent: isImpersonating,
         },
       });
       if (error) {
