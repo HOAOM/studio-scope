@@ -4,7 +4,10 @@
  * sia come vista in sola lettura per i membri semplici.
  */
 import { useMemo, useState } from 'react';
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
 import { Loader2, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
