@@ -127,6 +127,21 @@ Deno.serve(async (req) => {
     return json({ error: "forbidden: not org owner" }, 403);
   }
 
+  // Contesto organizzazione: un platform admin può invitare in un'org di cui
+  // non è membro SOLO se ha una sessione View-as aperta su quella org.
+  try {
+    await assertOrgContext(admin, {
+      userId: caller.id,
+      targetOrgId: organization_id,
+      isPlatformAdmin: !!isPlatform,
+      isOrgMember: !!orgAdminRow || !!ownerCheck,
+      consoleIntent: body.console_intent === true,
+    });
+  } catch (e: any) {
+    return json({ error: e.code ?? "forbidden", detail: e.message }, e.status ?? 403);
+  }
+
+
   // Il ruolo protetto 'admin' può essere invitato SOLO dall'owner dell'org o da
   // un platform admin — rispecchia le policy RLS su user_roles e accept_org_invite().
   if (base_role === "admin" && !isPlatform && !ownerCheck?.is_owner) {
