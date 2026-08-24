@@ -1,20 +1,44 @@
 /**
  * PersonDetailSheet — pannello di dettaglio al click su una scheda.
- * Contatti + azioni a costo zero + interruttore visibilità costi (owner/admin).
+ * Contatti, modifica della posizione (titolo, persona, squadra, responsabile)
+ * e interruttori dei permessi granulari (permission_overrides).
  */
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Copy, Mail, MessageSquare, Phone, Trash2 } from 'lucide-react';
-import type { OrgNode, TodayEntry } from '@/hooks/useOrgChartV3';
+import { Building2, Copy, Mail, MessageSquare, Phone, Save, Trash2 } from 'lucide-react';
+import type { OrgNode, TodayEntry, Capability } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import type { Contractor } from './ContractorCard';
 import { StatusDot } from './PersonCard';
+
+const NONE = '__none__';
+
+export const CAPABILITY_META: {
+  key: Capability; label: string; hint: string; enforced: boolean;
+}[] = [
+  { key: 'can_see_costs', label: 'Vede i costi', hint: 'Costi di acquisto e costi accessori.', enforced: true },
+  { key: 'can_see_prices', label: 'Vede i prezzi di vendita', hint: 'Prezzi verso il cliente.', enforced: false },
+  { key: 'can_see_margins', label: 'Vede i margini', hint: 'Marginalità e ricarichi.', enforced: false },
+  { key: 'can_edit_items', label: 'Modifica le voci BOQ', hint: 'Creazione e modifica delle voci di progetto.', enforced: false },
+  { key: 'can_approve_gates', label: 'Approva i gate', hint: 'Approvazioni di passaggio di fase.', enforced: false },
+];
+
+export interface PositionPatch {
+  title?: string;
+  user_id?: string | null;
+  team_id?: string | null;
+  manager_id?: string | null;
+}
 
 export interface PersonDetailSheetProps {
   node: OrgNode | null;
@@ -25,17 +49,39 @@ export interface PersonDetailSheetProps {
   today?: TodayEntry;
   canEdit: boolean;
   canManagePermissions: boolean;
-  overrideValue: boolean | null;
-  onOverrideChange: (value: boolean | null) => void;
+  permissions?: Partial<Record<Capability, boolean>>;
+  onSetPermission: (capability: Capability, value: boolean | null) => void;
+  /** Tutte le squadre dell'organizzazione (per la modifica). */
+  allTeams?: Team[];
+  /** Tutti i membri dell'organizzazione (per assegnare una persona). */
+  allProfiles?: DirectoryProfile[];
+  /** Nodi selezionabili come responsabile. */
+  parentOptions?: { id: string; label: string }[];
+  onSave?: (patch: PositionPatch) => void;
+  saving?: boolean;
   onDelete: () => void;
   onClose: () => void;
 }
 
 export function PersonDetailSheet({
   node, profile, supplier, teams, primaryTeamId, today,
-  canEdit, canManagePermissions, overrideValue, onOverrideChange, onDelete, onClose,
+  canEdit, canManagePermissions, permissions, onSetPermission,
+  allTeams = [], allProfiles = [], parentOptions = [], onSave, saving, onDelete, onClose,
 }: PersonDetailSheetProps) {
   const navigate = useNavigate();
+  const [title, setTitle] = useState('');
+  const [userId, setUserId] = useState<string>(NONE);
+  const [teamId, setTeamId] = useState<string>(NONE);
+  const [managerId, setManagerId] = useState<string>(NONE);
+
+  useEffect(() => {
+    if (!node) return;
+    setTitle(node.title);
+    setUserId(node.user_id || NONE);
+    setTeamId(node.team_id || NONE);
+    setManagerId(node.manager_id || NONE);
+  }, [node?.id, node?.title, node?.user_id, node?.team_id, node?.manager_id]);
+
   if (!node) return null;
 
   const isContractor = node.node_kind === 'contractor';
@@ -44,6 +90,13 @@ export function PersonDetailSheet({
     : profile?.display_name || profile?.email || node.title;
   const email = isContractor ? supplier?.email : profile?.email;
   const phone = isContractor ? supplier?.phone : profile?.phone;
+  const editable = canEdit && node.can_edit && !!onSave;
+
+  const dirty =
+    title !== node.title ||
+    (userId === NONE ? null : userId) !== (node.user_id ?? null) ||
+    (teamId === NONE ? null : teamId) !== (node.team_id ?? null) ||
+    (managerId === NONE ? null : managerId) !== (node.manager_id ?? null);
 
   const copyContact = async () => {
     await navigator.clipboard.writeText(
@@ -72,7 +125,7 @@ export function PersonDetailSheet({
         <div className="mt-4 space-y-4">
           <div className="text-sm text-muted-foreground">{node.title}</div>
 
-          {!isContractor && (
+          {!isContractor && node.node_kind === 'person' && (
             <div className="flex items-center gap-2 text-xs">
               <StatusDot today={today} />
               <span className="text-muted-foreground">
@@ -118,30 +171,146 @@ export function PersonDetailSheet({
             </Button>
           </div>
 
-          {canManagePermissions && !isContractor && node.user_id && (
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="cost-visibility" className="text-xs">
-                  Può vedere costi, prezzi e margini
-                </Label>
-                <Switch
-                  id="cost-visibility"
-                  checked={overrideValue === true}
-                  onCheckedChange={(v) => onOverrideChange(v)}
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Override individuale sopra il ruolo di default.
-                {overrideValue === null
-                  ? ' Al momento vale il ruolo assegnato.'
-                  : ' Impostazione manuale attiva.'}
-              </p>
-              {overrideValue !== null && (
-                <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => onOverrideChange(null)}>
-                  Torna al valore del ruolo
+          {editable && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Modifica posizione
+                </h4>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Titolo / ruolo</Label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    data-testid="edit-title"
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                {!isContractor && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Persona assegnata</Label>
+                    <Select value={userId} onValueChange={setUserId}>
+                      <SelectTrigger className="h-8 text-xs" data-testid="edit-person">
+                        <SelectValue placeholder="Nessuna persona" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        <SelectItem value={NONE}>Nessuna (posizione vacante)</SelectItem>
+                        {allProfiles.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.display_name || p.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      La foto proviene dal profilo della persona assegnata.
+                    </p>
+                  </div>
+                )}
+
+                {!isContractor && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Squadra</Label>
+                    <Select value={teamId} onValueChange={setTeamId}>
+                      <SelectTrigger className="h-8 text-xs" data-testid="edit-team">
+                        <SelectValue placeholder="Nessuna squadra" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        <SelectItem value={NONE}>Nessuna squadra</SelectItem>
+                        {allTeams.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Responsabile (nodo padre)</Label>
+                  <Select value={managerId} onValueChange={setManagerId}>
+                    <SelectTrigger className="h-8 text-xs" data-testid="edit-manager">
+                      <SelectValue placeholder="Nessuno (radice)" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      <SelectItem value={NONE}>Nessuno — nodo radice</SelectItem>
+                      {parentOptions.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  size="sm"
+                  disabled={!dirty || saving}
+                  data-testid="save-position"
+                  onClick={() =>
+                    onSave?.({
+                      title: title.trim() || node.title,
+                      user_id: userId === NONE ? null : userId,
+                      team_id: teamId === NONE ? null : teamId,
+                      manager_id: managerId === NONE ? null : managerId,
+                    })
+                  }
+                >
+                  <Save className="mr-1.5 h-3.5 w-3.5" />Salva modifiche
                 </Button>
-              )}
-            </div>
+              </div>
+            </>
+          )}
+
+          {canManagePermissions && !isContractor && node.user_id && (
+            <>
+              <Separator />
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Permessi individuali
+                </h4>
+                {CAPABILITY_META.map((cap) => {
+                  const value = permissions?.[cap.key];
+                  const isSet = value !== undefined;
+                  return (
+                    <div key={cap.key} className="space-y-1 border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor={`cap-${cap.key}`} className="text-xs">
+                          {cap.label}
+                        </Label>
+                        <Switch
+                          id={`cap-${cap.key}`}
+                          data-testid={`cap-${cap.key}`}
+                          checked={value === true}
+                          onCheckedChange={(v) => onSetPermission(cap.key, v)}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        {cap.hint}{' '}
+                        {isSet ? 'Impostazione manuale attiva.' : 'Al momento vale il ruolo assegnato.'}
+                      </p>
+                      {!cap.enforced && (
+                        <p className="text-[10px] font-medium text-status-warning">
+                          {cap.key === 'can_approve_gates'
+                            ? 'Non ancora applicato: l’enforcement arriverà con la ridefinizione degli Approval Gate.'
+                            : 'Non ancora applicato lato server: per ora è solo registrato.'}
+                        </p>
+                      )}
+                      {isSet && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[10px]"
+                          onClick={() => onSetPermission(cap.key, null)}
+                        >
+                          Torna al valore del ruolo
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {canEdit && node.can_edit && (

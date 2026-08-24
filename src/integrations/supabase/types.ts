@@ -1430,6 +1430,47 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_overrides: {
+        Row: {
+          capability: string
+          created_at: string
+          id: string
+          organization_id: string
+          set_by: string | null
+          updated_at: string
+          user_id: string
+          value: boolean
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          set_by?: string | null
+          updated_at?: string
+          user_id: string
+          value: boolean
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          set_by?: string | null
+          updated_at?: string
+          user_id?: string
+          value?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_overrides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_admins: {
         Row: {
           created_at: string
@@ -3095,6 +3136,7 @@ export type Database = {
         }
       }
       get_user_org: { Args: never; Returns: string }
+      has_capability: { Args: { _capability: string }; Returns: boolean }
       has_org_role: {
         Args: {
           _org: string
