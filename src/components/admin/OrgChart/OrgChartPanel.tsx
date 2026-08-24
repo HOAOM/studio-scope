@@ -36,6 +36,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
 
   const [selected, setSelected] = useState<OrgNode | null>(null);
   const [search, setSearch] = useState('');
+  const [dragLabel, setDragLabel] = useState<string | null>(null);
 
   const canEdit = !readOnly && (isEffectiveOwner || isOrgAdmin);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
