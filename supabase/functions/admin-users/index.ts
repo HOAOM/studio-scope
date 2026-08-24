@@ -8,6 +8,7 @@
  * is_platform_admin()).
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { assertOrgContext } from '../_shared/orgContext.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -167,7 +168,7 @@ Deno.serve(async (req) => {
     if (action === 'invite') {
       const { email, role, password } = params
       if (!email) throw new Error('Email is required')
-      const orgId = targetOrg()
+      const orgId = await targetOrg()
       if (!orgId) throw new Error('organization_id is required')
       assertCanGrantAdminRole(role, orgId)
 
@@ -245,7 +246,7 @@ Deno.serve(async (req) => {
       const { user_id, old_role, new_role } = params
       if (!user_id || !new_role) throw new Error('user_id and new_role required')
       await assertUserInScope(user_id)
-      const orgId = targetOrg()
+      const orgId = await targetOrg()
       assertCanGrantAdminRole(new_role, orgId)
 
       if (orgId) {
