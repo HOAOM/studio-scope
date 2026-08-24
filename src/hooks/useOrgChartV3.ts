@@ -265,7 +265,74 @@ export function useUpsertOrgNode() {
   });
 }
 
+const TEAM_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#22c55e', '#a855f7', '#ef4444', '#14b8a6', '#64748b'];
+
+/**
+ * Crea (o riusa) una vera riga `teams` e la collega a un nodo `team` dell'organigramma.
+ * Il nodo visivo non esiste mai senza la squadra corrispondente.
+ */
+export function useCreateTeamNode() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({
+      name, manager_id, catalog_id, title,
+    }: { name: string; manager_id: string | null; catalog_id?: string | null; title?: string }) => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      const { data: existing, error: selErr } = await sb
+        .from('teams')
+        .select('id, name, color')
+        .eq('organization_id', activeId)
+        .ilike('name', name)
+        .maybeSingle();
+      if (selErr) throw selErr;
+
+      let teamId = existing?.id as string | undefined;
+      if (!teamId) {
+        const { count } = await sb
+          .from('teams')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', activeId);
+        const { data: created, error: insErr } = await sb
+          .from('teams')
+          .insert({
+            organization_id: activeId,
+            name,
+            color: TEAM_COLORS[(count ?? 0) % TEAM_COLORS.length],
+            is_active: true,
+            created_by: user?.id ?? null,
+          })
+          .select('id')
+          .single();
+        if (insErr) throw insErr;
+        teamId = created.id as string;
+      }
+
+      const { data: node, error: nodeErr } = await sb
+        .from('org_positions')
+        .insert({
+          organization_id: activeId,
+          created_by: user?.id ?? null,
+          title: title || name,
+          node_kind: 'team',
+          team_id: teamId,
+          catalog_id: catalog_id ?? null,
+          manager_id: manager_id ?? null,
+          x: 0,
+          y: 0,
+        })
+        .select('id')
+        .single();
+      if (nodeErr) throw nodeErr;
+      return { nodeId: node.id as string, teamId: teamId! };
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export function useDeleteOrgNode() {
+
   const invalidate = useInvalidateChart();
   return useMutation({
     mutationFn: async (id: string) => {
