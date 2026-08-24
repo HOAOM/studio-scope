@@ -6,7 +6,7 @@
  *  - org_positions      => campi completi (node_kind, supplier_id, catalog_id)
  *  - teams / team_members / directory_profiles
  *  - calendar_entries   => stato di OGGI, una sola query per tutta l'org
- *  - cost_visibility_overrides => interruttore costi per persona
+ *  - permission_overrides => interruttori permessi granulari per persona
  */
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -97,7 +97,7 @@ export function useOrgChartV3() {
           .eq('organization_id', activeId)
           .lte('start_date', today)
           .gte('end_date', today),
-        sb.from('cost_visibility_overrides').select('user_id, can_see_costs').eq('organization_id', activeId),
+        sb.from('permission_overrides').select('user_id, capability, value').eq('organization_id', activeId),
         sb
           .from('suppliers')
           .select('id, name, categories, contact_person, email, phone, is_subcontractor')
@@ -148,9 +148,7 @@ export function useOrgChartV3() {
         teamMembers: (tmRes.data || []) as (TeamMember & { is_primary: boolean })[],
         profiles,
         todayByUser,
-        overrides: new Map<string, boolean>(
-          (cvoRes.data || []).map((o: any) => [o.user_id, !!o.can_see_costs]),
-        ),
+        permissions: buildPermissionMap(cvoRes.data || []),
         subcontractors: (supRes.data || []) as any[],
         memberIds: ids as string[],
       };
