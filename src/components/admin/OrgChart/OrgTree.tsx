@@ -30,7 +30,6 @@ export function OrgNodeView({
 }: { node: OrgNode; ctx: OrgTreeContext; color?: string | null; asColumn?: boolean }) {
   const [collapsed, setCollapsed] = useState(node.depth >= 4);
   const draggable = ctx.canEdit && node.can_edit;
-  const draggable = ctx.canEdit && node.can_edit;
 
   if (node.node_kind === 'contractor') {
     return (
