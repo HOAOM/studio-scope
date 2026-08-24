@@ -5,7 +5,7 @@
  */
 import { useMemo, useState } from 'react';
 import {
-  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent, pointerWithin,
   PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import { Loader2, Plus, Search } from 'lucide-react';
@@ -14,7 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   useOrgChartV3, usePositionCatalog, useUpsertOrgNode, useMoveOrgNode,
-  useDeleteOrgNode, useSetCostVisibility, useSeedOrgChart, type OrgNode,
+  useDeleteOrgNode, useSetCostVisibility, useSeedOrgChart, useCreateTeamNode,
+  useSetTeamMembership, type OrgNode,
 } from '@/hooks/useOrgChartV3';
 import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -27,20 +28,23 @@ import type { Contractor } from './ContractorCard';
 export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const { data, tree, unassignedUserIds, isLoading } = useOrgChartV3();
   const { data: catalog = [] } = usePositionCatalog();
-  const { isEffectiveOwner } = useEffectiveOwner();
-  const { isOrgAdmin } = usePermissions();
+  const { isEffectiveOwner, isLoading: ownerLoading } = useEffectiveOwner();
+  const { isOrgAdmin, isLoading: permLoading } = usePermissions();
   const upsert = useUpsertOrgNode();
   const move = useMoveOrgNode();
   const remove = useDeleteOrgNode();
   const setCostVisibility = useSetCostVisibility();
   const seed = useSeedOrgChart();
+  const createTeam = useCreateTeamNode();
+  const setMembership = useSetTeamMembership();
 
   const [selected, setSelected] = useState<OrgNode | null>(null);
   const [search, setSearch] = useState('');
   const [dragLabel, setDragLabel] = useState<string | null>(null);
 
-  const canEdit = !readOnly && (isEffectiveOwner || isOrgAdmin);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const permissionsReady = !ownerLoading && !permLoading;
+  const canEdit = !readOnly && permissionsReady && (isEffectiveOwner || isOrgAdmin);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const ctx: OrgTreeContext = useMemo(() => {
     const profiles = new Map<string, DirectoryProfile>();
@@ -51,20 +55,38 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     (data?.subcontractors || []).forEach((s: any) => suppliers.set(s.id, s));
 
     const extraTeams = new Map<string, number>();
-    const leads = new Set<string>();
+    const leadsByTeam = new Map<string, Set<string>>();
+    const membersByTeam = new Map<string, string[]>();
     (data?.teamMembers || []).forEach((m) => {
       extraTeams.set(m.user_id, (extraTeams.get(m.user_id) ?? 0) + 1);
-      if (m.member_role === 'lead') leads.add(m.user_id);
+      const list = membersByTeam.get(m.team_id) || [];
+      list.push(m.user_id);
+      membersByTeam.set(m.team_id, list);
+      if (m.member_role === 'lead') {
+        const set = leadsByTeam.get(m.team_id) || new Set<string>();
+        set.add(m.user_id);
+        leadsByTeam.set(m.team_id, set);
+      }
     });
     extraTeams.forEach((v, k) => extraTeams.set(k, Math.max(0, v - 1)));
 
     return {
       profiles, teams, suppliers,
       today: data?.todayByUser || new Map(),
-      extraTeams, leads, canEdit,
+      extraTeams, leadsByTeam, membersByTeam, canEdit,
       onOpen: (n) => setSelected(n),
     };
   }, [data, canEdit]);
+
+  const findNode = (id: string | null, nodes: OrgNode[] = tree): OrgNode | undefined => {
+    if (!id) return undefined;
+    for (const n of nodes) {
+      if (n.id === id) return n;
+      const hit = findNode(id, n.children);
+      if (hit) return hit;
+    }
+    return undefined;
+  };
 
   const filteredRoots = useMemo(() => {
     if (!search.trim()) return tree;
@@ -94,15 +116,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const handleDragStart = (e: DragStartEvent) => {
     const payload = e.active.data.current as any;
     if (payload?.kind === 'node') {
-      const find = (nodes: OrgNode[]): OrgNode | undefined => {
-        for (const n of nodes) {
-          if (n.id === payload.nodeId) return n;
-          const hit = find(n.children);
-          if (hit) return hit;
-        }
-        return undefined;
-      };
-      const n = find(tree);
+      const n = findNode(payload.nodeId);
       setDragLabel(
         (n?.user_id ? ctx.profiles.get(n.user_id)?.display_name : undefined) || n?.title || 'Scheda',
       );
@@ -120,18 +134,35 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const handleDragEnd = async (e: DragEndEvent) => {
     setDragLabel(null);
     if (!canEdit) return;
-    const target = e.over?.data?.current as { nodeId: string | null } | undefined;
-    if (!e.over) return;
+    if (!e.over) {
+      toast.info('Rilasciato fuori da un contenitore valido: la scheda è tornata al suo posto.');
+      return;
+    }
+    const target = e.over.data?.current as { nodeId: string | null } | undefined;
     const parentId = target?.nodeId ?? null;
+    const parent = findNode(parentId);
+    const parentTeamId = parent?.node_kind === 'team' ? parent.team_id : null;
     const payload = e.active.data.current as any;
     try {
       if (payload?.kind === 'node') {
         if (payload.nodeId === parentId) return;
-        await move.mutateAsync({ id: payload.nodeId, manager_id: parentId });
+        const moved = findNode(payload.nodeId);
+        await move.mutateAsync({
+          id: payload.nodeId,
+          manager_id: parentId,
+          team_id: parentTeamId ?? null,
+        });
+        if (parentTeamId && moved?.user_id) {
+          await setMembership.mutateAsync({ userId: moved.user_id, teamId: parentTeamId });
+        }
       } else if (payload?.kind === 'person') {
         await upsert.mutateAsync({
-          node_kind: 'person', user_id: payload.userId, manager_id: parentId, title: 'Da definire',
+          node_kind: 'person', user_id: payload.userId, manager_id: parentId,
+          team_id: parentTeamId, title: 'Da definire',
         });
+        if (parentTeamId) {
+          await setMembership.mutateAsync({ userId: payload.userId, teamId: parentTeamId });
+        }
       } else if (payload?.kind === 'supplier') {
         const sup = unplacedContractors.find((s) => s.id === payload.supplierId);
         await upsert.mutateAsync({
@@ -139,16 +170,28 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
           title: sup?.name || 'Appaltatore',
         });
       } else if (payload?.kind === 'catalog') {
-        await upsert.mutateAsync({
-          node_kind: payload.level === 'L4' && payload.isLead ? 'team' : payload.level === 'L3' && payload.isLead ? 'unit' : 'person',
-          catalog_id: payload.catalogId, title: payload.title, manager_id: parentId,
-        });
+        const isTeam = payload.level === 'L4' || (payload.level === 'L3' && payload.isLead);
+        if (isTeam) {
+          await createTeam.mutateAsync({
+            name: payload.area || payload.title,
+            title: payload.title,
+            catalog_id: payload.catalogId,
+            manager_id: parentId,
+          });
+        } else {
+          await upsert.mutateAsync({
+            node_kind: 'person',
+            catalog_id: payload.catalogId, title: payload.title,
+            manager_id: parentId, team_id: parentTeamId,
+          });
+        }
       }
       toast.success('Organigramma aggiornato');
     } catch (err: any) {
       toast.error(err?.message || 'Aggiornamento non riuscito');
     }
   };
+
 
   if (isLoading) {
     return (
