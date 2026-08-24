@@ -170,7 +170,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
           title: sup?.name || 'Appaltatore',
         });
       } else if (payload?.kind === 'catalog') {
-        const isTeam = payload.level === 'L4' || (payload.level === 'L3' && payload.isLead);
+        const isTeam = !!payload.isLead && (payload.level === 'L4' || payload.level === 'L3');
         if (isTeam) {
           await createTeam.mutateAsync({
             name: payload.area || payload.title,
@@ -217,6 +217,8 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
 
   return (
     <DndContext
+      collisionDetection={pointerWithin}
+
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -309,7 +311,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         onClose={() => setSelected(null)}
       />
 
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay>
         {dragLabel ? (
           <div className="pointer-events-none rounded-md border border-primary bg-card px-2.5 py-1.5 text-xs font-medium shadow-lg">
             {dragLabel}
