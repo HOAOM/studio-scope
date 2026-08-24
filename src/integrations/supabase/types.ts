@@ -3117,6 +3117,7 @@ export type Database = {
         Returns: boolean
       }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
+      is_lead_of_team: { Args: { _team: string }; Returns: boolean }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
       is_org_owner: { Args: { p_org: string }; Returns: boolean }
@@ -3300,6 +3301,7 @@ export type Database = {
         Returns: Json
       }
       seed_master_data_for_org: { Args: { p_org: string }; Returns: undefined }
+      seed_org_chart_for_org: { Args: { p_org: string }; Returns: number }
       set_org_custom_domain: {
         Args: { p_domain: string; p_org: string }
         Returns: string

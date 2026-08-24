@@ -20,8 +20,9 @@ function DragItem({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      style={{ touchAction: 'none' }}
       className={cn(
-        'flex cursor-grab items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-xs',
+        'flex cursor-grab items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-xs active:cursor-grabbing',
         isDragging && 'opacity-40',
         className,
       )}

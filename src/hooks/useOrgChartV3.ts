@@ -200,6 +200,21 @@ function useInvalidateChart() {
   };
 }
 
+/** Crea l'organigramma di base (CEO + 3 aree) se l'org non ne ha ancora uno. */
+export function useSeedOrgChart() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  return useMutation({
+    mutationFn: async () => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      const { data, error } = await sb.rpc('seed_org_chart_for_org', { p_org: activeId });
+      if (error) throw error;
+      return (data as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export interface UpsertNodeInput {
   id?: string;
   title?: string;

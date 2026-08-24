@@ -4,14 +4,17 @@
  * sia come vista in sola lettura per i membri semplici.
  */
 import { useMemo, useState } from 'react';
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
 import { Loader2, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   useOrgChartV3, usePositionCatalog, useUpsertOrgNode, useMoveOrgNode,
-  useDeleteOrgNode, useSetCostVisibility, type OrgNode,
+  useDeleteOrgNode, useSetCostVisibility, useSeedOrgChart, type OrgNode,
 } from '@/hooks/useOrgChartV3';
 import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -30,9 +33,11 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const move = useMoveOrgNode();
   const remove = useDeleteOrgNode();
   const setCostVisibility = useSetCostVisibility();
+  const seed = useSeedOrgChart();
 
   const [selected, setSelected] = useState<OrgNode | null>(null);
   const [search, setSearch] = useState('');
+  const [dragLabel, setDragLabel] = useState<string | null>(null);
 
   const canEdit = !readOnly && (isEffectiveOwner || isOrgAdmin);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -86,7 +91,34 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     return ((data?.subcontractors || []) as Contractor[]).filter((s) => !placed.has(s.id));
   }, [data]);
 
+  const handleDragStart = (e: DragStartEvent) => {
+    const payload = e.active.data.current as any;
+    if (payload?.kind === 'node') {
+      const find = (nodes: OrgNode[]): OrgNode | undefined => {
+        for (const n of nodes) {
+          if (n.id === payload.nodeId) return n;
+          const hit = find(n.children);
+          if (hit) return hit;
+        }
+        return undefined;
+      };
+      const n = find(tree);
+      setDragLabel(
+        (n?.user_id ? ctx.profiles.get(n.user_id)?.display_name : undefined) || n?.title || 'Scheda',
+      );
+    } else if (payload?.kind === 'person') {
+      setDragLabel(ctx.profiles.get(payload.userId)?.display_name || 'Persona');
+    } else if (payload?.kind === 'supplier') {
+      setDragLabel(unplacedContractors.find((s) => s.id === payload.supplierId)?.name || 'Appaltatore');
+    } else if (payload?.kind === 'catalog') {
+      setDragLabel(payload.title || 'Posizione');
+    } else {
+      setDragLabel(null);
+    }
+  };
+
   const handleDragEnd = async (e: DragEndEvent) => {
+    setDragLabel(null);
     if (!canEdit) return;
     const target = e.over?.data?.current as { nodeId: string | null } | undefined;
     if (!e.over) return;
@@ -141,7 +173,12 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     : null;
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDragLabel(null)}
+    >
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-xs">
@@ -153,6 +190,24 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
               className="h-8 pl-7 text-xs"
             />
           </div>
+          {canEdit && !tree.length && (
+            <Button
+              size="sm"
+              disabled={seed.isPending}
+              onClick={() =>
+                seed.mutate(undefined, {
+                  onSuccess: (n) =>
+                    n > 0
+                      ? toast.success('Organigramma di base creato')
+                      : toast.info('Organigramma già presente'),
+                  onError: (e: any) => toast.error(e?.message || 'Creazione non riuscita'),
+                })
+              }
+            >
+              {seed.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Struttura di base
+            </Button>
+          )}
           {canEdit && (
             <Button
               size="sm"
@@ -210,6 +265,14 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         }}
         onClose={() => setSelected(null)}
       />
+
+      <DragOverlay dropAnimation={null}>
+        {dragLabel ? (
+          <div className="pointer-events-none rounded-md border border-primary bg-card px-2.5 py-1.5 text-xs font-medium shadow-lg">
+            {dragLabel}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

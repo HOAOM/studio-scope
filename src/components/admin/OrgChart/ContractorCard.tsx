@@ -37,8 +37,10 @@ export function ContractorCard({
       {...listeners}
       type="button"
       onClick={() => onOpen(node)}
+      style={{ touchAction: 'none' }}
       className={cn(
         'w-full rounded-md border border-dashed border-border bg-secondary/40 px-2.5 py-2 text-left transition-colors hover:bg-accent/50',
+        draggable && 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-40',
       )}
     >
