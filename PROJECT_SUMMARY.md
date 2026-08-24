@@ -319,3 +319,27 @@ Ogni fix si chiude con una riga per canale, es.:
 ### Rete anti-regressione
 
 `bunx vitest run` — 26 test su: coerenza stati/macro-fasi e transizioni per ruolo (`workflow.ts`), visibilità costi, KPI, giorni lavorativi, messaggi dei limiti di piano (`tierLimits.ts`), precedenza degli host degli inviti (`_shared/orgSiteUrl.ts`). Da eseguire prima di dichiarare chiuso qualunque fix che tocchi workflow, ruoli, limiti o inviti.
+
+---
+
+## Organigramma v3 (2026-08-24)
+
+Sostituisce integralmente la v2 su React Flow (dipendenza `reactflow` rimossa).
+
+**DB**
+- `org_positions`: `node_kind` (`person|team|unit|contractor`), `supplier_id`, `catalog_id`; `x/y` non più usate (layout derivato).
+- `team_members.is_primary` + indice unico parziale per org/utente (squadra primaria; le altre restano badge).
+- `profiles.phone` + `directory_profiles()` che lo restituisce ai membri della stessa org.
+- `position_catalog`: catalogo master globale in sola lettura (88 voci: C-suite, L3 Finance/Operations/Creative/People/Marketing/Digital, 10 squadre operative L4).
+- `cost_visibility_overrides` (owner/admin): override individuale letto da `can_see_costs()` prima del ruolo.
+
+**Frontend**
+- `src/hooks/useOrgChartV3.ts`: 6 query parallele + albero memoizzato; stato di oggi da una sola query su `calendar_entries`.
+- `src/components/admin/OrgChart/`: `OrgTree` ricorsivo, `UnitBox`/`TeamBox`, `PersonCard`, `ContractorCard`, pannelli Non assegnati/Catalogo (drag & drop `@dnd-kit`), `PersonDetailSheet`.
+- Gestione dentro Admin Panel → tab Organigramma; `/org-chart` è la vista read-only per i membri.
+
+**Aperto**
+- L'interruttore costi è pienamente enforced solo dopo l'esecuzione di `docs/plan-cost-visibility-hardening.md`.
+- Ganci futuri previsti dal piano ma non implementati: `project_teams`, `project_contractors` (Gantt EXT + cost control).
+
+Test: `src/test/orgChartV3.test.ts` (10 test) — albero, multi-squadra, assenza di React Flow, layout derivato, permessi via `useEffectiveOwner`.
