@@ -38,7 +38,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const createTeam = useCreateTeamNode();
   const setMembership = useSetTeamMembership();
 
-  const [selected, setSelected] = useState<OrgNode | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [dragLabel, setDragLabel] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
@@ -221,7 +221,10 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     );
   }
 
+  // Nodo selezionato ricavato sempre dall'albero fresco (dopo ogni salvataggio).
+  const selected = selectedId ? findNode(selectedId) ?? null : null;
   const selectedProfile = selected?.user_id ? (data?.profiles || []).find((p) => p.id === selected.user_id) : undefined;
+
   const selectedSupplier = selected?.supplier_id
     ? ((data?.subcontractors || []) as Contractor[]).find((s) => s.id === selected.supplier_id)
     : undefined;
