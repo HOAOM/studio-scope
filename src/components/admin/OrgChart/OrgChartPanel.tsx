@@ -14,15 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   useOrgChartV3, usePositionCatalog, useUpsertOrgNode, useMoveOrgNode,
-  useDeleteOrgNode, useSetCostVisibility, useSeedOrgChart, useCreateTeamNode,
-  useSetTeamMembership, type OrgNode,
+  useDeleteOrgNode, useSetPermission, useSeedOrgChart, useCreateTeamNode,
+  useSetTeamMembership, type OrgNode, type Capability,
 } from '@/hooks/useOrgChartV3';
 import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { OrgTree, type OrgTreeContext } from './OrgTree';
 import { UnassignedPanel, CatalogPanel } from './SidePanels';
-import { PersonDetailSheet } from './PersonDetailSheet';
+import { PersonDetailSheet, type PositionPatch } from './PersonDetailSheet';
 import type { Contractor } from './ContractorCard';
 
 export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
@@ -33,18 +33,20 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const upsert = useUpsertOrgNode();
   const move = useMoveOrgNode();
   const remove = useDeleteOrgNode();
-  const setCostVisibility = useSetCostVisibility();
+  const setPermission = useSetPermission();
   const seed = useSeedOrgChart();
   const createTeam = useCreateTeamNode();
   const setMembership = useSetTeamMembership();
 
-  const [selected, setSelected] = useState<OrgNode | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [dragLabel, setDragLabel] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
 
   const permissionsReady = !ownerLoading && !permLoading;
   const canEdit = !readOnly && permissionsReady && (isEffectiveOwner || isOrgAdmin);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
 
   const ctx: OrgTreeContext = useMemo(() => {
     const profiles = new Map<string, DirectoryProfile>();
@@ -74,9 +76,27 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
       profiles, teams, suppliers,
       today: data?.todayByUser || new Map(),
       extraTeams, leadsByTeam, membersByTeam, canEdit,
-      onOpen: (n) => setSelected(n),
+      onOpen: (n) => setSelectedId(n.id),
+      linkingId,
+      onStartLink: (n) => {
+        setLinkingId(n.id);
+        toast.info('Scegli il nodo padre: clicca “Collega qui” sulla scheda di destinazione.');
+      },
+      onPickParent: (parentId) => {
+        const id = linkingId;
+        setLinkingId(null);
+        if (!id || id === parentId) return;
+        move.mutate(
+          { id, manager_id: parentId },
+          {
+            onSuccess: () => toast.success('Posizione collegata'),
+            onError: (e: any) => toast.error(e?.message || 'Collegamento non riuscito'),
+          },
+        );
+      },
     };
-  }, [data, canEdit]);
+
+  }, [data, canEdit, linkingId]);
 
   const findNode = (id: string | null, nodes: OrgNode[] = tree): OrgNode | undefined => {
     if (!id) return undefined;
@@ -201,7 +221,10 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     );
   }
 
+  // Nodo selezionato ricavato sempre dall'albero fresco (dopo ogni salvataggio).
+  const selected = selectedId ? findNode(selectedId) ?? null : null;
   const selectedProfile = selected?.user_id ? (data?.profiles || []).find((p) => p.id === selected.user_id) : undefined;
+
   const selectedSupplier = selected?.supplier_id
     ? ((data?.subcontractors || []) as Contractor[]).find((s) => s.id === selected.supplier_id)
     : undefined;
@@ -214,6 +237,28 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const primaryTeamId = selected?.user_id
     ? (data?.teamMembers || []).find((m) => m.user_id === selected.user_id && (m as any).is_primary)?.team_id ?? null
     : null;
+
+  // Opzioni "responsabile": nessun ciclo (esclude sé stesso e i propri discendenti).
+  const parentOptions = (() => {
+    if (!selected) return [] as { id: string; label: string }[];
+    const banned = new Set<string>([selected.id]);
+    const walk = (n: OrgNode) => { banned.add(n.id); n.children.forEach(walk); };
+    const self = findNode(selected.id);
+    self?.children.forEach(walk);
+    const out: { id: string; label: string }[] = [];
+    const collect = (nodes: OrgNode[], prefix: string) => {
+      nodes.forEach((n) => {
+        if (!banned.has(n.id)) {
+          const person = n.user_id ? ctx.profiles.get(n.user_id)?.display_name : undefined;
+          out.push({ id: n.id, label: `${prefix}${n.title}${person ? ` — ${person}` : ''}` });
+        }
+        collect(n.children, `${prefix}· `);
+      });
+    };
+    collect(tree, '');
+    return out;
+  })();
+
 
   return (
     <DndContext
@@ -286,30 +331,41 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         today={selected?.user_id ? data?.todayByUser.get(selected.user_id) : undefined}
         canEdit={canEdit}
         canManagePermissions={canEdit}
-        overrideValue={
-          selected?.user_id && data?.overrides.has(selected.user_id)
-            ? !!data.overrides.get(selected.user_id)
-            : null
-        }
-        onOverrideChange={(value) => {
+        permissions={selected?.user_id ? data?.permissions.get(selected.user_id) : undefined}
+        onSetPermission={(capability: Capability, value) => {
           if (!selected?.user_id) return;
-          setCostVisibility.mutate(
-            { userId: selected.user_id, value },
+          setPermission.mutate(
+            { userId: selected.user_id, capability, value },
             {
-              onSuccess: () => toast.success('Permesso costi aggiornato'),
+              onSuccess: () => toast.success('Permesso aggiornato'),
               onError: (e: any) => toast.error(e?.message || 'Aggiornamento non riuscito'),
+            },
+          );
+        }}
+        allTeams={data?.teams || []}
+        allProfiles={data?.profiles || []}
+        parentOptions={parentOptions}
+        saving={upsert.isPending}
+        onSave={(patch: PositionPatch) => {
+          if (!selected) return;
+          upsert.mutate(
+            { id: selected.id, ...patch },
+            {
+              onSuccess: () => toast.success('Posizione aggiornata'),
+              onError: (e: any) => toast.error(e?.message || 'Salvataggio non riuscito'),
             },
           );
         }}
         onDelete={() => {
           if (!selected) return;
           remove.mutate(selected.id, {
-            onSuccess: () => { toast.success('Scheda rimossa'); setSelected(null); },
+            onSuccess: () => { toast.success('Scheda rimossa'); setSelectedId(null); },
             onError: (e: any) => toast.error(e?.message || 'Rimozione non riuscita'),
           });
         }}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedId(null)}
       />
+
 
       <DragOverlay>
         {dragLabel ? (
