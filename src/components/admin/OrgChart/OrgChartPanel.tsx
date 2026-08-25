@@ -328,18 +328,28 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         today={selected?.user_id ? data?.todayByUser.get(selected.user_id) : undefined}
         canEdit={canEdit}
         canManagePermissions={canEdit}
-        overrideValue={
-          selected?.user_id && data?.overrides.has(selected.user_id)
-            ? !!data.overrides.get(selected.user_id)
-            : null
-        }
-        onOverrideChange={(value) => {
+        permissions={selected?.user_id ? data?.permissions.get(selected.user_id) : undefined}
+        onSetPermission={(capability: Capability, value) => {
           if (!selected?.user_id) return;
-          setCostVisibility.mutate(
-            { userId: selected.user_id, value },
+          setPermission.mutate(
+            { userId: selected.user_id, capability, value },
             {
-              onSuccess: () => toast.success('Permesso costi aggiornato'),
+              onSuccess: () => toast.success('Permesso aggiornato'),
               onError: (e: any) => toast.error(e?.message || 'Aggiornamento non riuscito'),
+            },
+          );
+        }}
+        allTeams={data?.teams || []}
+        allProfiles={data?.profiles || []}
+        parentOptions={parentOptions}
+        saving={upsert.isPending}
+        onSave={(patch: PositionPatch) => {
+          if (!selected) return;
+          upsert.mutate(
+            { id: selected.id, ...patch },
+            {
+              onSuccess: () => toast.success('Posizione aggiornata'),
+              onError: (e: any) => toast.error(e?.message || 'Salvataggio non riuscito'),
             },
           );
         }}
@@ -352,6 +362,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         }}
         onClose={() => setSelected(null)}
       />
+
 
       <DragOverlay>
         {dragLabel ? (
