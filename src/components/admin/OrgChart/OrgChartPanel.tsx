@@ -14,15 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   useOrgChartV3, usePositionCatalog, useUpsertOrgNode, useMoveOrgNode,
-  useDeleteOrgNode, useSetCostVisibility, useSeedOrgChart, useCreateTeamNode,
-  useSetTeamMembership, type OrgNode,
+  useDeleteOrgNode, useSetPermission, useSeedOrgChart, useCreateTeamNode,
+  useSetTeamMembership, type OrgNode, type Capability,
 } from '@/hooks/useOrgChartV3';
 import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { OrgTree, type OrgTreeContext } from './OrgTree';
 import { UnassignedPanel, CatalogPanel } from './SidePanels';
-import { PersonDetailSheet } from './PersonDetailSheet';
+import { PersonDetailSheet, type PositionPatch } from './PersonDetailSheet';
 import type { Contractor } from './ContractorCard';
 
 export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
@@ -33,7 +33,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const upsert = useUpsertOrgNode();
   const move = useMoveOrgNode();
   const remove = useDeleteOrgNode();
-  const setCostVisibility = useSetCostVisibility();
+  const setPermission = useSetPermission();
   const seed = useSeedOrgChart();
   const createTeam = useCreateTeamNode();
   const setMembership = useSetTeamMembership();
@@ -41,10 +41,12 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const [selected, setSelected] = useState<OrgNode | null>(null);
   const [search, setSearch] = useState('');
   const [dragLabel, setDragLabel] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
 
   const permissionsReady = !ownerLoading && !permLoading;
   const canEdit = !readOnly && permissionsReady && (isEffectiveOwner || isOrgAdmin);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
 
   const ctx: OrgTreeContext = useMemo(() => {
     const profiles = new Map<string, DirectoryProfile>();
