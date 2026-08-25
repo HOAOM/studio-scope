@@ -76,7 +76,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
       profiles, teams, suppliers,
       today: data?.todayByUser || new Map(),
       extraTeams, leadsByTeam, membersByTeam, canEdit,
-      onOpen: (n) => setSelected(n),
+      onOpen: (n) => setSelectedId(n.id),
       linkingId,
       onStartLink: (n) => {
         setLinkingId(n.id);
@@ -359,11 +359,11 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         onDelete={() => {
           if (!selected) return;
           remove.mutate(selected.id, {
-            onSuccess: () => { toast.success('Scheda rimossa'); setSelected(null); },
+            onSuccess: () => { toast.success('Scheda rimossa'); setSelectedId(null); },
             onError: (e: any) => toast.error(e?.message || 'Rimozione non riuscita'),
           });
         }}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedId(null)}
       />
 
 
