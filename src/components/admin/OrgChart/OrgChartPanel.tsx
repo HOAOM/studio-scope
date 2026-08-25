@@ -77,7 +77,25 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
       today: data?.todayByUser || new Map(),
       extraTeams, leadsByTeam, membersByTeam, canEdit,
       onOpen: (n) => setSelected(n),
+      linkingId,
+      onStartLink: (n) => {
+        setLinkingId(n.id);
+        toast.info('Scegli il nodo padre: clicca “Collega qui” sulla scheda di destinazione.');
+      },
+      onPickParent: (parentId) => {
+        const id = linkingId;
+        setLinkingId(null);
+        if (!id || id === parentId) return;
+        move.mutate(
+          { id, manager_id: parentId },
+          {
+            onSuccess: () => toast.success('Posizione collegata'),
+            onError: (e: any) => toast.error(e?.message || 'Collegamento non riuscito'),
+          },
+        );
+      },
     };
+
   }, [data, canEdit]);
 
   const findNode = (id: string | null, nodes: OrgNode[] = tree): OrgNode | undefined => {
