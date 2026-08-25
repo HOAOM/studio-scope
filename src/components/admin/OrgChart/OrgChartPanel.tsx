@@ -96,7 +96,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
       },
     };
 
-  }, [data, canEdit]);
+  }, [data, canEdit, linkingId]);
 
   const findNode = (id: string | null, nodes: OrgNode[] = tree): OrgNode | undefined => {
     if (!id) return undefined;
@@ -234,6 +234,28 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const primaryTeamId = selected?.user_id
     ? (data?.teamMembers || []).find((m) => m.user_id === selected.user_id && (m as any).is_primary)?.team_id ?? null
     : null;
+
+  // Opzioni "responsabile": nessun ciclo (esclude sé stesso e i propri discendenti).
+  const parentOptions = (() => {
+    if (!selected) return [] as { id: string; label: string }[];
+    const banned = new Set<string>([selected.id]);
+    const walk = (n: OrgNode) => { banned.add(n.id); n.children.forEach(walk); };
+    const self = findNode(selected.id);
+    self?.children.forEach(walk);
+    const out: { id: string; label: string }[] = [];
+    const collect = (nodes: OrgNode[], prefix: string) => {
+      nodes.forEach((n) => {
+        if (!banned.has(n.id)) {
+          const person = n.user_id ? ctx.profiles.get(n.user_id)?.display_name : undefined;
+          out.push({ id: n.id, label: `${prefix}${n.title}${person ? ` — ${person}` : ''}` });
+        }
+        collect(n.children, `${prefix}· `);
+      });
+    };
+    collect(tree, '');
+    return out;
+  })();
+
 
   return (
     <DndContext
