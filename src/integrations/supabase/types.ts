@@ -1010,6 +1010,51 @@ export type Database = {
         }
         Relationships: []
       }
+      org_position_overrides: {
+        Row: {
+          app_role: Database["public"]["Enums"]["app_role"] | null
+          catalog_id: string
+          created_at: string
+          id: string
+          organization_id: string
+          set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          catalog_id: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_position_overrides_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "position_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_position_overrides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_positions: {
         Row: {
           base_role: Database["public"]["Enums"]["app_role"] | null
@@ -1105,6 +1150,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      org_role_change_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          is_revolving: boolean
+          organization_id: string
+          previous_change_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          is_revolving?: boolean
+          organization_id: string
+          previous_change_at?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          is_revolving?: boolean
+          organization_id?: string
+          previous_change_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
       organization_domain_audit: {
         Row: {
@@ -1538,6 +1619,7 @@ export type Database = {
         Row: {
           area: string
           created_at: string
+          default_app_role: Database["public"]["Enums"]["app_role"] | null
           id: string
           is_lead: boolean
           level: string
@@ -1549,6 +1631,7 @@ export type Database = {
         Insert: {
           area: string
           created_at?: string
+          default_app_role?: Database["public"]["Enums"]["app_role"] | null
           id?: string
           is_lead?: boolean
           level: string
@@ -1560,6 +1643,7 @@ export type Database = {
         Update: {
           area?: string
           created_at?: string
+          default_app_role?: Database["public"]["Enums"]["app_role"] | null
           id?: string
           is_lead?: boolean
           level?: string
@@ -2745,33 +2829,42 @@ export type Database = {
       }
       tier_limits: {
         Row: {
+          archive_retention_hours: number | null
           max_active_projects: number | null
           max_addons: number | null
           max_boq_items_per_project: number | null
+          max_roles_per_user: number | null
           max_seats: number | null
           max_storage_bytes: number | null
+          max_super_role_extra: number | null
           max_users_per_role: number | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          archive_retention_hours?: number | null
           max_active_projects?: number | null
           max_addons?: number | null
           max_boq_items_per_project?: number | null
+          max_roles_per_user?: number | null
           max_seats?: number | null
           max_storage_bytes?: number | null
+          max_super_role_extra?: number | null
           max_users_per_role?: number | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          archive_retention_hours?: number | null
           max_active_projects?: number | null
           max_addons?: number | null
           max_boq_items_per_project?: number | null
+          max_roles_per_user?: number | null
           max_seats?: number | null
           max_storage_bytes?: number | null
+          max_super_role_extra?: number | null
           max_users_per_role?: number | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
@@ -3118,11 +3211,14 @@ export type Database = {
       get_tier_limits: {
         Args: { p_org: string }
         Returns: {
+          archive_retention_hours: number | null
           max_active_projects: number | null
           max_addons: number | null
           max_boq_items_per_project: number | null
+          max_roles_per_user: number | null
           max_seats: number | null
           max_storage_bytes: number | null
+          max_super_role_extra: number | null
           max_users_per_role: number | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
@@ -3191,16 +3287,20 @@ export type Database = {
       my_org_limits_usage: {
         Args: { p_org?: string }
         Returns: {
+          archive_retention_hours: number
           max_active_projects: number
           max_addons: number
           max_boq_items_per_project: number
+          max_roles_per_user: number
           max_seats: number
           max_storage_bytes: number
+          max_super_role_extra: number
           max_users_per_role: number
           organization_id: string
           projects_used: number
           seats_used: number
           storage_used_bytes: number
+          super_roles_used: number
           tier: Database["public"]["Enums"]["subscription_tier"]
         }[]
       }
@@ -3224,6 +3324,10 @@ export type Database = {
           y: number
         }[]
       }
+      org_position_app_role: {
+        Args: { p_position: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       org_primary_email_domain: { Args: { p_org: string }; Returns: string }
       org_reopen_count_this_month: { Args: { p_org: string }; Returns: number }
       org_reports: {
@@ -3246,6 +3350,11 @@ export type Database = {
         Returns: number
       }
       org_storage_bytes: { Args: { p_org: string }; Returns: number }
+      org_super_role_user_count: { Args: { p_org: string }; Returns: number }
+      org_user_role_count: {
+        Args: { p_org: string; p_user: string }
+        Returns: number
+      }
       peek_org_invite: {
         Args: { p_token: string }
         Returns: {
@@ -3344,6 +3453,7 @@ export type Database = {
       }
       seed_master_data_for_org: { Args: { p_org: string }; Returns: undefined }
       seed_org_chart_for_org: { Args: { p_org: string }; Returns: number }
+      seed_org_chart_template: { Args: { p_org: string }; Returns: number }
       set_org_custom_domain: {
         Args: { p_domain: string; p_org: string }
         Returns: string
