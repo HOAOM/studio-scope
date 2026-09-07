@@ -264,6 +264,7 @@ export type Database = {
           definition_id: string
           document_url: string | null
           id: string
+          needs_verification: boolean
           project_item_id: string
           second_approved_at: string | null
           second_approver_id: string | null
@@ -281,6 +282,7 @@ export type Database = {
           definition_id: string
           document_url?: string | null
           id?: string
+          needs_verification?: boolean
           project_item_id: string
           second_approved_at?: string | null
           second_approver_id?: string | null
@@ -298,6 +300,7 @@ export type Database = {
           definition_id?: string
           document_url?: string | null
           id?: string
+          needs_verification?: boolean
           project_item_id?: string
           second_approved_at?: string | null
           second_approver_id?: string | null
