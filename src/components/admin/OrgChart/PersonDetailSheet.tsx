@@ -59,6 +59,12 @@ export interface PersonDetailSheetProps {
   allProfiles?: DirectoryProfile[];
   /** Nodi selezionabili come responsabile. */
   parentOptions?: { id: string; label: string }[];
+  /** Stato "ruolo e accesso" della posizione selezionata. */
+  roleInfo?: NodeRoleInfo;
+  /** Assegna o revoca un ruolo funzionale alla persona di questa posizione. */
+  onSetOrgRole?: (role: string, remove?: boolean) => void;
+  /** Salva un'eccezione di mappatura posizione→ruolo per questo studio. */
+  onSetPositionOverride?: (role: string | null) => void;
   onSave?: (patch: PositionPatch) => void;
   saving?: boolean;
   onDelete: () => void;
@@ -68,8 +74,10 @@ export interface PersonDetailSheetProps {
 export function PersonDetailSheet({
   node, profile, supplier, teams, primaryTeamId, today,
   canEdit, canManagePermissions, permissions, onSetPermission,
-  allTeams = [], allProfiles = [], parentOptions = [], onSave, saving, onDelete, onClose,
+  allTeams = [], allProfiles = [], parentOptions = [], roleInfo,
+  onSetOrgRole, onSetPositionOverride, onSave, saving, onDelete, onClose,
 }: PersonDetailSheetProps) {
+
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [userId, setUserId] = useState<string>(NONE);
