@@ -900,6 +900,69 @@ export type Database = {
           },
         ]
       }
+      item_ncrs: {
+        Row: {
+          action_proposed_at: string | null
+          closed_at: string | null
+          closed_by: string | null
+          corrective_action: string | null
+          created_at: string
+          description: string
+          id: string
+          opened_at: string
+          opened_by: string | null
+          project_item_id: string
+          rework_at: string | null
+          status: Database["public"]["Enums"]["ncr_status"]
+          updated_at: string
+        }
+        Insert: {
+          action_proposed_at?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          project_item_id: string
+          rework_at?: string | null
+          status?: Database["public"]["Enums"]["ncr_status"]
+          updated_at?: string
+        }
+        Update: {
+          action_proposed_at?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          project_item_id?: string
+          rework_at?: string | null
+          status?: Database["public"]["Enums"]["ncr_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_ncrs_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_ncrs_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_quotations: {
         Row: {
           created_at: string
@@ -3472,6 +3535,7 @@ export type Database = {
       can_see_commercials: { Args: never; Returns: boolean }
       can_see_costs: { Args: never; Returns: boolean }
       close_login_sessions: { Args: { p_reason?: string }; Returns: undefined }
+      defect_closure_blockers: { Args: { _item_id: string }; Returns: string[] }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -3922,6 +3986,7 @@ export type Database = {
         | "snagging"
         | "closed"
         | "cancelled"
+      ncr_status: "open" | "action_proposed" | "rework" | "closed"
       payment_scheme: "single" | "split_50_50" | "installments_3"
       platform_admin_grade: "staff" | "owner"
       rfi_status: "open" | "answered" | "closed"
@@ -4162,6 +4227,7 @@ export const Constants = {
         "closed",
         "cancelled",
       ],
+      ncr_status: ["open", "action_proposed", "rework", "closed"],
       payment_scheme: ["single", "split_50_50", "installments_3"],
       platform_admin_grade: ["staff", "owner"],
       rfi_status: ["open", "answered", "closed"],
