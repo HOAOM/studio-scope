@@ -236,11 +236,10 @@ export function resolveNodeRole(
   rolesByUser: Map<string, string[]>,
 ): NodeRoleInfo {
   const isOverride = !!p.catalog_id && positionOverrides.has(p.catalog_id);
-  const expectedRole =
-    (p.catalog_id && isOverride ? positionOverrides.get(p.catalog_id) : undefined) ??
-    (p.catalog_id ? catalogDefaults.get(p.catalog_id)?.role ?? null : null) ??
-    p.base_role ??
-    null;
+  const overrideRole = isOverride ? positionOverrides.get(p.catalog_id as string) ?? null : null;
+  const catalogRole = p.catalog_id ? catalogDefaults.get(p.catalog_id)?.role ?? null : null;
+  const expectedRole = overrideRole ?? catalogRole ?? p.base_role ?? null;
+
   const actualRoles = p.user_id ? rolesByUser.get(p.user_id) || [] : [];
 
   let status: RoleStatus;
