@@ -208,6 +208,7 @@ export type Database = {
           label: string
           macro_gruppo: Database["public"]["Enums"]["task_macro_area"]
           min_value_aed: number | null
+          motore_categorie: Database["public"]["Enums"]["engine_category"][]
           requires_role_count: number
           richiede_documento: boolean
           ruolo_responsabile: Database["public"]["Enums"]["app_role"] | null
@@ -227,6 +228,7 @@ export type Database = {
           label: string
           macro_gruppo: Database["public"]["Enums"]["task_macro_area"]
           min_value_aed?: number | null
+          motore_categorie?: Database["public"]["Enums"]["engine_category"][]
           requires_role_count?: number
           richiede_documento?: boolean
           ruolo_responsabile?: Database["public"]["Enums"]["app_role"] | null
@@ -246,6 +248,7 @@ export type Database = {
           label?: string
           macro_gruppo?: Database["public"]["Enums"]["task_macro_area"]
           min_value_aed?: number | null
+          motore_categorie?: Database["public"]["Enums"]["engine_category"][]
           requires_role_count?: number
           richiede_documento?: boolean
           ruolo_responsabile?: Database["public"]["Enums"]["app_role"] | null
@@ -1256,6 +1259,7 @@ export type Database = {
           code: string
           created_at: string | null
           id: string
+          motore_categoria: Database["public"]["Enums"]["engine_category"]
           name: string
           organization_id: string
           sort_order: number | null
@@ -1265,6 +1269,7 @@ export type Database = {
           code: string
           created_at?: string | null
           id?: string
+          motore_categoria?: Database["public"]["Enums"]["engine_category"]
           name: string
           organization_id?: string
           sort_order?: number | null
@@ -1274,6 +1279,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           id?: string
+          motore_categoria?: Database["public"]["Enums"]["engine_category"]
           name?: string
           organization_id?: string
           sort_order?: number | null
@@ -3537,6 +3543,10 @@ export type Database = {
       }
       can_see_commercials: { Args: never; Returns: boolean }
       can_see_costs: { Args: never; Returns: boolean }
+      checkpoint_applies_to_item: {
+        Args: { p_definition_id: string; p_item_id: string }
+        Returns: boolean
+      }
       close_login_sessions: { Args: { p_reason?: string }; Returns: undefined }
       defect_closure_blockers: { Args: { _item_id: string }; Returns: string[] }
       delete_email: {
@@ -3678,6 +3688,10 @@ export type Database = {
         Returns: boolean
       }
       item_cost_values: { Args: { p_item_id: string }; Returns: Json }
+      item_engine_category: {
+        Args: { p_item_id: string }
+        Returns: Database["public"]["Enums"]["engine_category"]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -3956,6 +3970,7 @@ export type Database = {
         | "incorporated"
       checkpoint_instance_status: "pending" | "completed" | "skipped"
       checkpoint_kind: "automatic" | "formal"
+      engine_category: "FURN" | "MEP" | "WORK" | "DOC" | "DESIGN"
       item_lifecycle_status:
         | "draft"
         | "estimated"
@@ -4196,6 +4211,7 @@ export const Constants = {
       ],
       checkpoint_instance_status: ["pending", "completed", "skipped"],
       checkpoint_kind: ["automatic", "formal"],
+      engine_category: ["FURN", "MEP", "WORK", "DOC", "DESIGN"],
       item_lifecycle_status: [
         "draft",
         "estimated",
