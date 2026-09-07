@@ -8,9 +8,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { OrgNode, TodayEntry } from '@/hooks/useOrgChartV3';
+import type { OrgNode, TodayEntry, NodeRoleInfo } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile } from '@/hooks/useOrgStructure';
-import { GripVertical, Link2, Lock, Star } from 'lucide-react';
+import { roleLabel } from '@/lib/roles';
+import { AlertTriangle, GripVertical, Link2, Lock, Pencil, Star, UserPlus } from 'lucide-react';
 import { hexToRgba } from './TeamBox';
 
 export interface TeamBadge {
@@ -25,6 +26,8 @@ export interface PersonCardProps {
   extraTeams: number;
   isLead?: boolean;
   team?: TeamBadge;
+  /** stato "ruolo e accesso" della posizione */
+  roleInfo?: NodeRoleInfo;
   /** L'utente può modificare l'organigramma in generale. */
   canEdit?: boolean;
   /** Questa specifica scheda è trascinabile. */
@@ -33,6 +36,54 @@ export interface PersonCardProps {
   /** Avvia la modalità "click per collegare" partendo da questa scheda. */
   onStartLink?: (node: OrgNode) => void;
 }
+
+/** Badge di stato ruolo mostrato sotto il titolo della posizione. */
+export function RoleBadge({ info }: { info: NodeRoleInfo }) {
+  if (info.status === 'vacant') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded border border-dashed border-border px-1 text-[9px] text-muted-foreground">
+        <UserPlus className="h-2.5 w-2.5" />Posizione vacante
+      </span>
+    );
+  }
+  if (info.status === 'undefined') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded bg-status-warning/15 px-1 text-[9px] text-status-warning">
+        <AlertTriangle className="h-2.5 w-2.5" />Ruolo da definire
+      </span>
+    );
+  }
+  if (info.status === 'no_access') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded border border-dashed border-border px-1 text-[9px] text-muted-foreground">
+        No access
+      </span>
+    );
+  }
+  const label = info.actualRoles.length
+    ? info.actualRoles.map(roleLabel).join(' · ')
+    : roleLabel(info.expectedRole || '');
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex max-w-full items-center gap-1 truncate rounded bg-secondary px-1 text-[9px] text-muted-foreground">
+          {info.isOverride && <Pencil className="h-2.5 w-2.5 shrink-0" />}
+          {info.mismatch && <AlertTriangle className="h-2.5 w-2.5 shrink-0 text-status-warning" />}
+          <span className="truncate">{label}</span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {info.isOverride && 'Mappatura personalizzata per questo studio. '}
+        {info.mismatch
+          ? `La posizione di solito ha il ruolo ${roleLabel(info.expectedRole || '')}, quello attuale è ${
+              info.actualRoles.map(roleLabel).join(', ') || 'nessuno'
+            }.`
+          : 'Ruolo funzionale attivo.'}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 
 const STATUS_LABEL: Record<string, string> = {
   working: 'Lavoro organizzato oggi',
