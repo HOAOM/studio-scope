@@ -46,7 +46,9 @@ export interface CatalogEntry {
   is_lead: boolean;
   min_size: 'small' | 'medium' | 'large';
   sort_order: number;
+  default_app_role: string | null;
 }
+
 
 export interface TodayEntry {
   status: TodayStatus;
