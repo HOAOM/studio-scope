@@ -87,7 +87,8 @@ export function useOrgChartV3() {
     enabled: !!activeId,
     staleTime: 60_000,
     queryFn: async () => {
-      const [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes] = await Promise.all([
+      const [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes, catRes, ovrRes, rolesRes] =
+        await Promise.all([
         sb.rpc('org_chart_scope', { p_org: activeId }),
         sb.from('org_positions').select('*').eq('organization_id', activeId),
         sb.from('teams').select('*').eq('organization_id', activeId).order('name'),
@@ -105,11 +106,15 @@ export function useOrgChartV3() {
           .select('id, name, categories, contact_person, email, phone, is_subcontractor')
           .eq('organization_id', activeId)
           .eq('is_subcontractor', true),
+        sb.from('position_catalog').select('id, title, area, default_app_role'),
+        sb.from('org_position_overrides').select('catalog_id, app_role').eq('organization_id', activeId),
+        sb.from('user_roles').select('user_id, role').eq('organization_id', activeId),
       ]);
 
-      for (const r of [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes]) {
+      for (const r of [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes, catRes, ovrRes, rolesRes]) {
         if (r.error) throw r.error;
       }
+
 
       const scope = new Map<string, { can_edit: boolean; is_ancestor: boolean }>(
         (scopeRes.data || []).map((s: any) => [s.id, { can_edit: !!s.can_edit, is_ancestor: !!s.is_ancestor }]),
