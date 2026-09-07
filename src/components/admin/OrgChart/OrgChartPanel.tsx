@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button';
 import {
   useOrgChartV3, usePositionCatalog, useUpsertOrgNode, useMoveOrgNode,
   useDeleteOrgNode, useSetPermission, useSeedOrgChart, useCreateTeamNode,
-  useSetTeamMembership, type OrgNode, type Capability,
+  useSetTeamMembership, useOrgQuota, useSeedOrgChartTemplate, useSetPositionOverride,
+  useSetUserOrgRole, type OrgNode, type Capability,
 } from '@/hooks/useOrgChartV3';
 import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -24,9 +25,11 @@ import { OrgTree, type OrgTreeContext } from './OrgTree';
 import { UnassignedPanel, CatalogPanel } from './SidePanels';
 import { PersonDetailSheet, type PositionPatch } from './PersonDetailSheet';
 import type { Contractor } from './ContractorCard';
+import { RoleSummaryBar, type SummaryFilter } from './RoleSummaryBar';
 
 export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
-  const { data, tree, unassignedUserIds, isLoading } = useOrgChartV3();
+  const { data, tree, unassignedUserIds, roleInfo, roleSummary, isLoading } = useOrgChartV3();
+  const { data: quota } = useOrgQuota();
   const { data: catalog = [] } = usePositionCatalog();
   const { isEffectiveOwner, isLoading: ownerLoading } = useEffectiveOwner();
   const { isOrgAdmin, isLoading: permLoading } = usePermissions();
@@ -37,11 +40,15 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const seed = useSeedOrgChart();
   const createTeam = useCreateTeamNode();
   const setMembership = useSetTeamMembership();
+  const seedTemplate = useSeedOrgChartTemplate();
+  const setPositionOverride = useSetPositionOverride();
+  const setOrgRole = useSetUserOrgRole();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [dragLabel, setDragLabel] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [summaryFilter, setSummaryFilter] = useState<SummaryFilter>(null);
 
   const permissionsReady = !ownerLoading && !permLoading;
   const canEdit = !readOnly && permissionsReady && (isEffectiveOwner || isOrgAdmin);
@@ -75,7 +82,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     return {
       profiles, teams, suppliers,
       today: data?.todayByUser || new Map(),
-      extraTeams, leadsByTeam, membersByTeam, canEdit,
+      extraTeams, leadsByTeam, membersByTeam, roleInfo, canEdit,
       onOpen: (n) => setSelectedId(n.id),
       linkingId,
       onStartLink: (n) => {
@@ -96,7 +103,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
       },
     };
 
-  }, [data, canEdit, linkingId]);
+  }, [data, canEdit, linkingId, roleInfo]);
 
   const findNode = (id: string | null, nodes: OrgNode[] = tree): OrgNode | undefined => {
     if (!id) return undefined;
@@ -109,6 +116,20 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   };
 
   const filteredRoots = useMemo(() => {
+    const matchesFilter = (n: OrgNode): boolean => {
+      if (!summaryFilter) return true;
+      const info = roleInfo.get(n.id);
+      if (!info) return false;
+      if (summaryFilter === 'to_define') return info.status === 'undefined';
+      if (summaryFilter === 'vacant') return info.status === 'vacant';
+      return info.isOverride;
+    };
+    if (summaryFilter) {
+      const flat: OrgNode[] = [];
+      const walk = (nodes: OrgNode[]) => nodes.forEach((n) => { if (matchesFilter(n)) flat.push({ ...n, children: [] }); walk(n.children); });
+      walk(tree);
+      return flat;
+    }
     if (!search.trim()) return tree;
     const q = search.toLowerCase();
     const matches = (n: OrgNode): boolean => {
@@ -121,7 +142,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
     };
     const prune = (n: OrgNode): OrgNode => ({ ...n, children: n.children.filter(matches).map(prune) });
     return tree.filter(matches).map(prune);
-  }, [tree, search, ctx.profiles]);
+  }, [tree, search, ctx.profiles, summaryFilter, roleInfo]);
 
   const unassignedPeople = useMemo(
     () => (data?.profiles || []).filter((p) => unassignedUserIds.includes(p.id)),
@@ -270,6 +291,12 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
       onDragCancel={() => setDragLabel(null)}
     >
       <div className="space-y-3">
+        <RoleSummaryBar
+          summary={roleSummary}
+          quota={quota}
+          filter={summaryFilter}
+          onFilter={setSummaryFilter}
+        />
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -296,6 +323,25 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
             >
               {seed.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               Struttura di base
+            </Button>
+          )}
+          {canEdit && !tree.length && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={seedTemplate.isPending}
+              onClick={() =>
+                seedTemplate.mutate(undefined, {
+                  onSuccess: (n) =>
+                    n > 0
+                      ? toast.success('Template iniziale applicato')
+                      : toast.info('Organigramma già presente'),
+                  onError: (e: any) => toast.error(e?.message || 'Creazione non riuscita'),
+                })
+              }
+            >
+              {seedTemplate.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Template completo
             </Button>
           )}
           {canEdit && (
@@ -345,6 +391,27 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
         allTeams={data?.teams || []}
         allProfiles={data?.profiles || []}
         parentOptions={parentOptions}
+        roleInfo={selected ? roleInfo.get(selected.id) : undefined}
+        onSetOrgRole={(role, removeRole) => {
+          if (!selected?.user_id) return;
+          setOrgRole.mutate(
+            { userId: selected.user_id, role, remove: removeRole },
+            {
+              onSuccess: () => toast.success(removeRole ? 'Ruolo rimosso' : 'Ruolo assegnato'),
+              onError: (e: any) => toast.error(e?.message || 'Operazione non riuscita'),
+            },
+          );
+        }}
+        onSetPositionOverride={(role) => {
+          if (!selected?.catalog_id) return;
+          setPositionOverride.mutate(
+            { catalogId: selected.catalog_id, appRole: role },
+            {
+              onSuccess: () => toast.success('Mappatura aggiornata'),
+              onError: (e: any) => toast.error(e?.message || 'Aggiornamento non riuscito'),
+            },
+          );
+        }}
         saving={upsert.isPending}
         onSave={(patch: PositionPatch) => {
           if (!selected) return;
