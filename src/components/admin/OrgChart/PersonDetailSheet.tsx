@@ -15,11 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Copy, Mail, MessageSquare, Phone, Save, Trash2 } from 'lucide-react';
-import type { OrgNode, TodayEntry, Capability } from '@/hooks/useOrgChartV3';
+import { AlertTriangle, Building2, Copy, Mail, MessageSquare, Phone, Save, Trash2 } from 'lucide-react';
+import type { OrgNode, TodayEntry, Capability, NodeRoleInfo } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
+import { ORG_ROLES, roleLabel } from '@/lib/roles';
 import type { Contractor } from './ContractorCard';
 import { StatusDot } from './PersonCard';
+
 
 const NONE = '__none__';
 
