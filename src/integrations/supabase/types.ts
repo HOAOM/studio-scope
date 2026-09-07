@@ -204,8 +204,10 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          is_conditional: boolean
           label: string
           macro_gruppo: Database["public"]["Enums"]["task_macro_area"]
+          min_value_aed: number | null
           requires_role_count: number
           richiede_documento: boolean
           ruolo_responsabile: Database["public"]["Enums"]["app_role"] | null
@@ -221,8 +223,10 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
+          is_conditional?: boolean
           label: string
           macro_gruppo: Database["public"]["Enums"]["task_macro_area"]
+          min_value_aed?: number | null
           requires_role_count?: number
           richiede_documento?: boolean
           ruolo_responsabile?: Database["public"]["Enums"]["app_role"] | null
@@ -238,8 +242,10 @@ export type Database = {
           code?: string
           created_at?: string
           id?: string
+          is_conditional?: boolean
           label?: string
           macro_gruppo?: Database["public"]["Enums"]["task_macro_area"]
+          min_value_aed?: number | null
           requires_role_count?: number
           richiede_documento?: boolean
           ruolo_responsabile?: Database["public"]["Enums"]["app_role"] | null
