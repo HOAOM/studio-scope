@@ -189,7 +189,7 @@ export function LinkButton({ node, onStartLink }: { node: OrgNode; onStartLink: 
 }
 
 export function PersonCard({
-  node, profile, today, extraTeams, isLead, team, canEdit = false, draggable, onOpen, onStartLink,
+  node, profile, today, extraTeams, isLead, team, roleInfo, canEdit = false, draggable, onOpen, onStartLink,
 }: PersonCardProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
     id: `node:${node.id}`,
@@ -199,6 +199,7 @@ export function PersonCard({
 
   const name = profile?.display_name || profile?.email || 'Posizione vacante';
   const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  const status = roleInfo?.status;
 
   return (
     <div
@@ -209,12 +210,17 @@ export function PersonCard({
         borderLeft: team?.color ? `3px solid ${team.color}` : undefined,
       }}
       data-testid={`card-${node.id}`}
+      data-role-status={status}
       className={cn(
         'relative w-[200px] rounded-lg border border-border bg-card px-2 py-1.5 shadow-sm transition-shadow hover:shadow-md',
+        status === 'undefined' && 'border-status-warning',
+        (status === 'no_access' || status === 'vacant') && 'border-dashed',
+        status === 'vacant' && 'bg-muted/30',
         node.is_ancestor && 'opacity-60 border-dashed',
         isDragging && 'opacity-70 shadow-lg ring-1 ring-primary',
       )}
     >
+
       <div className="flex items-center gap-1.5">
         <button
           type="button"
