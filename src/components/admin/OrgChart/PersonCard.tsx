@@ -250,7 +250,9 @@ export function PersonCard({
             {!team && extraTeams > 0 && (
               <span className="rounded bg-secondary px-1 text-[9px] text-muted-foreground">+{extraTeams} squadre</span>
             )}
+            {roleInfo && <span className="mt-0.5 block">{<RoleBadge info={roleInfo} />}</span>}
           </span>
+
         </button>
         <span className="flex flex-col items-center">
           <DragHandle
