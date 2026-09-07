@@ -46,7 +46,9 @@ export interface CatalogEntry {
   is_lead: boolean;
   min_size: 'small' | 'medium' | 'large';
   sort_order: number;
+  default_app_role: string | null;
 }
+
 
 export interface TodayEntry {
   status: TodayStatus;
@@ -85,7 +87,8 @@ export function useOrgChartV3() {
     enabled: !!activeId,
     staleTime: 60_000,
     queryFn: async () => {
-      const [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes] = await Promise.all([
+      const [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes, catRes, ovrRes, rolesRes] =
+        await Promise.all([
         sb.rpc('org_chart_scope', { p_org: activeId }),
         sb.from('org_positions').select('*').eq('organization_id', activeId),
         sb.from('teams').select('*').eq('organization_id', activeId).order('name'),
@@ -103,11 +106,15 @@ export function useOrgChartV3() {
           .select('id, name, categories, contact_person, email, phone, is_subcontractor')
           .eq('organization_id', activeId)
           .eq('is_subcontractor', true),
+        sb.from('position_catalog').select('id, title, area, default_app_role'),
+        sb.from('org_position_overrides').select('catalog_id, app_role').eq('organization_id', activeId),
+        sb.from('user_roles').select('user_id, role').eq('organization_id', activeId),
       ]);
 
-      for (const r of [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes]) {
+      for (const r of [scopeRes, posRes, teamsRes, tmRes, memRes, calRes, cvoRes, supRes, catRes, ovrRes, rolesRes]) {
         if (r.error) throw r.error;
       }
+
 
       const scope = new Map<string, { can_edit: boolean; is_ancestor: boolean }>(
         (scopeRes.data || []).map((s: any) => [s.id, { can_edit: !!s.can_edit, is_ancestor: !!s.is_ancestor }]),
@@ -142,6 +149,20 @@ export function useOrgChartV3() {
         }
       }
 
+      const catalogDefaults = new Map<string, { title: string; role: string | null }>();
+      for (const c of catRes.data || []) {
+        catalogDefaults.set(c.id, { title: c.title, role: c.default_app_role ?? null });
+      }
+      const positionOverrides = new Map<string, string | null>();
+      for (const o of ovrRes.data || []) positionOverrides.set(o.catalog_id, o.app_role ?? null);
+
+      const rolesByUser = new Map<string, string[]>();
+      for (const r of rolesRes.data || []) {
+        const list = rolesByUser.get(r.user_id) || [];
+        list.push(r.role);
+        rolesByUser.set(r.user_id, list);
+      }
+
       return {
         positions,
         teams: (teamsRes.data || []) as Team[],
@@ -151,6 +172,9 @@ export function useOrgChartV3() {
         permissions: buildPermissionMap(cvoRes.data || []),
         subcontractors: (supRes.data || []) as any[],
         memberIds: ids as string[],
+        catalogDefaults,
+        positionOverrides,
+        rolesByUser,
       };
     },
   });
@@ -166,8 +190,73 @@ export function useOrgChartV3() {
     return query.data.memberIds.filter((id) => !placed.has(id) && !inTeam.has(id));
   }, [query.data]);
 
-  return { ...query, tree, unassignedUserIds };
+  /** Stato "ruolo e accesso" per ogni posizione persona. */
+  const roleInfo = useMemo(() => {
+    const map = new Map<string, NodeRoleInfo>();
+    const d = query.data;
+    if (!d) return map;
+    for (const p of d.positions) {
+      if (p.node_kind !== 'person') continue;
+      map.set(p.id, resolveNodeRole(p, d.catalogDefaults, d.positionOverrides, d.rolesByUser));
+    }
+    return map;
+  }, [query.data]);
+
+  const roleSummary = useMemo(() => {
+    let toDefine = 0, overrides = 0, vacant = 0, noAccess = 0;
+    roleInfo.forEach((i) => {
+      if (i.status === 'vacant') vacant++;
+      else if (i.status === 'undefined') toDefine++;
+      else if (i.status === 'no_access') noAccess++;
+      if (i.isOverride) overrides++;
+    });
+    return { toDefine, overrides, vacant, noAccess };
+  }, [roleInfo]);
+
+  return { ...query, tree, unassignedUserIds, roleInfo, roleSummary };
 }
+
+export type RoleStatus = 'mapped' | 'undefined' | 'no_access' | 'vacant';
+
+export interface NodeRoleInfo {
+  /** ruolo suggerito dalla posizione (override studio > default catalogo) */
+  expectedRole: string | null;
+  /** ruoli funzionali realmente assegnati alla persona */
+  actualRoles: string[];
+  isOverride: boolean;
+  status: RoleStatus;
+  /** la posizione suggerisce un ruolo che la persona non ha */
+  mismatch: boolean;
+}
+
+export function resolveNodeRole(
+  p: Pick<OrgPositionV3, 'user_id' | 'catalog_id' | 'base_role'>,
+  catalogDefaults: Map<string, { title: string; role: string | null }>,
+  positionOverrides: Map<string, string | null>,
+  rolesByUser: Map<string, string[]>,
+): NodeRoleInfo {
+  const isOverride = !!p.catalog_id && positionOverrides.has(p.catalog_id);
+  const overrideRole = isOverride ? positionOverrides.get(p.catalog_id as string) ?? null : null;
+  const catalogRole = p.catalog_id ? catalogDefaults.get(p.catalog_id)?.role ?? null : null;
+  const expectedRole = overrideRole ?? catalogRole ?? p.base_role ?? null;
+
+  const actualRoles = p.user_id ? rolesByUser.get(p.user_id) || [] : [];
+
+  let status: RoleStatus;
+  if (!p.user_id) status = 'vacant';
+  else if (!p.catalog_id && !expectedRole && !actualRoles.length) status = 'undefined';
+  else if (!expectedRole && !actualRoles.length) status = 'no_access';
+  else status = 'mapped';
+
+  return {
+    expectedRole,
+    actualRoles,
+    isOverride,
+    status,
+    mismatch: !!p.user_id && !!expectedRole && !actualRoles.includes(expectedRole),
+  };
+}
+
 
 /** Costruisce l'albero dalle righe piatte. La profondità emerge dai dati. */
 export function buildTree(rows: OrgPositionV3[]): OrgNode[] {
@@ -476,3 +565,108 @@ export function useSetPermission() {
   });
 }
 
+
+/** Riepilogo quote di piano per l'organizzazione attiva. */
+export interface OrgQuotaUsage {
+  tier: string;
+  seats_used: number;
+  max_seats: number | null;
+  max_users_per_role: number | null;
+  max_roles_per_user: number | null;
+  max_super_role_extra: number | null;
+  super_roles_used: number;
+}
+
+export function useOrgQuota() {
+  const { activeId } = useActiveOrg();
+  return useQuery({
+    queryKey: ['org-quota', activeId],
+    enabled: !!activeId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('my_org_limits_usage', { p_org: activeId });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row as OrgQuotaUsage) ?? null;
+    },
+  });
+}
+
+/** Applica il template iniziale di onboarding (posizioni, non persone). */
+export function useSeedOrgChartTemplate() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  return useMutation({
+    mutationFn: async () => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      const { data, error } = await sb.rpc('seed_org_chart_template', { p_org: activeId });
+      if (error) throw error;
+      return (data as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Eccezione di mappatura posizione→ruolo valida solo per questo studio. */
+export function useSetPositionOverride() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ catalogId, appRole }: { catalogId: string; appRole: string | null }) => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      if (appRole === null) {
+        const { error } = await sb
+          .from('org_position_overrides')
+          .delete()
+          .eq('organization_id', activeId)
+          .eq('catalog_id', catalogId);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await sb.from('org_position_overrides').upsert(
+        {
+          organization_id: activeId,
+          catalog_id: catalogId,
+          app_role: appRole,
+          set_by: user?.id ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'organization_id,catalog_id' },
+      );
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Assegna o revoca un ruolo funzionale (livello organizzazione) a una persona. */
+export function useSetUserOrgRole() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, role, remove }: { userId: string; role: string; remove?: boolean }) => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      if (remove) {
+        const { error } = await sb
+          .from('user_roles')
+          .delete()
+          .eq('organization_id', activeId)
+          .eq('user_id', userId)
+          .eq('role', role);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await sb
+        .from('user_roles')
+        .insert({ organization_id: activeId, user_id: userId, role });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['org-quota'] });
+      qc.invalidateQueries({ queryKey: ['user-roles'] });
+    },
+  });
+}

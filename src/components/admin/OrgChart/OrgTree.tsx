@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Users } from 'lucide-react';
-import type { OrgNode, TodayEntry } from '@/hooks/useOrgChartV3';
+import type { OrgNode, TodayEntry, NodeRoleInfo } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { PersonCard, TeamMemberChip } from './PersonCard';
 import { ContractorCard, type Contractor } from './ContractorCard';
@@ -22,6 +22,8 @@ export interface OrgTreeContext {
   leadsByTeam: Map<string, Set<string>>;
   /** composizione reale delle squadre: team_id -> user_id[] (da team_members) */
   membersByTeam: Map<string, string[]>;
+  /** stato ruolo/accesso per posizione (solo nodi persona) */
+  roleInfo: Map<string, NodeRoleInfo>;
   canEdit: boolean;
   onOpen: (node: OrgNode) => void;
   /** modalità "click per collegare": id del nodo in attesa di un padre */
@@ -88,6 +90,7 @@ function NodeCard({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext }) {
       extraTeams={node.user_id ? Math.max(0, (ctx.extraTeams.get(node.user_id) ?? 0)) : 0}
       isLead={!!node.user_id && !!node.team_id && !!ctx.leadsByTeam.get(node.team_id)?.has(node.user_id)}
       team={teamBadge(ctx, node)}
+      roleInfo={ctx.roleInfo.get(node.id)}
       draggable={draggable}
       canEdit={ctx.canEdit}
       onOpen={ctx.onOpen}
@@ -96,8 +99,10 @@ function NodeCard({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext }) {
   );
 }
 
-export function OrgNodeView({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext; color?: string | null; asColumn?: boolean }) {
+export function OrgNodeView({ node, ctx, color }: { node: OrgNode; ctx: OrgTreeContext; color?: string | null; asColumn?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
+  // Il colore del gruppo di governance si eredita dal nodo padre dell'albero.
+  const ownColor = (node.team_id ? ctx.teams.get(node.team_id)?.color : null) || color || null;
 
   // membri della squadra senza scheda propria: mostrati come figli "chip"
   const placed = new Set(node.children.map((c) => c.user_id).filter(Boolean) as string[]);
@@ -143,9 +148,9 @@ export function OrgNodeView({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext;
           ) : (
             <>
               <span aria-hidden className="h-4 w-px bg-border" />
-              <ChildrenRow>
+              <ChildrenRow color={ownColor}>
                 {node.children.map((c) => (
-                  <OrgNodeView key={c.id} node={c} ctx={ctx} />
+                  <OrgNodeView key={c.id} node={c} ctx={ctx} color={ownColor} />
                 ))}
                 {ghostMembers.map((u) => (
                   <TeamMemberChip
@@ -165,7 +170,7 @@ export function OrgNodeView({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext;
 }
 
 /** Riga di figli con linea orizzontale e stanghette verticali (albero classico). */
-function ChildrenRow({ children }: { children: React.ReactNode }) {
+function ChildrenRow({ children, color }: { children: React.ReactNode; color?: string | null }) {
   const items = (Array.isArray(children) ? children : [children]).flat().filter(Boolean) as React.ReactNode[];
   if (!items.length) return null;
   const single = items.length === 1;
@@ -175,12 +180,12 @@ function ChildrenRow({ children }: { children: React.ReactNode }) {
         <span
           aria-hidden
           className="absolute top-0 h-px bg-border"
-          style={{ left: `${100 / (items.length * 2)}%`, right: `${100 / (items.length * 2)}%` }}
+          style={{ left: `${100 / (items.length * 2)}%`, right: `${100 / (items.length * 2)}%`, background: color || undefined }}
         />
       )}
       {items.map((child, i) => (
         <div key={i} className="relative flex flex-1 basis-0 flex-col items-center px-3">
-          <span aria-hidden className="absolute left-1/2 top-0 h-4 w-px bg-border" />
+          <span aria-hidden className="absolute left-1/2 top-0 h-4 w-px bg-border" style={{ background: color || undefined }} />
           {child}
         </div>
       ))}

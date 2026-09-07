@@ -15,11 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Copy, Mail, MessageSquare, Phone, Save, Trash2 } from 'lucide-react';
-import type { OrgNode, TodayEntry, Capability } from '@/hooks/useOrgChartV3';
+import { AlertTriangle, Building2, Copy, Mail, MessageSquare, Phone, Save, Trash2 } from 'lucide-react';
+import type { OrgNode, TodayEntry, Capability, NodeRoleInfo } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
+import { ORG_ROLES, roleLabel } from '@/lib/roles';
 import type { Contractor } from './ContractorCard';
 import { StatusDot } from './PersonCard';
+
 
 const NONE = '__none__';
 
@@ -57,6 +59,12 @@ export interface PersonDetailSheetProps {
   allProfiles?: DirectoryProfile[];
   /** Nodi selezionabili come responsabile. */
   parentOptions?: { id: string; label: string }[];
+  /** Stato "ruolo e accesso" della posizione selezionata. */
+  roleInfo?: NodeRoleInfo;
+  /** Assegna o revoca un ruolo funzionale alla persona di questa posizione. */
+  onSetOrgRole?: (role: string, remove?: boolean) => void;
+  /** Salva un'eccezione di mappatura posizione→ruolo per questo studio. */
+  onSetPositionOverride?: (role: string | null) => void;
   onSave?: (patch: PositionPatch) => void;
   saving?: boolean;
   onDelete: () => void;
@@ -66,8 +74,10 @@ export interface PersonDetailSheetProps {
 export function PersonDetailSheet({
   node, profile, supplier, teams, primaryTeamId, today,
   canEdit, canManagePermissions, permissions, onSetPermission,
-  allTeams = [], allProfiles = [], parentOptions = [], onSave, saving, onDelete, onClose,
+  allTeams = [], allProfiles = [], parentOptions = [], roleInfo,
+  onSetOrgRole, onSetPositionOverride, onSave, saving, onDelete, onClose,
 }: PersonDetailSheetProps) {
+
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [userId, setUserId] = useState<string>(NONE);
@@ -262,7 +272,130 @@ export function PersonDetailSheet({
             </>
           )}
 
-          {canManagePermissions && !isContractor && node.user_id && (
+          {!isContractor && roleInfo && (
+            <>
+              <Separator />
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Ruolo e accesso
+                </h4>
+
+                {roleInfo.status === 'vacant' && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Posizione vacante: assegna una persona qui sopra per attivare l'accesso.
+                  </p>
+                )}
+
+                {roleInfo.status !== 'vacant' && (
+                  <>
+                    <div className="text-[11px]">
+                      <span className="text-muted-foreground">Ruolo previsto dalla posizione: </span>
+                      <span className="font-medium">
+                        {roleInfo.expectedRole ? roleLabel(roleInfo.expectedRole) : 'nessuno (senza accesso)'}
+                      </span>
+                      {roleInfo.isOverride && (
+                        <span className="ml-1 rounded bg-secondary px-1 text-[9px]">eccezione di studio</span>
+                      )}
+                    </div>
+                    <div className="text-[11px]">
+                      <span className="text-muted-foreground">Ruoli attivi della persona: </span>
+                      <span className="font-medium">
+                        {roleInfo.actualRoles.length ? roleInfo.actualRoles.map(roleLabel).join(', ') : 'nessuno'}
+                      </span>
+                    </div>
+
+                    {roleInfo.mismatch && (
+                      <div className="flex items-start gap-2 rounded border border-status-warning/60 bg-status-warning/10 p-2 text-[11px]">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warning" />
+                        <div className="space-y-2">
+                          <p>
+                            Questa posizione di solito ha il ruolo{' '}
+                            <strong>{roleLabel(roleInfo.expectedRole || '')}</strong>, quello attuale è{' '}
+                            <strong>{roleInfo.actualRoles.map(roleLabel).join(', ') || 'nessuno'}</strong>.
+                            Nessun cambio automatico: conferma tu.
+                          </p>
+                          {canEdit && onSetOrgRole && (
+                            <Button
+                              size="sm"
+                              className="h-7 text-[11px]"
+                              data-testid="apply-suggested-role"
+                              onClick={() => onSetOrgRole(roleInfo.expectedRole as string)}
+                            >
+                              Assegna {roleLabel(roleInfo.expectedRole || '')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {canEdit && onSetOrgRole && (
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Aggiungi un ruolo funzionale</Label>
+                        <Select value={NONE} onValueChange={(v) => v !== NONE && onSetOrgRole(v)}>
+                          <SelectTrigger className="h-8 text-xs" data-testid="add-org-role">
+                            <SelectValue placeholder="Scegli un ruolo" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            <SelectItem value={NONE}>Scegli un ruolo…</SelectItem>
+                            {ORG_ROLES.filter((r) => !roleInfo.actualRoles.includes(r)).map((r) => (
+                              <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {roleInfo.actualRoles.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {roleInfo.actualRoles.map((r) => (
+                              <button
+                                key={r}
+                                type="button"
+                                onClick={() => onSetOrgRole(r, true)}
+                                className="rounded bg-secondary px-1.5 py-0.5 text-[10px] hover:bg-destructive/20"
+                              >
+                                {roleLabel(r)} ×
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {canEdit && onSetPositionOverride && node.catalog_id && (
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Mappatura della posizione in questo studio</Label>
+                        <Select
+                          value={roleInfo.isOverride ? roleInfo.expectedRole || NONE : NONE}
+                          onValueChange={(v) => onSetPositionOverride(v === NONE ? null : v)}
+                        >
+                          <SelectTrigger className="h-8 text-xs" data-testid="position-override">
+                            <SelectValue placeholder="Usa il valore predefinito" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            <SelectItem value={NONE}>Usa il valore predefinito del catalogo</SelectItem>
+                            {ORG_ROLES.map((r) => (
+                              <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-muted-foreground">
+                          Vale per tutte le persone su questa posizione, solo in questo studio.
+                        </p>
+                      </div>
+                    )}
+
+                    {!roleInfo.expectedRole && !roleInfo.actualRoles.length && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Senza un ruolo funzionale questa persona non può ricevere incarichi di progetto
+                        né eccezioni personali.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+
+          {canManagePermissions && !isContractor && node.user_id && roleInfo?.actualRoles.length ? (
+
             <>
               <Separator />
               <div className="space-y-2 rounded-lg border border-border p-3">
@@ -311,7 +444,8 @@ export function PersonDetailSheet({
                 })}
               </div>
             </>
-          )}
+          ) : null}
+
 
           {canEdit && node.can_edit && (
             <Button size="sm" variant="destructive" onClick={onDelete}>

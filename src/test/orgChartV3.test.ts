@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildTree, type OrgPositionV3 } from '@/hooks/useOrgChartV3';
+import { buildTree, resolveNodeRole, type OrgPositionV3 } from '@/hooks/useOrgChartV3';
 
 const pos = (id: string, manager_id: string | null, extra: Partial<OrgPositionV3> = {}): OrgPositionV3 => ({
   id,
@@ -103,5 +103,44 @@ describe('vincoli architetturali v3', () => {
     expect(panel).toMatch(/useEffectiveOwner/);
     expect(panel).toMatch(/usePermissions/);
     expect(panel).not.toMatch(/activeOrg\?\.is_owner/);
+  });
+});
+
+describe('resolveNodeRole — mappatura posizione → ruolo funzionale', () => {
+  const catalog = new Map([
+    ['cat-designer', { title: 'Senior Interior Designer', role: 'designer' }],
+    ['cat-office', { title: 'Office Boy', role: null }],
+  ]);
+  const roles = new Map([['u1', ['designer']], ['u2', ['qs']]]);
+
+  it('posizione senza persona è vacante', () => {
+    const i = resolveNodeRole({ user_id: null, catalog_id: 'cat-designer', base_role: null }, catalog, new Map(), roles);
+    expect(i.status).toBe('vacant');
+    expect(i.expectedRole).toBe('designer');
+  });
+
+  it('posizione custom mai mappata è "ruolo da definire"', () => {
+    const i = resolveNodeRole({ user_id: 'u3', catalog_id: null, base_role: null }, catalog, new Map(), roles);
+    expect(i.status).toBe('undefined');
+  });
+
+  it('posizione senza ruolo di default resta senza accesso', () => {
+    const i = resolveNodeRole({ user_id: 'u3', catalog_id: 'cat-office', base_role: null }, catalog, new Map(), roles);
+    expect(i.status).toBe('no_access');
+    expect(i.expectedRole).toBeNull();
+  });
+
+  it('override di studio ha la precedenza sul default del catalogo', () => {
+    const ovr = new Map([['cat-designer', 'head_of_design']]);
+    const i = resolveNodeRole({ user_id: 'u1', catalog_id: 'cat-designer', base_role: null }, catalog, ovr, roles);
+    expect(i.expectedRole).toBe('head_of_design');
+    expect(i.isOverride).toBe(true);
+    expect(i.mismatch).toBe(true);
+  });
+
+  it('nessun mismatch quando la persona ha già il ruolo previsto', () => {
+    const i = resolveNodeRole({ user_id: 'u1', catalog_id: 'cat-designer', base_role: null }, catalog, new Map(), roles);
+    expect(i.status).toBe('mapped');
+    expect(i.mismatch).toBe(false);
   });
 });
