@@ -196,6 +196,136 @@ export type Database = {
           },
         ]
       }
+      checkpoint_definitions: {
+        Row: {
+          categorie_applicabili:
+            | Database["public"]["Enums"]["boq_category"][]
+            | null
+          code: string
+          created_at: string
+          id: string
+          label: string
+          macro_gruppo: Database["public"]["Enums"]["task_macro_area"]
+          requires_role_count: number
+          richiede_documento: boolean
+          ruolo_responsabile: Database["public"]["Enums"]["app_role"] | null
+          skip_level: number
+          sort_order: number
+          tipo: Database["public"]["Enums"]["checkpoint_kind"]
+          updated_at: string
+        }
+        Insert: {
+          categorie_applicabili?:
+            | Database["public"]["Enums"]["boq_category"][]
+            | null
+          code: string
+          created_at?: string
+          id?: string
+          label: string
+          macro_gruppo: Database["public"]["Enums"]["task_macro_area"]
+          requires_role_count?: number
+          richiede_documento?: boolean
+          ruolo_responsabile?: Database["public"]["Enums"]["app_role"] | null
+          skip_level?: number
+          sort_order?: number
+          tipo: Database["public"]["Enums"]["checkpoint_kind"]
+          updated_at?: string
+        }
+        Update: {
+          categorie_applicabili?:
+            | Database["public"]["Enums"]["boq_category"][]
+            | null
+          code?: string
+          created_at?: string
+          id?: string
+          label?: string
+          macro_gruppo?: Database["public"]["Enums"]["task_macro_area"]
+          requires_role_count?: number
+          richiede_documento?: boolean
+          ruolo_responsabile?: Database["public"]["Enums"]["app_role"] | null
+          skip_level?: number
+          sort_order?: number
+          tipo?: Database["public"]["Enums"]["checkpoint_kind"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      checkpoint_instances: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          definition_id: string
+          document_url: string | null
+          id: string
+          project_item_id: string
+          second_approved_at: string | null
+          second_approver_id: string | null
+          skip_reason: string | null
+          skipped_at: string | null
+          skipped_by: string | null
+          sod_warning: boolean
+          status: Database["public"]["Enums"]["checkpoint_instance_status"]
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          definition_id: string
+          document_url?: string | null
+          id?: string
+          project_item_id: string
+          second_approved_at?: string | null
+          second_approver_id?: string | null
+          skip_reason?: string | null
+          skipped_at?: string | null
+          skipped_by?: string | null
+          sod_warning?: boolean
+          status?: Database["public"]["Enums"]["checkpoint_instance_status"]
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          definition_id?: string
+          document_url?: string | null
+          id?: string
+          project_item_id?: string
+          second_approved_at?: string | null
+          second_approver_id?: string | null
+          skip_reason?: string | null
+          skipped_at?: string | null
+          skipped_by?: string | null
+          sod_warning?: boolean
+          status?: Database["public"]["Enums"]["checkpoint_instance_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkpoint_instances_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "checkpoint_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkpoint_instances_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkpoint_instances_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_boards: {
         Row: {
           created_at: string
@@ -604,6 +734,75 @@ export type Database = {
         }
         Relationships: []
       }
+      item_change_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approver_role: Database["public"]["Enums"]["app_role"] | null
+          cost_impact: number | null
+          created_at: string
+          description: string | null
+          id: string
+          impact_notes: string | null
+          incorporated_at: string | null
+          project_item_id: string
+          requested_by: string | null
+          status: Database["public"]["Enums"]["change_request_status"]
+          time_impact_days: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_role?: Database["public"]["Enums"]["app_role"] | null
+          cost_impact?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_notes?: string | null
+          incorporated_at?: string | null
+          project_item_id: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["change_request_status"]
+          time_impact_days?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_role?: Database["public"]["Enums"]["app_role"] | null
+          cost_impact?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_notes?: string | null
+          incorporated_at?: string | null
+          project_item_id?: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["change_request_status"]
+          time_impact_days?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_change_requests_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_change_requests_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_costs: {
         Row: {
           amount: number | null
@@ -797,6 +996,129 @@ export type Database = {
           {
             foreignKeyName: "item_revisions_item_id_fkey"
             columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_rfis: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          opened_at: string
+          opened_by: string | null
+          project_item_id: string
+          question: string
+          status: Database["public"]["Enums"]["rfi_status"]
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          project_item_id: string
+          question: string
+          status?: Database["public"]["Enums"]["rfi_status"]
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          project_item_id?: string
+          question?: string
+          status?: Database["public"]["Enums"]["rfi_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_rfis_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_rfis_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_submittals: {
+        Row: {
+          created_at: string
+          document_url: string | null
+          id: string
+          project_item_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["submittal_status"]
+          submitted_at: string
+          submitted_by: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          document_url?: string | null
+          id?: string
+          project_item_id: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["submittal_status"]
+          submitted_at?: string
+          submitted_by?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          document_url?: string | null
+          id?: string
+          project_item_id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["submittal_status"]
+          submitted_at?: string
+          submitted_by?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_submittals_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_submittals_project_item_id_fkey"
+            columns: ["project_item_id"]
             isOneToOne: false
             referencedRelation: "project_items_secure"
             referencedColumns: ["id"]
@@ -1794,6 +2116,7 @@ export type Database = {
           installed_date: string | null
           insurance_cost: number | null
           is_active: boolean | null
+          is_custom: boolean
           is_selected_option: boolean | null
           item_code: string | null
           item_type_id: string | null
@@ -1862,6 +2185,7 @@ export type Database = {
           installed_date?: string | null
           insurance_cost?: number | null
           is_active?: boolean | null
+          is_custom?: boolean
           is_selected_option?: boolean | null
           item_code?: string | null
           item_type_id?: string | null
@@ -1930,6 +2254,7 @@ export type Database = {
           installed_date?: string | null
           insurance_cost?: number | null
           is_active?: boolean | null
+          is_custom?: boolean
           is_selected_option?: boolean | null
           item_code?: string | null
           item_type_id?: string | null
@@ -3132,6 +3457,7 @@ export type Database = {
         Args: { p_code: string; p_org: string }
         Returns: boolean
       }
+      can_access_item: { Args: { _item_id: string }; Returns: boolean }
       can_access_project_file: { Args: { p_name: string }; Returns: boolean }
       can_manage_member: {
         Args: { _actor: string; _org: string; _target: string }
@@ -3158,6 +3484,10 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      external_approval_blockers: {
+        Args: { _item_id: string }
+        Returns: string[]
       }
       find_user_id_by_email: { Args: { p_email: string }; Returns: string }
       gen_referral_slug: { Args: never; Returns: string }
@@ -3545,6 +3875,14 @@ export type Database = {
         | "travel"
         | "holiday"
         | "other"
+      change_request_status:
+        | "requested"
+        | "impact_assessment"
+        | "approved"
+        | "rejected"
+        | "incorporated"
+      checkpoint_instance_status: "pending" | "completed" | "skipped"
+      checkpoint_kind: "automatic" | "formal"
       item_lifecycle_status:
         | "draft"
         | "estimated"
@@ -3580,6 +3918,8 @@ export type Database = {
         | "cancelled"
       payment_scheme: "single" | "split_50_50" | "installments_3"
       platform_admin_grade: "staff" | "owner"
+      rfi_status: "open" | "answered" | "closed"
+      submittal_status: "proposed" | "under_review" | "approved" | "rework"
       subscription_status:
         | "active"
         | "grace"
@@ -3773,6 +4113,15 @@ export const Constants = {
         "holiday",
         "other",
       ],
+      change_request_status: [
+        "requested",
+        "impact_assessment",
+        "approved",
+        "rejected",
+        "incorporated",
+      ],
+      checkpoint_instance_status: ["pending", "completed", "skipped"],
+      checkpoint_kind: ["automatic", "formal"],
       item_lifecycle_status: [
         "draft",
         "estimated",
@@ -3809,6 +4158,8 @@ export const Constants = {
       ],
       payment_scheme: ["single", "split_50_50", "installments_3"],
       platform_admin_grade: ["staff", "owner"],
+      rfi_status: ["open", "answered", "closed"],
+      submittal_status: ["proposed", "under_review", "approved", "rework"],
       subscription_status: [
         "active",
         "grace",
