@@ -444,7 +444,8 @@ export function PersonDetailSheet({
                 })}
               </div>
             </>
-          )}
+          ) : null}
+
 
           {canEdit && node.can_edit && (
             <Button size="sm" variant="destructive" onClick={onDelete}>
