@@ -565,3 +565,108 @@ export function useSetPermission() {
   });
 }
 
+
+/** Riepilogo quote di piano per l'organizzazione attiva. */
+export interface OrgQuotaUsage {
+  tier: string;
+  seats_used: number;
+  max_seats: number | null;
+  max_users_per_role: number | null;
+  max_roles_per_user: number | null;
+  max_super_role_extra: number | null;
+  super_roles_used: number;
+}
+
+export function useOrgQuota() {
+  const { activeId } = useActiveOrg();
+  return useQuery({
+    queryKey: ['org-quota', activeId],
+    enabled: !!activeId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('my_org_limits_usage', { p_org: activeId });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row as OrgQuotaUsage) ?? null;
+    },
+  });
+}
+
+/** Applica il template iniziale di onboarding (posizioni, non persone). */
+export function useSeedOrgChartTemplate() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  return useMutation({
+    mutationFn: async () => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      const { data, error } = await sb.rpc('seed_org_chart_template', { p_org: activeId });
+      if (error) throw error;
+      return (data as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Eccezione di mappatura posizione→ruolo valida solo per questo studio. */
+export function useSetPositionOverride() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ catalogId, appRole }: { catalogId: string; appRole: string | null }) => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      if (appRole === null) {
+        const { error } = await sb
+          .from('org_position_overrides')
+          .delete()
+          .eq('organization_id', activeId)
+          .eq('catalog_id', catalogId);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await sb.from('org_position_overrides').upsert(
+        {
+          organization_id: activeId,
+          catalog_id: catalogId,
+          app_role: appRole,
+          set_by: user?.id ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'organization_id,catalog_id' },
+      );
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Assegna o revoca un ruolo funzionale (livello organizzazione) a una persona. */
+export function useSetUserOrgRole() {
+  const invalidate = useInvalidateChart();
+  const { activeId } = useActiveOrg();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, role, remove }: { userId: string; role: string; remove?: boolean }) => {
+      if (!activeId) throw new Error('Nessuna organizzazione attiva');
+      if (remove) {
+        const { error } = await sb
+          .from('user_roles')
+          .delete()
+          .eq('organization_id', activeId)
+          .eq('user_id', userId)
+          .eq('role', role);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await sb
+        .from('user_roles')
+        .insert({ organization_id: activeId, user_id: userId, role });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['org-quota'] });
+      qc.invalidateQueries({ queryKey: ['user-roles'] });
+    },
+  });
+}
