@@ -13,3 +13,8 @@ project_id = "grpzbxwafkcvecphnyyb"
     verify_jwt = false
   [functions.admin-delete-organization]
     verify_jwt = false
+  [functions.lemonsqueezy-webhook]
+    verify_jwt = false
+  [functions.billing-reconcile]
+    verify_jwt = false
+
