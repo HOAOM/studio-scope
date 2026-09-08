@@ -17,6 +17,7 @@ import SuperAdmin from "./pages/SuperAdmin";
 import SsoLogin from "./pages/SsoLogin";
 import CalendarPage from "./pages/CalendarPage";
 import OrgChartPage from "./pages/OrgChartPage";
+import StuckItemsPage from "./pages/StuckItemsPage";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -190,6 +191,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <OrgChartPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/stuck-items"
+              element={
+                <ProtectedRoute>
+                  <StuckItemsPage />
                 </ProtectedRoute>
               }
             />
