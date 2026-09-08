@@ -113,6 +113,21 @@ Deno.serve(async (req) => {
 
     // ── provision ──────────────────────────────────────────────────
     if (body.action === "provision") {
+      // Registrazione self-service: accessibile solo quando la prova gratuita
+      // è attiva a livello di sistema (system_settings.trial_enabled).
+      // Con il flag a false l'unico ingresso resta l'invito manuale.
+      const { data: trialOn } = await sb.rpc("trial_enabled");
+      if (trialOn !== true) {
+        return json(
+          {
+            error: "self_service_disabled",
+            message:
+              "La registrazione autonoma non è attiva. Per aprire un nuovo studio serve un invito.",
+          },
+          403,
+        );
+      }
+
       const org_name = String(body.org_name ?? "").trim();
       const owner_email = String(body.owner_email ?? "").trim().toLowerCase();
       const tier = String(body.tier ?? "basic").toLowerCase() as Tier;
@@ -123,6 +138,7 @@ Deno.serve(async (req) => {
       if (!org_name) return json({ error: "missing_org_name" }, 400);
       if (!EMAIL_RE.test(owner_email)) return json({ error: "invalid_email" }, 400);
       if (!ALLOWED_TIERS.includes(tier)) return json({ error: "invalid_tier" }, 400);
+
 
       // Resolve domain
       const slugBase = await uniqueSlug(sb, org_name);
