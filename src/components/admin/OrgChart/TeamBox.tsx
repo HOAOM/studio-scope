@@ -18,6 +18,33 @@ export function hexToRgba(hex: string | null | undefined, alpha: number) {
 /** Palette di fallback per le squadre senza colore. */
 export const COLUMN_PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#ef4444', '#14b8a6', '#6366f1'];
 
+/**
+ * Palette ad alto contrasto per dipartimenti/squadre su tema scuro.
+ * Tinte volutamente distanti in tonalità e luminosità, così due gruppi
+ * adiacenti non si confondono. Il colore non è mai l'unico segnale:
+ * il nome del dipartimento resta sempre scritto in chiaro sulla scheda.
+ */
+export const DEPARTMENT_PALETTE = [
+  '#60a5fa', // azzurro
+  '#fbbf24', // ambra
+  '#34d399', // verde acqua
+  '#f472b6', // rosa
+  '#a78bfa', // viola
+  '#fb923c', // arancio
+  '#22d3ee', // ciano
+  '#f87171', // rosso chiaro
+  '#a3e635', // lime
+  '#e879f9', // magenta
+];
+
+/** Colore stabile e leggibile per una squadra/dipartimento, derivato dall'id. */
+export function departmentColor(seed: string | null | undefined) {
+  if (!seed) return DEPARTMENT_PALETTE[0];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return DEPARTMENT_PALETTE[h % DEPARTMENT_PALETTE.length];
+}
+
 export function DropZone({
   id, nodeId, disabled, children, className,
 }: { id: string; nodeId: string | null; disabled?: boolean; children: ReactNode; className?: string }) {
