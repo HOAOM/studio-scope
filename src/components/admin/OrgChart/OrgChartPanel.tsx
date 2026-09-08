@@ -8,7 +8,7 @@ import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, pointerWithin,
   PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
-import { Loader2, Plus, Search } from 'lucide-react';
+import { Loader2, PanelRightOpen, Plus, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { OrgTree, type OrgTreeContext } from './OrgTree';
+import { OrgCanvas } from './OrgCanvas';
 import { UnassignedPanel, CatalogPanel } from './SidePanels';
 import { PersonDetailSheet, type PositionPatch } from './PersonDetailSheet';
 import type { Contractor } from './ContractorCard';
