@@ -22,6 +22,8 @@ import { useQuery } from '@tanstack/react-query';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
+import { useTheme } from 'next-themes';
+import { Moon, Sun } from 'lucide-react';
 
 function useMyProfile() {
   const { user } = useAuth();
@@ -47,6 +49,7 @@ export function UserMenu() {
   const { data: conversations = [] } = useDirectConversations();
   const { isPlatformAdmin } = usePlatformAdmin();
   const { isOrgAdmin } = usePermissions();
+  const { resolvedTheme, setTheme } = useTheme();
   const { roles } = useUserRole();
   const canSeeStuck =
     isOrgAdmin || roles.includes('admin') || roles.includes('coo') || roles.includes('project_manager');
@@ -129,6 +132,17 @@ export function UserMenu() {
           <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
             <User className="w-4 h-4 mr-2" />
             Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setTheme(resolvedTheme === 'light' ? 'dark' : 'light')}
+            className="cursor-pointer"
+          >
+            {resolvedTheme === 'light' ? (
+              <Moon className="w-4 h-4 mr-2" />
+            ) : (
+              <Sun className="w-4 h-4 mr-2" />
+            )}
+            {resolvedTheme === 'light' ? 'Tema scuro' : 'Tema chiaro'}
           </DropdownMenuItem>
           {isOrgAdmin && (
             <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
