@@ -49,6 +49,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const [dragLabel, setDragLabel] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [summaryFilter, setSummaryFilter] = useState<SummaryFilter>(null);
+  const [sideOpen, setSideOpen] = useState(false);
 
   const permissionsReady = !ownerLoading && !permLoading;
   const canEdit = !readOnly && permissionsReady && (isEffectiveOwner || isOrgAdmin);
