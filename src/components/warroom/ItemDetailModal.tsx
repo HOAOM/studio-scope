@@ -38,11 +38,12 @@ import {
   FileText, Package, CreditCard, Truck, Wrench, History,
   Image as ImageIcon, ExternalLink, ReceiptText, Layers,
   ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
-  AlertTriangle, Shield, ArrowLeft, TrendingUp,
+  AlertTriangle, Shield, ArrowLeft, TrendingUp, ShieldCheck,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
+import { CheckpointPanel } from './CheckpointPanel';
 import { LifecycleChecklist } from './LifecycleChecklist';
 import { FileOrUrlInput } from './FileOrUrlInput';
 import { openFile } from '@/lib/fileUrls';
@@ -839,6 +840,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               {canSeeInstallation && <TabsTrigger value="installation"><Wrench className="w-3 h-3 mr-1" />Installation</TabsTrigger>}
               {/* Lifecycle moved to Info tab */}
               <TabsTrigger value="tasks"><ListTodo className="w-3 h-3 mr-1" />Tasks{openTasks.length > 0 ? ` (${openTasks.length})` : ''}</TabsTrigger>
+              <TabsTrigger value="checkpoints"><ShieldCheck className="w-3 h-3 mr-1" />Checkpoint</TabsTrigger>
               <TabsTrigger value="history"><History className="w-3 h-3 mr-1" />History</TabsTrigger>
             </TabsList>
 
@@ -1521,6 +1523,11 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
             </TabsContent>
 
             {/* Lifecycle checklist is now in Info tab */}
+
+            {/* CHECKPOINT TAB */}
+            <TabsContent value="checkpoints" className="space-y-3">
+              <CheckpointPanel itemId={item.id} projectId={projectId} />
+            </TabsContent>
 
             {/* HISTORY TAB */}
             <TabsContent value="history" className="space-y-3">

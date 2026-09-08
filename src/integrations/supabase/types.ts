@@ -3968,7 +3968,11 @@ export type Database = {
         | "approved"
         | "rejected"
         | "incorporated"
-      checkpoint_instance_status: "pending" | "completed" | "skipped"
+      checkpoint_instance_status:
+        | "pending"
+        | "completed"
+        | "skipped"
+        | "rejected"
       checkpoint_kind: "automatic" | "formal"
       engine_category: "FURN" | "MEP" | "WORK" | "DOC" | "DESIGN"
       item_lifecycle_status:
@@ -4209,7 +4213,12 @@ export const Constants = {
         "rejected",
         "incorporated",
       ],
-      checkpoint_instance_status: ["pending", "completed", "skipped"],
+      checkpoint_instance_status: [
+        "pending",
+        "completed",
+        "skipped",
+        "rejected",
+      ],
       checkpoint_kind: ["automatic", "formal"],
       engine_category: ["FURN", "MEP", "WORK", "DOC", "DESIGN"],
       item_lifecycle_status: [
