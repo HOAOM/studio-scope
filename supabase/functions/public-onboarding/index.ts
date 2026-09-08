@@ -160,6 +160,21 @@ Deno.serve(async (req) => {
       }
       // "buy" → no domain yet (affiliate flow, later phase)
 
+      // Un dominio può appartenere a una sola organizzazione.
+      if (custom_domain) {
+        const { data: free } = await sb.rpc("domain_is_available", { p_domain: custom_domain });
+        if (free === false) {
+          return json(
+            {
+              error: "domain_taken",
+              message: "Questo dominio è già associato a un'altra organizzazione.",
+            },
+            409,
+          );
+        }
+      }
+
+
       // 1) user — an existing account must NEVER be attached to an organization
       //    created by an unauthenticated request (account hijack / code burning).
       //    In that case we only send a sign-in link and return a generic response
