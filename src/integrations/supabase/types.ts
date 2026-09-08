@@ -44,6 +44,104 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_price_map: {
+        Row: {
+          created_at: string
+          provider: string
+          provider_price_id: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Insert: {
+          created_at?: string
+          provider?: string
+          provider_price_id: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Update: {
+          created_at?: string
+          provider?: string
+          provider_price_id?: string
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Relationships: []
+      }
+      billing_provider_accounts: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          provider: string
+          provider_customer_id: string | null
+          provider_price_id: string | null
+          provider_subscription_id: string | null
+          raw_metadata: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          provider?: string
+          provider_customer_id?: string | null
+          provider_price_id?: string | null
+          provider_subscription_id?: string | null
+          raw_metadata?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          provider?: string
+          provider_customer_id?: string | null
+          provider_price_id?: string | null
+          provider_subscription_id?: string | null
+          raw_metadata?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_provider_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_webhook_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_name: string | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          provider_event_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_name?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          provider_event_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_name?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string
+        }
+        Relationships: []
+      }
       boq_coverage: {
         Row: {
           approved_count: number
@@ -1672,6 +1770,44 @@ export type Database = {
           },
         ]
       }
+      organization_entitlements: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          organization_id: string
+          status: Database["public"]["Enums"]["entitlement_status"]
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          organization_id: string
+          status?: Database["public"]["Enums"]["entitlement_status"]
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          organization_id?: string
+          status?: Database["public"]["Enums"]["entitlement_status"]
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_entitlements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -3126,6 +3262,24 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string
@@ -3531,6 +3685,14 @@ export type Database = {
         Args: { p_org: string; p_tier: string }
         Returns: undefined
       }
+      apply_downgrade: {
+        Args: {
+          p_archive_project_ids?: string[]
+          p_org: string
+          p_target: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Returns: Json
+      }
       apply_referral: {
         Args: { p_code: string; p_org: string }
         Returns: boolean
@@ -3563,11 +3725,20 @@ export type Database = {
           phone: string
         }[]
       }
+      domain_is_available: { Args: { p_domain: string }; Returns: boolean }
+      downgrade_preview: {
+        Args: {
+          p_org: string
+          p_target: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Returns: Json
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      expire_trials: { Args: never; Returns: number }
       external_approval_blockers: {
         Args: { _item_id: string }
         Returns: string[]
@@ -3720,6 +3891,10 @@ export type Database = {
           super_roles_used: number
           tier: Database["public"]["Enums"]["subscription_tier"]
         }[]
+      }
+      next_tier: {
+        Args: { t: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: Database["public"]["Enums"]["subscription_tier"]
       }
       org_active_project_count: { Args: { p_org: string }; Returns: number }
       org_can_activate_project: { Args: { p_org: string }; Returns: boolean }
@@ -3876,6 +4051,24 @@ export type Database = {
         Returns: string
       }
       shares_org_with: { Args: { _target: string }; Returns: boolean }
+      start_trial: {
+        Args: { p_org: string }
+        Returns: {
+          created_at: string
+          current_period_end: string | null
+          organization_id: string
+          status: Database["public"]["Enums"]["entitlement_status"]
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_entitlements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       storage_upload_within_limit: {
         Args: { p_bucket: string; p_name: string }
         Returns: boolean
@@ -3887,6 +4080,15 @@ export type Database = {
           old_status: Database["public"]["Enums"]["subscription_status"]
           org_id: string
         }[]
+      }
+      tier_limit_error: {
+        Args: {
+          p_current: number
+          p_limit: number
+          p_resource: string
+          p_tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Returns: string
       }
       tier_project_limit: {
         Args: { t: Database["public"]["Enums"]["subscription_tier"] }
@@ -3901,6 +4103,7 @@ export type Database = {
         Returns: number
       }
       touch_login_session: { Args: { p_session_id: string }; Returns: boolean }
+      trial_enabled: { Args: never; Returns: boolean }
       user_has_password: { Args: { _user_id: string }; Returns: boolean }
       users_share_org: { Args: { _a: string; _b: string }; Returns: boolean }
       validate_discount: {
@@ -3975,6 +4178,12 @@ export type Database = {
         | "rejected"
       checkpoint_kind: "automatic" | "formal"
       engine_category: "FURN" | "MEP" | "WORK" | "DOC" | "DESIGN"
+      entitlement_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "suspended"
+        | "canceled"
       item_lifecycle_status:
         | "draft"
         | "estimated"
@@ -4221,6 +4430,13 @@ export const Constants = {
       ],
       checkpoint_kind: ["automatic", "formal"],
       engine_category: ["FURN", "MEP", "WORK", "DOC", "DESIGN"],
+      entitlement_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "suspended",
+        "canceled",
+      ],
       item_lifecycle_status: [
         "draft",
         "estimated",
