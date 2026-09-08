@@ -9,7 +9,7 @@ import type { OrgNode, TodayEntry, NodeRoleInfo } from '@/hooks/useOrgChartV3';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { PersonCard, TeamMemberChip } from './PersonCard';
 import { ContractorCard, type Contractor } from './ContractorCard';
-import { DropZone, hexToRgba } from './TeamBox';
+import { DropZone, hexToRgba, departmentColor } from './TeamBox';
 import { cn } from '@/lib/utils';
 
 export interface OrgTreeContext {
@@ -36,7 +36,8 @@ const CARD_W = 200;
 
 function teamBadge(ctx: OrgTreeContext, node: OrgNode) {
   const team = node.team_id ? ctx.teams.get(node.team_id) : undefined;
-  return team ? { name: team.name, color: team.color } : undefined;
+  // Colore di visualizzazione ad alto contrasto: il dato salvato non cambia.
+  return team ? { name: team.name, color: departmentColor(team.id) } : undefined;
 }
 
 /** Scheda del nodo (persona / appaltatore / squadra) senza figli. */
@@ -59,7 +60,7 @@ function NodeCard({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext }) {
 
   if (node.node_kind === 'team' || node.node_kind === 'unit') {
     const team = node.team_id ? ctx.teams.get(node.team_id) : undefined;
-    const color = team?.color || '#64748b';
+    const color = departmentColor(team?.id || node.id);
     const count = node.team_id ? (ctx.membersByTeam.get(node.team_id) || []).length : node.children.length;
     return (
       <button
@@ -102,7 +103,9 @@ function NodeCard({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext }) {
 export function OrgNodeView({ node, ctx, color }: { node: OrgNode; ctx: OrgTreeContext; color?: string | null; asColumn?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   // Il colore del gruppo di governance si eredita dal nodo padre dell'albero.
-  const ownColor = (node.team_id ? ctx.teams.get(node.team_id)?.color : null) || color || null;
+  const ownColor = (node.team_id ? departmentColor(node.team_id) : null)
+    || (node.node_kind === 'unit' ? departmentColor(node.id) : null)
+    || color || null;
 
   // membri della squadra senza scheda propria: mostrati come figli "chip"
   const placed = new Set(node.children.map((c) => c.user_id).filter(Boolean) as string[]);

@@ -8,7 +8,7 @@ import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, pointerWithin,
   PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
-import { Loader2, Plus, Search } from 'lucide-react';
+import { Loader2, PanelRightOpen, Plus, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { useEffectiveOwner } from '@/hooks/useEffectiveOwner';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { DirectoryProfile, Team } from '@/hooks/useOrgStructure';
 import { OrgTree, type OrgTreeContext } from './OrgTree';
+import { OrgCanvas } from './OrgCanvas';
 import { UnassignedPanel, CatalogPanel } from './SidePanels';
 import { PersonDetailSheet, type PositionPatch } from './PersonDetailSheet';
 import type { Contractor } from './ContractorCard';
@@ -49,6 +50,7 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
   const [dragLabel, setDragLabel] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [summaryFilter, setSummaryFilter] = useState<SummaryFilter>(null);
+  const [sideOpen, setSideOpen] = useState(false);
 
   const permissionsReady = !ownerLoading && !permLoading;
   const canEdit = !readOnly && permissionsReady && (isEffectiveOwner || isOrgAdmin);
@@ -355,12 +357,37 @@ export function OrgChartPanel({ readOnly = false }: { readOnly?: boolean }) {
               <Plus className="mr-1.5 h-3.5 w-3.5" />Area / dipartimento
             </Button>
           )}
+          {canEdit && (
+            <Button
+              size="sm"
+              variant={sideOpen ? 'secondary' : 'outline'}
+              data-testid="toggle-side-panels"
+              className="ml-auto"
+              onClick={() => setSideOpen((v) => !v)}
+            >
+              <PanelRightOpen className="mr-1.5 h-3.5 w-3.5" />
+              {sideOpen ? 'Chiudi pannelli' : 'Catalogo e non assegnati'}
+            </Button>
+          )}
         </div>
 
-        <div className={canEdit ? 'grid gap-3 lg:grid-cols-[1fr_260px]' : ''}>
-          <OrgTree roots={filteredRoots} ctx={ctx} />
-          {canEdit && (
-            <div className="space-y-3">
+        <div className="relative">
+          <OrgCanvas>
+            <OrgTree roots={filteredRoots} ctx={ctx} />
+          </OrgCanvas>
+          {canEdit && sideOpen && (
+            <div
+              data-testid="side-panels"
+              className="absolute right-0 top-0 z-30 flex max-h-full w-[270px] flex-col gap-3 overflow-y-auto rounded-lg border border-border bg-background/95 p-2 shadow-xl backdrop-blur"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Strumenti
+                </span>
+                <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Chiudi pannelli" onClick={() => setSideOpen(false)}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
               <UnassignedPanel people={unassignedPeople} contractors={unplacedContractors} />
               <CatalogPanel entries={catalog} />
             </div>
