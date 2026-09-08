@@ -240,8 +240,8 @@ export function PersonCard({
             <span className="block truncate text-[10px] leading-tight text-muted-foreground">{node.title}</span>
             {team && (
               <span
-                className="mt-0.5 inline-block max-w-full truncate rounded px-1 text-[9px]"
-                style={{ background: hexToRgba(team.color, 0.18), color: team.color || undefined }}
+                className="mt-0.5 inline-block max-w-full truncate rounded px-1 text-[9px] text-foreground"
+                style={{ background: hexToRgba(team.color, 0.18) }}
               >
                 {team.name}
                 {extraTeams > 0 ? ` +${extraTeams}` : ''}

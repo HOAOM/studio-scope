@@ -29,6 +29,7 @@ import { ImpersonateBanner } from "@/components/layout/ImpersonateBanner";
 import { TenantGuard } from "@/components/layout/TenantGuard";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { usePermissions } from "@/hooks/usePermissions";
+import { AppThemeProvider } from "@/components/layout/AppThemeProvider";
 
 const queryClient = new QueryClient({
   // Un solo punto di intercettazione: qualunque mutazione bloccata da un limite
@@ -124,10 +125,11 @@ function PlatformOnlyRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
+  <AppThemeProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -225,10 +227,11 @@ const App = () => (
           </Routes>
           <TierLimitUpsell />
         </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  </AppThemeProvider>
 );
 
 export default App;

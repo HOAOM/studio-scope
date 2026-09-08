@@ -19,7 +19,7 @@ export function hexToRgba(hex: string | null | undefined, alpha: number) {
 export const COLUMN_PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#ef4444', '#14b8a6', '#6366f1'];
 
 /**
- * Palette ad alto contrasto per dipartimenti/squadre su tema scuro.
+ * Palette ad alto contrasto per dipartimenti/squadre su entrambi i temi.
  * Tinte volutamente distanti in tonalità e luminosità, così due gruppi
  * adiacenti non si confondono. Il colore non è mai l'unico segnale:
  * il nome del dipartimento resta sempre scritto in chiaro sulla scheda.

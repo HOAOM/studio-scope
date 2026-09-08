@@ -8,38 +8,92 @@
 
 @layer base {
   :root {
-    /* Dark command center palette */
-    --background: 220 20% 8%;
-    --foreground: 210 20% 92%;
+    /* Light command center palette */
+    --background: 210 25% 97%;
+    --foreground: 220 24% 14%;
 
-    --card: 220 18% 11%;
-    --card-foreground: 210 20% 92%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 24% 14%;
 
-    --popover: 220 18% 11%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 24% 14%;
 
-    --primary: 210 100% 52%;
+    --primary: 210 92% 43%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary: 214 22% 91%;
+    --secondary-foreground: 220 24% 18%;
 
-    --muted: 220 15% 15%;
-    --muted-foreground: 215 15% 55%;
+    --muted: 214 20% 92%;
+    --muted-foreground: 216 15% 40%;
 
-    --accent: 220 15% 20%;
-    --accent-foreground: 210 20% 92%;
+    --accent: 210 25% 89%;
+    --accent-foreground: 220 24% 14%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 20%;
-    --ring: 210 100% 52%;
+    --border: 215 19% 82%;
+    --input: 215 19% 78%;
+    --ring: 210 92% 43%;
 
     --radius: 0.5rem;
 
     /* War Room Status Colors */
+    --status-safe: 142 70% 31%;
+    --status-safe-bg: 142 70% 38% / 0.13;
+    --status-at-risk: 35 92% 34%;
+    --status-at-risk-bg: 38 92% 45% / 0.15;
+    --status-unsafe: 0 70% 43%;
+    --status-unsafe-bg: 0 72% 48% / 0.13;
+    --status-neutral: 215 15% 42%;
+    --status-neutral-bg: 215 15% 48% / 0.12;
+
+    /* KPI specific */
+    --kpi-green: 142 70% 31%;
+    --kpi-yellow: 35 92% 34%;
+    --kpi-red: 0 70% 43%;
+    --kpi-blue: 210 92% 43%;
+
+    /* Surfaces */
+    --surface-elevated: 0 0% 100%;
+    --surface-hover: 214 24% 93%;
+    --surface-active: 210 25% 89%;
+
+    /* Grid lines */
+    --grid-line: 215 20% 90%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 24% 18%;
+    --sidebar-primary: 210 92% 43%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 22% 91%;
+    --sidebar-accent-foreground: 220 24% 14%;
+    --sidebar-border: 215 19% 84%;
+    --sidebar-ring: 210 92% 43%;
+  }
+
+  .dark {
+    --background: 220 20% 8%;
+    --foreground: 210 20% 92%;
+    --card: 220 18% 11%;
+    --card-foreground: 210 20% 92%;
+    --popover: 220 18% 11%;
+    --popover-foreground: 210 20% 92%;
+    --primary: 210 100% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 210 20% 85%;
+    --muted: 220 15% 15%;
+    --muted-foreground: 215 15% 55%;
+    --accent: 220 15% 20%;
+    --accent-foreground: 210 20% 92%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 18%;
+    --input: 220 15% 20%;
+    --ring: 210 100% 52%;
     --status-safe: 142 76% 45%;
     --status-safe-bg: 142 76% 45% / 0.15;
     --status-at-risk: 38 92% 50%;
@@ -48,22 +102,14 @@
     --status-unsafe-bg: 0 72% 51% / 0.15;
     --status-neutral: 215 15% 55%;
     --status-neutral-bg: 215 15% 55% / 0.15;
-
-    /* KPI specific */
     --kpi-green: 142 76% 45%;
     --kpi-yellow: 38 92% 50%;
     --kpi-red: 0 72% 51%;
     --kpi-blue: 210 100% 52%;
-
-    /* Surfaces */
     --surface-elevated: 220 18% 13%;
     --surface-hover: 220 15% 16%;
     --surface-active: 220 15% 20%;
-
-    /* Grid lines */
     --grid-line: 220 15% 15%;
-
-    /* Sidebar */
     --sidebar-background: 220 20% 6%;
     --sidebar-foreground: 210 20% 85%;
     --sidebar-primary: 210 100% 52%;
@@ -72,10 +118,6 @@
     --sidebar-accent-foreground: 210 20% 92%;
     --sidebar-border: 220 15% 15%;
     --sidebar-ring: 210 100% 52%;
-  }
-
-  .dark {
-    /* Same as root - War Room is always dark */
   }
 }
 
