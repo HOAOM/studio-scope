@@ -113,6 +113,8 @@ export function CheckpointPanel({ itemId, projectId }: CheckpointPanelProps) {
   const isExecutor = !!user && data?.itemCreatedBy === user.id;
 
   const canAct = (row: CheckpointRow) => {
+    // SUPER_ROLE: admin and coo bypass the responsible-role gate.
+    if (roles.includes('admin') || roles.includes('coo')) return true;
     const need = row.definition.ruolo_responsabile;
     if (!need) return false;
     return roles.includes(need);
