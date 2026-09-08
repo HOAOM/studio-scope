@@ -103,7 +103,9 @@ function NodeCard({ node, ctx }: { node: OrgNode; ctx: OrgTreeContext }) {
 export function OrgNodeView({ node, ctx, color }: { node: OrgNode; ctx: OrgTreeContext; color?: string | null; asColumn?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   // Il colore del gruppo di governance si eredita dal nodo padre dell'albero.
-  const ownColor = (node.team_id ? ctx.teams.get(node.team_id)?.color : null) || color || null;
+  const ownColor = (node.team_id ? departmentColor(node.team_id) : null)
+    || (node.node_kind === 'unit' ? departmentColor(node.id) : null)
+    || color || null;
 
   // membri della squadra senza scheda propria: mostrati come figli "chip"
   const placed = new Set(node.children.map((c) => c.user_id).filter(Boolean) as string[]);
