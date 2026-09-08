@@ -1,0 +1,1 @@
+ALTER FUNCTION public.can_see_costs(uuid, uuid) SECURITY INVOKER;
