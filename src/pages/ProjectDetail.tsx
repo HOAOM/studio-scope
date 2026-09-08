@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { StoredImage } from '@/components/StoredImage';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useProject, useProjectItems, useDeleteProjectItem } from '@/hooks/useProjects';
 import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { ProjectKPIs, computeKPIs } from '@/components/warroom/ProjectKPIs';
@@ -186,6 +186,19 @@ export default function ProjectDetail() {
   const [itemToDelete, setItemToDelete] = useState<ProjectItem | null>(null);
   const [detailItem, setDetailItem] = useState<ProjectItem | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  // Deep link ?item=<id> (usato dalla vista "Item fermi")
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkItemId = searchParams.get('item');
+  useEffect(() => {
+    if (!deepLinkItemId) return;
+    const target = items.find((i) => i.id === deepLinkItemId);
+    if (!target) return;
+    setDetailItem(target);
+    setDetailModalOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('item');
+    setSearchParams(next, { replace: true });
+  }, [deepLinkItemId, items]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');

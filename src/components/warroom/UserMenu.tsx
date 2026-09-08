@@ -12,7 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, MessageSquare, LogOut, Shield, Crown, CalendarDays, Network } from 'lucide-react';
+import { User, MessageSquare, LogOut, Shield, Crown, CalendarDays, Network, AlertTriangle } from 'lucide-react';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useStuckItems } from '@/hooks/useStuckItems';
 import { NotificationBell } from '@/components/warroom/NotificationBell';
 import { OrgSwitcher } from '@/components/layout/OrgSwitcher';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +47,10 @@ export function UserMenu() {
   const { data: conversations = [] } = useDirectConversations();
   const { isPlatformAdmin } = usePlatformAdmin();
   const { isOrgAdmin } = usePermissions();
+  const { roles } = useUserRole();
+  const canSeeStuck =
+    isOrgAdmin || roles.includes('admin') || roles.includes('coo') || roles.includes('project_manager');
+  const { total: stuckTotal } = useStuckItems(7);
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, c) => sum + c.unreadCount, 0),
@@ -97,6 +103,17 @@ export function UserMenu() {
               </Badge>
             )}
           </DropdownMenuItem>
+          {canSeeStuck && (
+            <DropdownMenuItem onClick={() => navigate('/stuck-items')} className="cursor-pointer">
+              <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" />
+              Item fermi
+              {stuckTotal > 0 && (
+                <Badge className="ml-auto h-4 min-w-[16px] text-[9px] px-1">
+                  {stuckTotal > 99 ? '99+' : stuckTotal}
+                </Badge>
+              )}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => navigate('/calendar')} className="cursor-pointer">
             <CalendarDays className="w-4 h-4 mr-2" />
             Calendario
