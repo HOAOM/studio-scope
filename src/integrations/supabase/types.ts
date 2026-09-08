@@ -3503,21 +3503,6 @@ export type Database = {
           },
         ]
       }
-      zz_sys_check: {
-        Row: {
-          rows_seen: number | null
-          step: string | null
-        }
-        Insert: {
-          rows_seen?: number | null
-          step?: string | null
-        }
-        Update: {
-          rows_seen?: number | null
-          step?: string | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       project_items_secure: {
@@ -3878,6 +3863,7 @@ export type Database = {
         Args: { p_item_id: string }
         Returns: Database["public"]["Enums"]["engine_category"]
       }
+      item_file_project_access: { Args: { p_name: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
