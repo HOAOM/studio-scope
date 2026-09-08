@@ -3863,6 +3863,7 @@ export type Database = {
         Args: { p_item_id: string }
         Returns: Database["public"]["Enums"]["engine_category"]
       }
+      item_file_project_access: { Args: { p_name: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
