@@ -343,3 +343,26 @@ Sostituisce integralmente la v2 su React Flow (dipendenza `reactflow` rimossa).
 - Ganci futuri previsti dal piano ma non implementati: `project_teams`, `project_contractors` (Gantt EXT + cost control).
 
 Test: `src/test/orgChartV3.test.ts` (10 test) — albero, multi-squadra, assenza di React Flow, layout derivato, permessi via `useEffectiveOwner`.
+
+---
+
+## Fondamenta billing (Lemon Squeezy, provider-agnostico) — set 2026
+
+**Principio**: i *diritti* dell'organizzazione sono separati dal *fornitore di pagamento*.
+
+**DB**
+- `organization_entitlements` (org, tier, status `trialing|active|past_due|suspended|canceled`, `current_period_end`, `trial_ends_at`): unica fonte letta da `get_org_effective_tier()` e quindi da tutto l'enforcement esistente (progetti, posti, voci BOQ, storage). Nessuna colonna del fornitore.
+- `billing_provider_accounts` (provider, customer/subscription/price id, `raw_metadata`), `billing_price_map` (price → tier), `billing_webhook_events` (`provider_event_id` unico = idempotenza). Cambiare fornitore tocca solo queste tabelle + il webhook handler.
+- `system_settings`: `trial_enabled` (**false**), `trial_days` 14, `trial_tier` advanced. `start_trial()` / `expire_trials()` pronte ma inerti finché il flag è false.
+- Errore strutturato: i trigger di limite allegano in `DETAIL` `{code:"TIER_LIMIT_REACHED",resource,current,limit,current_tier,suggested_tier}`; la logica di blocco è invariata.
+- Downgrade: `downgrade_preview(org,tier)` elenca risorse in eccesso e candidati; `apply_downgrade(org,tier,project_ids[])` archivia solo ciò che l'utente ha scelto e rifiuta il cambio se resta fuori limite.
+- Domini: trigger di normalizzazione + unicità su `organization_domains`, `domain_is_available()` usata in onboarding.
+
+**Edge functions**
+- `lemonsqueezy-webhook` (firma HMAC X-Signature, idempotenza, aggiorna account + entitlements).
+- `billing-reconcile` (cron `billing-reconcile-daily`, 03:15 UTC): confronto con l'API Lemon Squeezy e scadenza prove.
+- `public-onboarding`: registrazione self-service disponibile solo con `trial_enabled = true`; controllo dominio già assegnato.
+
+**Frontend**: `src/lib/tierError.ts` (+ `src/test/tierError.test.ts`). Nessuna UI di upgrade/downgrade ancora.
+
+**Aperto**: secrets `LEMONSQUEEZY_WEBHOOK_SECRET` e `LEMONSQUEEZY_API_KEY` da configurare; `billing_price_map` da popolare con i variant id reali.
