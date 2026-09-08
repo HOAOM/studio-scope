@@ -12,7 +12,6 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +26,7 @@ import {
   useOrgUsage, useEntitlement, useRoleUsage, useDowngradePreview, useTierMutations,
   formatBytes, TIER_LABEL, TIER_ORDER, STATUS_LABEL, type BillingTier,
 } from '@/hooks/useBilling';
-import { getRoleLabel } from '@/lib/roles';
+import { roleLabel } from '@/lib/roles';
 
 function UsageRow({
   label, used, limit, format,
@@ -44,7 +43,9 @@ function UsageRow({
           {fmt(used)} / {unlimited ? 'illimitato' : fmt(limit!)}
         </span>
       </div>
-      <Progress value={unlimited ? 4 : pct} className="h-2" indicatorClassName={tone} />
+      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full ${tone}`} style={{ width: `${unlimited ? 4 : pct}%` }} />
+      </div>
     </div>
   );
 }
@@ -181,7 +182,7 @@ export default function BillingPage() {
               {roleUsage.perRole.map((r) => (
                 <UsageRow
                   key={r.role}
-                  label={getRoleLabel ? getRoleLabel(r.role as any) : r.role}
+                  label={roleLabel(r.role)}
                   used={r.count}
                   limit={usage?.max_users_per_role}
                 />
