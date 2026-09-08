@@ -26,12 +26,14 @@ import {
 interface CheckpointPanelProps {
   itemId: string;
   projectId: string;
+  /** Opens the RFI / NCR section when a blocked badge is clicked. */
+  onOpenBlocked?: (section: 'rfi' | 'ncr') => void;
 }
 
 const fmt = (d: string | null | undefined) =>
   d ? new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
 
-function StatusBadge({ row }: { row: CheckpointRow }) {
+function StatusBadge({ row, onOpenBlocked }: { row: CheckpointRow; onOpenBlocked?: (s: 'rfi' | 'ncr') => void }) {
   const { status, instance } = row;
   if (status === 'completed') {
     return (
@@ -72,15 +74,21 @@ function StatusBadge({ row }: { row: CheckpointRow }) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className="border-orange-500/40 text-orange-600">
-            <Lock className="w-3 h-3 mr-1" />Bloccato
-          </Badge>
+          <button
+            type="button"
+            onClick={() => onOpenBlocked?.(row.blockReason === 'rfi_open' ? 'rfi' : 'ncr')}
+            className="focus:outline-none"
+          >
+            <Badge variant="outline" className="border-orange-500/40 text-orange-600 cursor-pointer hover:bg-orange-500/10">
+              <Lock className="w-3 h-3 mr-1" />Bloccato
+            </Badge>
+          </button>
         </TooltipTrigger>
         <TooltipContent>
           <p className="text-xs">
             {row.blockReason === 'rfi_open'
-              ? 'Una richiesta di chiarimento è ancora aperta.'
-              : 'Una non conformità è ancora aperta.'}
+              ? 'Una richiesta di chiarimento è ancora aperta. Clicca per aprire la sezione RFI.'
+              : 'Una non conformità è ancora aperta. Clicca per aprire la sezione NCR.'}
           </p>
         </TooltipContent>
       </Tooltip>
@@ -93,7 +101,7 @@ function StatusBadge({ row }: { row: CheckpointRow }) {
   );
 }
 
-export function CheckpointPanel({ itemId, projectId }: CheckpointPanelProps) {
+export function CheckpointPanel({ itemId, projectId, onOpenBlocked }: CheckpointPanelProps) {
   const { user } = useAuth();
   const { roles } = useUserRole();
   const { data, groups, currentGroup, isLoading, approve, reject, skip } = useCheckpoints(itemId);
@@ -215,7 +223,7 @@ export function CheckpointPanel({ itemId, projectId }: CheckpointPanelProps) {
                     )}
                   </div>
 
-                  <StatusBadge row={row} />
+                  <StatusBadge row={row} onOpenBlocked={onOpenBlocked} />
 
                   {actionable && (
                     <div className="flex items-center gap-2">

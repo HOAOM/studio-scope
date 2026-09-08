@@ -38,12 +38,13 @@ import {
   FileText, Package, CreditCard, Truck, Wrench, History,
   Image as ImageIcon, ExternalLink, ReceiptText, Layers,
   ListTodo, Plus, Trash2, Calendar as CalendarIcon, User,
-  AlertTriangle, Shield, ArrowLeft, TrendingUp, ShieldCheck,
+  AlertTriangle, Shield, ArrowLeft, TrendingUp, ShieldCheck, HelpCircle,
 } from 'lucide-react';
 import { QuotationsTab } from './QuotationsTab';
 import { OptionCard } from './OptionCard';
 import { ItemDocuments } from './ItemDocuments';
 import { CheckpointPanel } from './CheckpointPanel';
+import { ItemGatesPanel, type GateSection } from './ItemGatesPanel';
 import { LifecycleChecklist } from './LifecycleChecklist';
 import { FileOrUrlInput } from './FileOrUrlInput';
 import { openFile } from '@/lib/fileUrls';
@@ -87,6 +88,8 @@ function isBackwardTransition(label: string): boolean {
 }
 
 export function ItemDetailModal({ open, onOpenChange, item: initialItem, projectId }: ItemDetailModalProps) {
+  const [activeTab, setActiveTab] = useState('info');
+  const [gateSection, setGateSection] = useState<GateSection | undefined>(undefined);
   const { user } = useAuth();
   const { roles, canSeeCosts } = useUserRole();
   const updateItem = useUpdateProjectItem();
@@ -829,7 +832,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
-          <Tabs defaultValue="info" className="px-6 py-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6 py-4">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="info"><FileText className="w-3 h-3 mr-1" />Info</TabsTrigger>
               {canSeeDesign && <TabsTrigger value="design"><ImageIcon className="w-3 h-3 mr-1" />Design</TabsTrigger>}
@@ -841,6 +844,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
               {/* Lifecycle moved to Info tab */}
               <TabsTrigger value="tasks"><ListTodo className="w-3 h-3 mr-1" />Tasks{openTasks.length > 0 ? ` (${openTasks.length})` : ''}</TabsTrigger>
               <TabsTrigger value="checkpoints"><ShieldCheck className="w-3 h-3 mr-1" />Checkpoint</TabsTrigger>
+              <TabsTrigger value="gates"><HelpCircle className="w-3 h-3 mr-1" />RFI / NCR / Varianti</TabsTrigger>
               <TabsTrigger value="history"><History className="w-3 h-3 mr-1" />History</TabsTrigger>
             </TabsList>
 
@@ -1526,7 +1530,21 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
 
             {/* CHECKPOINT TAB */}
             <TabsContent value="checkpoints" className="space-y-3">
-              <CheckpointPanel itemId={item.id} projectId={projectId} />
+              <CheckpointPanel
+                itemId={item.id}
+                projectId={projectId}
+                onOpenBlocked={(s) => { setGateSection(s); setActiveTab('gates'); }}
+              />
+            </TabsContent>
+
+            {/* RFI / SUBMITTAL / NCR / VARIANTI */}
+            <TabsContent value="gates" className="space-y-3">
+              <ItemGatesPanel
+                itemId={item.id}
+                projectId={projectId}
+                isCustom={(item as any).is_custom}
+                section={gateSection}
+              />
             </TabsContent>
 
             {/* HISTORY TAB */}
