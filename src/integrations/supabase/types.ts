@@ -3503,6 +3503,21 @@ export type Database = {
           },
         ]
       }
+      zz_sys_check: {
+        Row: {
+          rows_seen: number | null
+          step: string | null
+        }
+        Insert: {
+          rows_seen?: number | null
+          step?: string | null
+        }
+        Update: {
+          rows_seen?: number | null
+          step?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       project_items_secure: {
