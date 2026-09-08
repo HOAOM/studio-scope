@@ -65,7 +65,7 @@ export interface RoleUsage {
 }
 
 export function useOrgUsage() {
-  const { activeOrgId } = useActiveOrg();
+  const { activeId: activeOrgId } = useActiveOrg();
   return useQuery<OrgUsage | null>({
     queryKey: ['org-usage', activeOrgId],
     enabled: !!activeOrgId,
@@ -82,7 +82,7 @@ export function useOrgUsage() {
 }
 
 export function useEntitlement() {
-  const { activeOrgId } = useActiveOrg();
+  const { activeId: activeOrgId } = useActiveOrg();
   return useQuery<Entitlement | null>({
     queryKey: ['org-entitlement', activeOrgId],
     enabled: !!activeOrgId,
@@ -101,7 +101,7 @@ export function useEntitlement() {
 
 /** Conteggio persone distinte per ruolo e massimo di ruoli cumulati su una persona. */
 export function useRoleUsage() {
-  const { activeOrgId } = useActiveOrg();
+  const { activeId: activeOrgId } = useActiveOrg();
   return useQuery<RoleUsage>({
     queryKey: ['org-role-usage', activeOrgId],
     enabled: !!activeOrgId,
@@ -145,7 +145,7 @@ export interface DowngradePreview {
 }
 
 export function useDowngradePreview(target: BillingTier | null) {
-  const { activeOrgId } = useActiveOrg();
+  const { activeId: activeOrgId } = useActiveOrg();
   return useQuery<DowngradePreview | null>({
     queryKey: ['downgrade-preview', activeOrgId, target],
     enabled: !!activeOrgId && !!target,
@@ -161,7 +161,7 @@ export function useDowngradePreview(target: BillingTier | null) {
 }
 
 export function useTierMutations() {
-  const { activeOrgId } = useActiveOrg();
+  const { activeId: activeOrgId } = useActiveOrg();
   const qc = useQueryClient();
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['org-usage'] });
