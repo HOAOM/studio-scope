@@ -3503,6 +3503,21 @@ export type Database = {
           },
         ]
       }
+      zz_billing_check: {
+        Row: {
+          result: string | null
+          step: string | null
+        }
+        Insert: {
+          result?: string | null
+          step?: string | null
+        }
+        Update: {
+          result?: string | null
+          step?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       project_items_secure: {
