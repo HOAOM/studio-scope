@@ -1,6 +1,6 @@
 # Studio Scope — Documento Riepilogativo Totale
 
-> **Ultimo aggiornamento:** 8 settembre 2026 — tema chiaro/scuro persistente  
+> **Ultimo aggiornamento:** 9 settembre 2026 — isolamento DB costi/margini, Fasi 1–2  
 > **Stato progetto:** beta multi-tenant pronta, in attesa di rilascio  
 > **Versione corrente:** 2.6.0-beta (post-fix RBAC + modale super-admin + rimozione bug button)
 > **Manutenzione di questo file:** aggiornato automaticamente ad ogni fase/cambio significativo
@@ -340,7 +340,6 @@ Sostituisce integralmente la v2 su React Flow (dipendenza `reactflow` rimossa).
 - Gestione dentro Admin Panel → tab Organigramma; `/org-chart` è la vista read-only per i membri.
 
 **Aperto**
-- L'interruttore costi è pienamente enforced solo dopo l'esecuzione di `docs/plan-cost-visibility-hardening.md`.
 - Ganci futuri previsti dal piano ma non implementati: `project_teams`, `project_contractors` (Gantt EXT + cost control).
 
 Test: `src/test/orgChartV3.test.ts` (10 test) — albero, multi-squadra, assenza di React Flow, layout derivato, permessi via `useEffectiveOwner`.
@@ -367,3 +366,14 @@ Test: `src/test/orgChartV3.test.ts` (10 test) — albero, multi-squadra, assenza
 **Frontend**: `src/lib/tierError.ts` (+ `src/test/tierError.test.ts`). Nessuna UI di upgrade/downgrade ancora.
 
 **Aperto**: secrets `LEMONSQUEEZY_WEBHOOK_SECRET` e `LEMONSQUEEZY_API_KEY` da configurare; `billing_price_map` da popolare con i variant id reali.
+
+---
+
+## Isolamento costi/margini — Fasi 1–2 (2026-09-09)
+
+- Creata `project_item_costs` side-by-side con 132/132 item economici migrati; le colonne storiche su `project_items` non sono state eliminate.
+- `project_items_safe` espone solo i 52 campi non economici; i privilegi di lettura delle 13 colonne costo/prezzo/margine su `project_items` sono revocati agli utenti autenticati.
+- `can_see_costs(user_id, project_id)` è project-scoped e ammette solo `admin`, `ceo`, `coo`, `project_manager`, `qs`, `procurement_manager`, `accountant`, `head_of_payments`, oltre all'impersonificazione platform-admin.
+- Le policy di `project_item_costs`, `item_quotations`, `item_revisions`, `supplier_payments` e `item_costs` usano lo stesso controllo project-scoped; i nuovi snapshot di revisione vengono sanificati dai campi economici.
+- Verifica reale: designer vede gli item sicuri senza campi economici e zero righe costo; accountant vede le righe costo. Typecheck pulito, Vitest 80/80.
+- Il linter è tornato al baseline precedente di 84 segnalazioni complessive; nessuna nuova segnalazione introdotta resta aperta.
