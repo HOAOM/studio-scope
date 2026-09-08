@@ -4044,6 +4044,13 @@ export type Database = {
         }
         Returns: Json
       }
+      request_tier_upgrade: {
+        Args: {
+          p_org: string
+          p_target: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Returns: Json
+      }
       seed_master_data_for_org: { Args: { p_org: string }; Returns: undefined }
       seed_org_chart_for_org: { Args: { p_org: string }; Returns: number }
       seed_org_chart_template: { Args: { p_org: string }; Returns: number }

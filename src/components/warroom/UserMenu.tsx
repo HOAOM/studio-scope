@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, MessageSquare, LogOut, Shield, Crown, CalendarDays, Network, AlertTriangle } from 'lucide-react';
+import { User, MessageSquare, LogOut, Shield, Crown, CalendarDays, Network, AlertTriangle, CreditCard } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useStuckItems } from '@/hooks/useStuckItems';
 import { NotificationBell } from '@/components/warroom/NotificationBell';
@@ -121,6 +121,10 @@ export function UserMenu() {
           <DropdownMenuItem onClick={() => navigate('/org-chart')} className="cursor-pointer">
             <Network className="w-4 h-4 mr-2" />
             Organigramma
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/billing')} className="cursor-pointer">
+            <CreditCard className="w-4 h-4 mr-2" />
+            Piano e fatturazione
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
             <User className="w-4 h-4 mr-2" />

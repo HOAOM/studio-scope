@@ -41,3 +41,17 @@ export function describeTierLimit(e: TierLimitError): string {
   return `Hai raggiunto il limite di ${e.limit} ${label} del piano ${e.current_tier}. `
     + `Passa al piano ${e.suggested_tier} per continuare.`;
 }
+
+/** Evento globale usato dal modal di upsell. */
+export const TIER_LIMIT_EVENT = 'studioscope.tier-limit-reached';
+
+/**
+ * Se l'errore è un TIER_LIMIT_REACHED, notifica il modal di upsell e
+ * restituisce true (così il chiamante non mostra un toast generico).
+ */
+export function emitTierLimit(error: unknown): boolean {
+  const parsed = parseTierLimitError(error);
+  if (!parsed) return false;
+  window.dispatchEvent(new CustomEvent(TIER_LIMIT_EVENT, { detail: parsed }));
+  return true;
+}
