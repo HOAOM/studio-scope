@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { StoredImage } from '@/components/StoredImage';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useProject, useProjectItems, useDeleteProjectItem } from '@/hooks/useProjects';
 import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { ProjectKPIs, computeKPIs } from '@/components/warroom/ProjectKPIs';
