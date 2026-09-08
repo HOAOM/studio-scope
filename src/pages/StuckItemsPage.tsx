@@ -5,7 +5,7 @@
  * Visible to admin/coo (super roles) and to project_manager.
  */
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserMenu } from '@/components/warroom/UserMenu';
 import { useStuckItems, type StuckKind, type StuckRow } from '@/hooks/useStuckItems';
+import { useUserRole } from '@/hooks/useUserRole';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const KIND_META: Record<StuckKind, { label: string; className: string }> = {
   pending: { label: 'Checkpoint fermo', className: 'bg-orange-500/15 text-orange-600 border-orange-500/30' },
@@ -32,6 +34,10 @@ export default function StuckItemsPage() {
   const [project, setProject] = useState('all');
   const [kind, setKind] = useState<'all' | StuckKind>('all');
   const { rows, projects, isLoading } = useStuckItems(threshold);
+  const { roles, isLoading: rolesLoading } = useUserRole();
+  const { isOrgAdmin, isLoading: permLoading } = usePermissions();
+  const allowed =
+    isOrgAdmin || roles.includes('admin') || roles.includes('coo') || roles.includes('project_manager');
 
   const filtered = useMemo(
     () =>
@@ -41,6 +47,15 @@ export default function StuckItemsPage() {
         .sort((a, b) => (b.days ?? 0) - (a.days ?? 0)),
     [rows, project, kind],
   );
+
+  if (rolesLoading || permLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (!allowed) return <Navigate to="/" replace />;
 
   const open = (r: StuckRow) => navigate(`/project/${r.projectId}?item=${r.itemId}`);
 
