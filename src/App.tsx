@@ -18,6 +18,10 @@ import SsoLogin from "./pages/SsoLogin";
 import CalendarPage from "./pages/CalendarPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import StuckItemsPage from "./pages/StuckItemsPage";
+import BillingPage from "./pages/BillingPage";
+import { TierLimitUpsell } from "@/components/billing/TierLimitUpsell";
+import { emitTierLimit } from "@/lib/tierError";
+import { MutationCache } from "@tanstack/react-query";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +30,13 @@ import { TenantGuard } from "@/components/layout/TenantGuard";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { usePermissions } from "@/hooks/usePermissions";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  // Un solo punto di intercettazione: qualunque mutazione bloccata da un limite
+  // di piano apre il modal di upsell invece di un errore generico.
+  mutationCache: new MutationCache({
+    onError: (error) => { emitTierLimit(error); },
+  }),
+});
 
 function AuthTimeoutScreen() {
   return (
@@ -202,9 +212,18 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/billing"
+              element={
+                <ProtectedRoute>
+                  <BillingPage />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <TierLimitUpsell />
         </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
