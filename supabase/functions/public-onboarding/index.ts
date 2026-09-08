@@ -255,6 +255,31 @@ Deno.serve(async (req) => {
         current_period_end: periodEnd.toISOString(),
       });
 
+      // Diritti dell'organizzazione: prova gratuita (il flusso arriva qui solo
+      // con trial_enabled = true), con ricaduta sul piano scelto in caso di errore.
+      const { error: trialErr } = await sb.rpc("start_trial", { p_org: org.id });
+      if (trialErr) {
+        await sb.from("organization_entitlements").upsert(
+          {
+            organization_id: org.id,
+            tier,
+            status: "active",
+            current_period_end: periodEnd.toISOString(),
+          },
+          { onConflict: "organization_id" },
+        );
+      }
+
+      // Registra il dominio dell'organizzazione (unico a livello di piattaforma).
+      if (custom_domain) {
+        await sb.from("organization_domains").insert({
+          organization_id: org.id,
+          domain: custom_domain,
+          verification_token: crypto.randomUUID(),
+        });
+      }
+
+
       // 4) referral + discount (best-effort)
       let referral_applied = false;
       let discount_applied = false;
