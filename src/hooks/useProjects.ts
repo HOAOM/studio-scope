@@ -310,8 +310,7 @@ export function useUpdateProjectItem() {
         await upsertItemCosts(data.id, data.project_id, costs, user?.id);
       }
 
-      
-      if (error) throw error;
+
 
       // Sync linked Gantt task when lifecycle_status changes
       if ((updates as any).lifecycle_status && data?.project_id) {
