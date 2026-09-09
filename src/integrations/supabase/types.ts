@@ -2366,6 +2366,47 @@ export type Database = {
           },
         ]
       }
+      project_documents: {
+        Row: {
+          category: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          project_id: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          project_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          project_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_item_costs: {
         Row: {
           boxing_cost: number | null
@@ -2918,6 +2959,7 @@ export type Database = {
           archived_by: string | null
           boq_master_ref: string | null
           boq_version: string | null
+          budget_estimate: number | null
           client: string
           code: string
           created_at: string
@@ -2928,6 +2970,8 @@ export type Database = {
           organization_id: string | null
           owner_id: string
           project_manager: string | null
+          project_type: string | null
+          setup_dismissed_at: string | null
           start_date: string
           target_completion_date: string
           updated_at: string
@@ -2937,6 +2981,7 @@ export type Database = {
           archived_by?: string | null
           boq_master_ref?: string | null
           boq_version?: string | null
+          budget_estimate?: number | null
           client: string
           code: string
           created_at?: string
@@ -2947,6 +2992,8 @@ export type Database = {
           organization_id?: string | null
           owner_id: string
           project_manager?: string | null
+          project_type?: string | null
+          setup_dismissed_at?: string | null
           start_date: string
           target_completion_date: string
           updated_at?: string
@@ -2956,6 +3003,7 @@ export type Database = {
           archived_by?: string | null
           boq_master_ref?: string | null
           boq_version?: string | null
+          budget_estimate?: number | null
           client?: string
           code?: string
           created_at?: string
@@ -2966,6 +3014,8 @@ export type Database = {
           organization_id?: string | null
           owner_id?: string
           project_manager?: string | null
+          project_type?: string | null
+          setup_dismissed_at?: string | null
           start_date?: string
           target_completion_date?: string
           updated_at?: string

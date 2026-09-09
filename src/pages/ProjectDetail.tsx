@@ -6,6 +6,8 @@ import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { ProjectKPIs, computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ExportCSVButton, ExportJSONButton, ExportExcelButton } from '@/components/warroom/ExportButtons';
 import { ItemFormDialog } from '@/components/warroom/ItemFormDialog';
+import { ProjectSetupChecklist } from '@/components/warroom/ProjectSetupChecklist';
+
 import { ItemDetailModal } from '@/components/warroom/ItemDetailModal';
 import { CSVImportDialog } from '@/components/warroom/CSVImportDialog';
 import { PresentationBuilder } from '@/components/warroom/PresentationBuilder';
@@ -160,9 +162,23 @@ export default function ProjectDetail() {
   const { data: projectMembers = [] } = useProjectMembers(projectId);
   const { data: projectTasks = [] } = useProjectTasks(projectId);
   
+  const [setupOpen, setSetupOpen] = useState(false);
+
+  /** Il pannello "Primi passi" si nasconde da solo se il progetto è già in uso
+   *  (item creati), se è stato chiuso, o se è passata più di una settimana. */
+  const showSetupChecklist = useMemo(() => {
+    if (!project) return false;
+    const p = project as any;
+    if (p.setup_dismissed_at) return false;
+    if (items.length > 0) return false;
+    const created = p.created_at ? new Date(p.created_at).getTime() : 0;
+    return Date.now() - created < 7 * 86400000;
+  }, [project, items.length]);
+
   const urgentTasks = useMemo(() => {
     return projectTasks.filter(t => t.linked_item_id && t.status !== 'done');
   }, [projectTasks]);
+
 
   // Compact header on scroll
   useEffect(() => {
@@ -323,6 +339,26 @@ export default function ProjectDetail() {
           </header>
 
           <main className="py-6 px-3 sm:px-4 lg:px-6">
+        {projectId && (showSetupChecklist || setupOpen) && (
+          <ProjectSetupChecklist
+            projectId={projectId}
+            hasResponsibles={projectMembers.length > 0}
+            itemCount={items.length}
+            onAddItems={() => setActiveTab('boq')}
+            forceOpen={setupOpen}
+            onClose={() => setSetupOpen(false)}
+          />
+        )}
+        {projectId && !showSetupChecklist && !setupOpen && (
+          <button
+            onClick={() => setSetupOpen(true)}
+            className="text-xs text-muted-foreground underline mb-3"
+          >
+            Configurazione progetto
+          </button>
+        )}
+
+
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectSection)} className="space-y-6">
 
