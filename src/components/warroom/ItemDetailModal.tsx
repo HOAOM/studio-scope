@@ -5,6 +5,8 @@
  * task management, revision history, quotations, item options.
  */
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useItemCostsByIds, mergeItemCosts } from '@/hooks/useItemCosts';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -103,13 +105,13 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   const [retroDialog, setRetroDialog] = useState<{ open: boolean; toStatus: ItemLifecycleStatus | null }>({ open: false, toStatus: null });
   const [retroReason, setRetroReason] = useState('');
 
-  // Fetch live item data
+  // Fetch live item data (senza campi economici: arrivano da useItemCostsByIds)
   const { data: liveItem } = useQuery({
     queryKey: ['item-detail', initialItem?.id],
     queryFn: async () => {
       if (!initialItem) return null;
       const { data, error } = await (supabase as any)
-        .from('project_items_secure')
+        .from('project_items_safe')
         .select('*')
         .eq('id', initialItem.id)
         .maybeSingle();
@@ -119,7 +121,7 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
     enabled: !!initialItem && open,
   });
 
-  const item = liveItem || initialItem;
+  const baseItem = liveItem || initialItem;
 
   useEffect(() => {
     if (!open) {
@@ -129,20 +131,37 @@ export function ItemDetailModal({ open, onOpenChange, item: initialItem, project
   }, [open, initialItem?.id]);
 
   // Fetch child options
-  const { data: childOptions = [] } = useQuery({
-    queryKey: ['item-options', item?.id],
+  const { data: rawChildOptions = [] } = useQuery({
+    queryKey: ['item-options', baseItem?.id],
     queryFn: async () => {
-      if (!item) return [];
+      if (!baseItem) return [];
       const { data, error } = await (supabase as any)
-        .from('project_items_secure')
+        .from('project_items_safe')
         .select('*')
-        .eq('parent_item_id', item.id)
+        .eq('parent_item_id', baseItem.id)
         .order('created_at', { ascending: true });
       if (error) return [];
       return data || [];
     },
-    enabled: !!item && open,
+    enabled: !!baseItem && open,
   });
+
+  // Valori economici: unica sorgente = project_item_costs (vuota per ruoli senza visibilità costi)
+  const costIds = useMemo(
+    () => [baseItem?.id, ...rawChildOptions.map((o: any) => o.id)].filter(Boolean) as string[],
+    [baseItem?.id, rawChildOptions]
+  );
+  const { data: costsById = {} } = useItemCostsByIds(costIds);
+
+  const item = useMemo(
+    () => (baseItem ? mergeItemCosts([baseItem as any], costsById)[0] : baseItem),
+    [baseItem, costsById]
+  );
+  const childOptions = useMemo(
+    () => mergeItemCosts(rawChildOptions as any[], costsById),
+    [rawChildOptions, costsById]
+  );
+
 
   // Fetch audit log
   const { data: auditLog = [] } = useQuery({

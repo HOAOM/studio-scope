@@ -377,3 +377,13 @@ Test: `src/test/orgChartV3.test.ts` (10 test) — albero, multi-squadra, assenza
 - Le policy di `project_item_costs`, `item_quotations`, `item_revisions`, `supplier_payments` e `item_costs` usano lo stesso controllo project-scoped; i nuovi snapshot di revisione vengono sanificati dai campi economici.
 - Verifica reale: designer vede gli item sicuri senza campi economici e zero righe costo; accountant vede le righe costo. Typecheck pulito, Vitest 80/80.
 - Il linter è tornato al baseline precedente di 84 segnalazioni complessive; nessuna nuova segnalazione introdotta resta aperta.
+
+---
+
+## Isolamento costi/margini — Fase 3 (frontend)
+
+- Nuovo hook `src/hooks/useItemCosts.ts`: unico punto di lettura/scrittura dei 13 campi economici su `project_item_costs` (`useItemCosts`, `useItemCostsByIds`, `mergeItemCosts`, `splitCostFields`, `upsertItemCosts`).
+- `useProjects.ts` legge ora da `project_items_safe` e unisce i costi via hook; create/update/bulk-create separano i campi economici e li scrivono su `project_item_costs` (source of truth), lasciando intatte le colonne storiche (Fase 5 non eseguita).
+- `ItemDetailModal` e `WarRoomOverview` leggono da `project_items_safe`; i costi arrivano dall'hook.
+- Ponte DB: `item_cost_values()` legge da `project_item_costs` con fallback ai valori storici.
+- Verifica reale: accountant vede Cost 155.958,00 su VILLA 9 (identico al DB); designer non vede alcun dato economico. Typecheck pulito, Vitest 80/80, linter a 84 segnalazioni preesistenti.

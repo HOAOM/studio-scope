@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
@@ -7,6 +7,8 @@ import { Database } from '@/integrations/supabase/types';
 import { syncTaskFromLifecycleChange } from '@/hooks/useGanttAutoGen';
 import { createNotification } from '@/hooks/useNotifications';
 import { LIFECYCLE_LABELS } from '@/lib/workflow';
+import { useItemCosts, mergeItemCosts, splitCostFields, upsertItemCosts } from '@/hooks/useItemCosts';
+
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
@@ -72,6 +74,7 @@ export function useProject(projectId: string | undefined) {
 export function useProjectItems(projectId: string | undefined) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { data: costsById = {} } = useItemCosts(projectId);
 
   const query = useQuery({
     queryKey: ['project-items', projectId],
@@ -79,7 +82,7 @@ export function useProjectItems(projectId: string | undefined) {
       if (!projectId) return [];
 
       const { data, error } = await (supabase as any)
-        .from('project_items_secure')
+        .from('project_items_safe')
         .select('*')
         .eq('project_id', projectId)
         .or('is_active.is.null,is_active.eq.true')
@@ -101,13 +104,19 @@ export function useProjectItems(projectId: string | undefined) {
         { event: '*', schema: 'public', table: 'project_items', filter: `project_id=eq.${projectId}` },
         () => {
           qc.invalidateQueries({ queryKey: ['project-items', projectId] });
+          qc.invalidateQueries({ queryKey: ['item-costs', projectId] });
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [projectId, qc]);
 
-  return query;
+  const merged = useMemo(
+    () => mergeItemCosts((query.data as ProjectItem[]) ?? [], costsById),
+    [query.data, costsById]
+  );
+
+  return { ...query, data: merged } as typeof query;
 }
 
 /**
@@ -115,14 +124,15 @@ export function useProjectItems(projectId: string | undefined) {
  */
 export function useDeletedProjectItems(projectId: string | undefined) {
   const { user } = useAuth();
+  const { data: costsById = {} } = useItemCosts(projectId);
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['project-items-deleted', projectId],
     queryFn: async () => {
       if (!projectId) return [];
 
       const { data, error } = await (supabase as any)
-        .from('project_items_secure')
+        .from('project_items_safe')
         .select('*')
         .eq('project_id', projectId)
         .eq('is_active', false)
@@ -133,7 +143,15 @@ export function useDeletedProjectItems(projectId: string | undefined) {
     },
     enabled: !!user && !!projectId,
   });
+
+  const merged = useMemo(
+    () => mergeItemCosts((query.data as ProjectItem[]) ?? [], costsById),
+    [query.data, costsById]
+  );
+
+  return { ...query, data: merged } as typeof query;
 }
+
 
 /**
  * Restore a soft-deleted item.
@@ -248,37 +266,51 @@ export function useDeleteProject() {
 
 export function useCreateProjectItem() {
   const queryClient = useQueryClient();
-  
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async (item: ProjectItemInsert) => {
+      const { costs, rest, hasCosts } = splitCostFields(item as Record<string, any>);
       const { data, error } = await supabase
         .from('project_items')
-        .insert(item)
+        .insert(rest as ProjectItemInsert)
         .select('id, project_id, item_code, description')
         .single();
-      
+
       if (error) throw error;
+      if (hasCosts && data?.project_id) {
+        await upsertItemCosts(data.id, data.project_id, costs, user?.id);
+      }
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-items', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs-ids'] });
     },
   });
 }
 
 export function useUpdateProjectItem() {
   const queryClient = useQueryClient();
-  
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: ProjectItemUpdate & { id: string }) => {
-      const { data, error } = await supabase
-        .from('project_items')
-        .update(updates)
-        .eq('id', id)
-        .select('id, project_id, item_code, description')
-        .single();
-      
+      const { costs, rest, hasCosts } = splitCostFields(updates as Record<string, any>);
+
+      const base = supabase.from('project_items');
+      const { data, error } = Object.keys(rest).length
+        ? await base.update(rest).eq('id', id).select('id, project_id, item_code, description').single()
+        : await base.select('id, project_id, item_code, description').eq('id', id).single();
+
       if (error) throw error;
+
+      if (hasCosts && data?.project_id) {
+        await upsertItemCosts(data.id, data.project_id, costs, user?.id);
+      }
+
+
 
       // Sync linked Gantt task when lifecycle_status changes
       if ((updates as any).lifecycle_status && data?.project_id) {
@@ -322,7 +354,10 @@ export function useUpdateProjectItem() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-items', data.project_id] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs-ids'] });
     },
+
   });
 }
 
@@ -385,21 +420,43 @@ export function useHardDeleteProjectItem() {
 
 export function useBulkCreateProjectItems() {
   const queryClient = useQueryClient();
-  
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async (items: ProjectItemInsert[]) => {
+      const split = items.map((it) => splitCostFields(it as Record<string, any>));
       const { data, error } = await supabase
         .from('project_items')
-        .insert(items)
+        .insert(split.map((s) => s.rest) as ProjectItemInsert[])
         .select('id, project_id, item_code, description');
-      
+
       if (error) throw error;
+
+      // Valori economici sulla tabella protetta (una riga per item creato)
+      const costRows = (data || []).map((row, i) => ({
+        item_id: row.id,
+        project_id: row.project_id,
+        ...split[i].costs,
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id ?? null,
+      })).filter((_, i) => split[i].hasCosts);
+
+      if (costRows.length) {
+        const { error: costErr } = await (supabase as any)
+          .from('project_item_costs')
+          .upsert(costRows, { onConflict: 'item_id' });
+        if (costErr) throw costErr;
+      }
+
       return data;
     },
     onSuccess: (data) => {
       if (data.length > 0) {
         queryClient.invalidateQueries({ queryKey: ['project-items', data[0].project_id] });
+        queryClient.invalidateQueries({ queryKey: ['item-costs', data[0].project_id] });
+        queryClient.invalidateQueries({ queryKey: ['item-costs-ids'] });
       }
     },
   });
 }
+
