@@ -420,21 +420,43 @@ export function useHardDeleteProjectItem() {
 
 export function useBulkCreateProjectItems() {
   const queryClient = useQueryClient();
-  
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async (items: ProjectItemInsert[]) => {
+      const split = items.map((it) => splitCostFields(it as Record<string, any>));
       const { data, error } = await supabase
         .from('project_items')
-        .insert(items)
+        .insert(split.map((s) => s.rest) as ProjectItemInsert[])
         .select('id, project_id, item_code, description');
-      
+
       if (error) throw error;
+
+      // Valori economici sulla tabella protetta (una riga per item creato)
+      const costRows = (data || []).map((row, i) => ({
+        item_id: row.id,
+        project_id: row.project_id,
+        ...split[i].costs,
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id ?? null,
+      })).filter((_, i) => split[i].hasCosts);
+
+      if (costRows.length) {
+        const { error: costErr } = await (supabase as any)
+          .from('project_item_costs')
+          .upsert(costRows, { onConflict: 'item_id' });
+        if (costErr) throw costErr;
+      }
+
       return data;
     },
     onSuccess: (data) => {
       if (data.length > 0) {
         queryClient.invalidateQueries({ queryKey: ['project-items', data[0].project_id] });
+        queryClient.invalidateQueries({ queryKey: ['item-costs', data[0].project_id] });
+        queryClient.invalidateQueries({ queryKey: ['item-costs-ids'] });
       }
     },
   });
 }
+
