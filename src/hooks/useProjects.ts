@@ -354,7 +354,10 @@ export function useUpdateProjectItem() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-items', data.project_id] });
       queryClient.invalidateQueries({ queryKey: ['project-tasks', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs-ids'] });
     },
+
   });
 }
 
