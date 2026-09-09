@@ -68,7 +68,7 @@ function useAllProjectItems(projectIds: string[]) {
     queryFn: async () => {
       if (projectIds.length === 0) return {};
       const { data, error } = await (supabase as any)
-        .from('project_items_secure')
+        .from('project_items_safe')
         .select('*')
         .in('project_id', projectIds);
       if (error) throw error;
