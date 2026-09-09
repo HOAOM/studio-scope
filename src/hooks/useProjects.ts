@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveOrg } from '@/hooks/useMyOrganizations';
@@ -7,6 +7,8 @@ import { Database } from '@/integrations/supabase/types';
 import { syncTaskFromLifecycleChange } from '@/hooks/useGanttAutoGen';
 import { createNotification } from '@/hooks/useNotifications';
 import { LIFECYCLE_LABELS } from '@/lib/workflow';
+import { useItemCosts, mergeItemCosts, splitCostFields, upsertItemCosts } from '@/hooks/useItemCosts';
+
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
