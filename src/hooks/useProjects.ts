@@ -72,6 +72,7 @@ export function useProject(projectId: string | undefined) {
 export function useProjectItems(projectId: string | undefined) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { data: costsById = {} } = useItemCosts(projectId);
 
   const query = useQuery({
     queryKey: ['project-items', projectId],
@@ -79,7 +80,7 @@ export function useProjectItems(projectId: string | undefined) {
       if (!projectId) return [];
 
       const { data, error } = await (supabase as any)
-        .from('project_items_secure')
+        .from('project_items_safe')
         .select('*')
         .eq('project_id', projectId)
         .or('is_active.is.null,is_active.eq.true')
@@ -101,13 +102,19 @@ export function useProjectItems(projectId: string | undefined) {
         { event: '*', schema: 'public', table: 'project_items', filter: `project_id=eq.${projectId}` },
         () => {
           qc.invalidateQueries({ queryKey: ['project-items', projectId] });
+          qc.invalidateQueries({ queryKey: ['item-costs', projectId] });
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [projectId, qc]);
 
-  return query;
+  const merged = useMemo(
+    () => mergeItemCosts((query.data as ProjectItem[]) ?? [], costsById),
+    [query.data, costsById]
+  );
+
+  return { ...query, data: merged } as typeof query;
 }
 
 /**
@@ -115,14 +122,15 @@ export function useProjectItems(projectId: string | undefined) {
  */
 export function useDeletedProjectItems(projectId: string | undefined) {
   const { user } = useAuth();
+  const { data: costsById = {} } = useItemCosts(projectId);
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['project-items-deleted', projectId],
     queryFn: async () => {
       if (!projectId) return [];
 
       const { data, error } = await (supabase as any)
-        .from('project_items_secure')
+        .from('project_items_safe')
         .select('*')
         .eq('project_id', projectId)
         .eq('is_active', false)
@@ -133,7 +141,15 @@ export function useDeletedProjectItems(projectId: string | undefined) {
     },
     enabled: !!user && !!projectId,
   });
+
+  const merged = useMemo(
+    () => mergeItemCosts((query.data as ProjectItem[]) ?? [], costsById),
+    [query.data, costsById]
+  );
+
+  return { ...query, data: merged } as typeof query;
 }
+
 
 /**
  * Restore a soft-deleted item.
