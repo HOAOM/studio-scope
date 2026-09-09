@@ -266,35 +266,50 @@ export function useDeleteProject() {
 
 export function useCreateProjectItem() {
   const queryClient = useQueryClient();
-  
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async (item: ProjectItemInsert) => {
+      const { costs, rest, hasCosts } = splitCostFields(item as Record<string, any>);
       const { data, error } = await supabase
         .from('project_items')
-        .insert(item)
+        .insert(rest as ProjectItemInsert)
         .select('id, project_id, item_code, description')
         .single();
-      
+
       if (error) throw error;
+      if (hasCosts && data?.project_id) {
+        await upsertItemCosts(data.id, data.project_id, costs, user?.id);
+      }
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-items', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs', data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-costs-ids'] });
     },
   });
 }
 
 export function useUpdateProjectItem() {
   const queryClient = useQueryClient();
-  
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: ProjectItemUpdate & { id: string }) => {
-      const { data, error } = await supabase
-        .from('project_items')
-        .update(updates)
-        .eq('id', id)
-        .select('id, project_id, item_code, description')
-        .single();
+      const { costs, rest, hasCosts } = splitCostFields(updates as Record<string, any>);
+
+      const base = supabase.from('project_items');
+      const { data, error } = Object.keys(rest).length
+        ? await base.update(rest).eq('id', id).select('id, project_id, item_code, description').single()
+        : await base.select('id, project_id, item_code, description').eq('id', id).single();
+
+      if (error) throw error;
+
+      if (hasCosts && data?.project_id) {
+        await upsertItemCosts(data.id, data.project_id, costs, user?.id);
+      }
+
       
       if (error) throw error;
 
