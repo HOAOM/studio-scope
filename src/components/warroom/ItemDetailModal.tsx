@@ -5,6 +5,8 @@
  * task management, revision history, quotations, item options.
  */
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useItemCostsByIds, mergeItemCosts } from '@/hooks/useItemCosts';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
