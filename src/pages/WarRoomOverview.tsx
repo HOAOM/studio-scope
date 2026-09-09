@@ -6,6 +6,8 @@ import { StatusBadge } from '@/components/warroom/StatusBadge';
 import { KPIBlock } from '@/components/warroom/KPIBlock';
 import { computeKPIs } from '@/components/warroom/ProjectKPIs';
 import { ProjectFormDialog } from '@/components/warroom/ProjectFormDialog';
+import { NewProjectDialog } from '@/components/warroom/NewProjectDialog';
+
 import { ExcelImportDialog } from '@/components/warroom/ExcelImportDialog';
 import { UserMenu } from '@/components/warroom/UserMenu';
 import { VersionBadge } from '@/components/warroom/VersionBadge';
@@ -86,6 +88,8 @@ function useAllProjectItems(projectIds: string[]) {
 export default function WarRoomOverview() {
   const [filterStatus, setFilterStatus] = useState<StatusLevel | 'all'>('all');
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -194,10 +198,11 @@ export default function WarRoomOverview() {
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 Import Excel
               </Button>
-              <Button onClick={() => { setEditingProject(null); setProjectDialogOpen(true); }}>
+              <Button onClick={() => setNewProjectOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
               </Button>
+
               <UserMenu />
             </div>
           </div>
@@ -305,6 +310,10 @@ export default function WarRoomOverview() {
         onOpenChange={setProjectDialogOpen}
         project={editingProject}
       />
+
+      <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
+
+
 
       <ExcelImportDialog
         open={excelImportOpen}

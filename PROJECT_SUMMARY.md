@@ -387,3 +387,15 @@ Test: `src/test/orgChartV3.test.ts` (10 test) — albero, multi-squadra, assenza
 - `ItemDetailModal` e `WarRoomOverview` leggono da `project_items_safe`; i costi arrivano dall'hook.
 - Ponte DB: `item_cost_values()` legge da `project_item_costs` con fallback ai valori storici.
 - Verifica reale: accountant vede Cost 155.958,00 su VILLA 9 (identico al DB); designer non vede alcun dato economico. Typecheck pulito, Vitest 80/80, linter a 84 segnalazioni preesistenti.
+
+---
+
+## Wizard "Nuovo Progetto" + pannello Primi passi
+
+- Schermata iniziale con due percorsi: **Wizard guidato** (consigliato) e **Setup manuale** (stessi campi, schermata unica) — `src/components/warroom/NewProjectDialog.tsx`.
+- Wizard a 3 step + riepilogo: Identità (nome, codice auto-suggerito modificabile, cliente, tipo progetto, budget indicativo, date) → Responsabilità (PM, Capo progettazione, Capocantiere scelti tra utenti esistenti) → Item (template macro-gruppi BOQ per tipo progetto con anteprima, oppure da zero; max 3 item essenziali).
+- Nessuna entità "squadra": i responsabili vanno su `project_assignments` + `project_members`; l'eventuale assegnatario di un item rapido diventa un task in `project_tasks`.
+- Nuove colonne `projects.project_type`, `projects.budget_estimate`, `projects.setup_dismissed_at`; nuova tabella `project_documents` (categorie: contract/floor_plan/budget/other) e bucket privato `project-docs` (50 MB).
+- `src/hooks/useProjectSetup.ts`: creazione progetto+contorno, ricerca persone org, documenti (upload con quota, download firmato, delete), aggiunta membri, chiusura checklist.
+- `src/components/warroom/ProjectSetupChecklist.tsx` in cima a `ProjectDetail`: 4 voci non bloccanti, richiudibile; si nasconde da sola con item presenti, dopo dismissal o dopo 7 giorni; resta raggiungibile dal link "Configurazione progetto". I documenti non modificano budget o altri campi.
+- Verifica reale (Playwright, admin@test.it): wizard → progetto `WIZ-2026-001` con budget 250.000, 7 macro-gruppi da template; setup manuale → progetto commerciale con 8 macro-gruppi; membro aggiunto; upload nelle 4 categorie con budget invariato. Typecheck pulito, Vitest 80/80. Dati di prova rimossi.
