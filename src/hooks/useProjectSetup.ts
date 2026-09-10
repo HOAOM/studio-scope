@@ -134,7 +134,7 @@ export function useCreateProjectSetup() {
           project_type: payload.project_type,
           budget_estimate: payload.budget_estimate ?? null,
         } as any)
-        .select()
+        .select('id')
         .single();
       if (error) throw new Error(describeTierError(error));
 
