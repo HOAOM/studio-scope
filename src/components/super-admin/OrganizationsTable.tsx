@@ -26,6 +26,7 @@ const TIER_COLORS: Record<string, string> = {
   basic: 'bg-slate-500/15 text-slate-300',
   advanced: 'bg-blue-500/15 text-blue-300',
   pro: 'bg-emerald-500/15 text-emerald-300',
+  enterprise: 'bg-violet-500/15 text-violet-300',
 };
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-emerald-500/15 text-emerald-300',

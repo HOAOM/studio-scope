@@ -132,6 +132,12 @@ export function CreateOrgDialog() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  {PLAN_TIER_INFO[(form.tier as PlanTier)]?.note ?? ''}
+                  {form.tier === 'enterprise'
+                    ? ' — imposta i limiti personalizzati dalla riga dell’organizzazione dopo la creazione.'
+                    : ''}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="discount_code">Discount code (optional)</Label>
