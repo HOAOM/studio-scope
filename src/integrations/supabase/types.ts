@@ -4212,6 +4212,13 @@ export type Database = {
       }
       can_access_item: { Args: { _item_id: string }; Returns: boolean }
       can_access_project_file: { Args: { p_name: string }; Returns: boolean }
+      can_act_item_role: {
+        Args: {
+          _item_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       can_manage_member: {
         Args: { _actor: string; _org: string; _target: string }
         Returns: boolean
@@ -4219,6 +4226,16 @@ export type Database = {
       can_see_commercials: { Args: never; Returns: boolean }
       checkpoint_applies_to_item: {
         Args: { p_definition_id: string; p_item_id: string }
+        Returns: boolean
+      }
+      checkpoint_write_allowed: {
+        Args: {
+          _completed_by: string
+          _def: string
+          _item: string
+          _second: string
+          _status: Database["public"]["Enums"]["checkpoint_instance_status"]
+        }
         Returns: boolean
       }
       close_login_sessions: { Args: { p_reason?: string }; Returns: undefined }
@@ -4380,6 +4397,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["engine_category"]
       }
       item_file_project_access: { Args: { p_name: string }; Returns: boolean }
+      item_org: { Args: { _item_id: string }; Returns: string }
       move_to_dlq: {
         Args: {
           dlq_name: string
