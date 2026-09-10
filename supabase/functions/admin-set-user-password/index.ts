@@ -215,9 +215,29 @@ Deno.serve(async (req) => {
           email_confirm: true,
           user_metadata: { display_name: displayName, must_set_password: false },
         })
-        if (cErr || !newUser?.user) return json({ error: cErr?.message ?? 'Creazione utente fallita' }, 400)
-        userId = newUser.user.id
-        created = true
+        if (cErr && /already been registered/i.test(cErr.message ?? '')) {
+          // Utente gia' presente in auth ma senza riga in profiles: lo cerco
+          // paginando la lista degli utenti e ne reimposto la password.
+          let found: string | null = null
+          for (let page = 1; page <= 40 && !found; page++) {
+            const { data: list } = await admin.auth.admin.listUsers({ page, perPage: 200 })
+            const users = list?.users ?? []
+            if (!users.length) break
+            const hit = users.find((u) => (u.email ?? '').toLowerCase() === email)
+            if (hit) found = hit.id
+          }
+          if (!found) return json({ error: 'Utente esistente non individuabile' }, 400)
+          userId = found
+          const { error: pwErr2 } = await admin.auth.admin.updateUserById(found, {
+            password: tempPassword, email_confirm: true,
+          })
+          if (pwErr2) return json({ error: pwErr2.message }, 400)
+        } else if (cErr || !newUser?.user) {
+          return json({ error: cErr?.message ?? 'Creazione utente fallita' }, 400)
+        } else {
+          userId = newUser.user.id
+          created = true
+        }
       }
 
       if (displayName) {
