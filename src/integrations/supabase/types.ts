@@ -2603,32 +2603,23 @@ export type Database = {
           approval_status: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included: boolean
-          boxing_cost: number | null
-          budget_estimate: number | null
-          budget_unit_cost: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url: string | null
           created_at: string
           created_by: string | null
-          custom_cost: number | null
-          delivery_cost: number | null
           delivery_date: string | null
           description: string
           dimensions: string | null
-          duty_cost: number | null
           dynamic_finishes: Json | null
-          extra_safe_cost: number | null
           finish_color: string | null
           finish_material: string | null
           finish_notes: string | null
           floor_id: string | null
           id: string
           image_3d_ref: string | null
-          installation_cost: number | null
           installation_start_date: string | null
           installed: boolean
           installed_date: string | null
-          insurance_cost: number | null
           is_active: boolean | null
           is_custom: boolean
           is_selected_option: boolean | null
@@ -2638,7 +2629,6 @@ export type Database = {
             | Database["public"]["Enums"]["item_lifecycle_status"]
             | null
           locked_fields: string[] | null
-          margin_percentage: number | null
           notes: string | null
           parent_item_id: string | null
           po_number: string | null
@@ -2656,14 +2646,11 @@ export type Database = {
           revision_number: number | null
           room_id: string | null
           room_number: string | null
-          selling_price: number | null
           sequence_number: number | null
-          shifting_cost: number | null
           site_movement_date: string | null
           subcategory_id: string | null
           supplier: string | null
           technical_drawing_url: string | null
-          unit_cost: number | null
           updated_at: string
         }
         Insert: {
@@ -2672,32 +2659,23 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area: string
           boq_included?: boolean
-          boxing_cost?: number | null
-          budget_estimate?: number | null
-          budget_unit_cost?: number | null
           category: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
           created_by?: string | null
-          custom_cost?: number | null
-          delivery_cost?: number | null
           delivery_date?: string | null
           description: string
           dimensions?: string | null
-          duty_cost?: number | null
           dynamic_finishes?: Json | null
-          extra_safe_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
           finish_notes?: string | null
           floor_id?: string | null
           id?: string
           image_3d_ref?: string | null
-          installation_cost?: number | null
           installation_start_date?: string | null
           installed?: boolean
           installed_date?: string | null
-          insurance_cost?: number | null
           is_active?: boolean | null
           is_custom?: boolean
           is_selected_option?: boolean | null
@@ -2707,7 +2685,6 @@ export type Database = {
             | Database["public"]["Enums"]["item_lifecycle_status"]
             | null
           locked_fields?: string[] | null
-          margin_percentage?: number | null
           notes?: string | null
           parent_item_id?: string | null
           po_number?: string | null
@@ -2725,14 +2702,11 @@ export type Database = {
           revision_number?: number | null
           room_id?: string | null
           room_number?: string | null
-          selling_price?: number | null
           sequence_number?: number | null
-          shifting_cost?: number | null
           site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null
           technical_drawing_url?: string | null
-          unit_cost?: number | null
           updated_at?: string
         }
         Update: {
@@ -2741,32 +2715,23 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           area?: string
           boq_included?: boolean
-          boxing_cost?: number | null
-          budget_estimate?: number | null
-          budget_unit_cost?: number | null
           category?: Database["public"]["Enums"]["boq_category"]
           company_product_url?: string | null
           created_at?: string
           created_by?: string | null
-          custom_cost?: number | null
-          delivery_cost?: number | null
           delivery_date?: string | null
           description?: string
           dimensions?: string | null
-          duty_cost?: number | null
           dynamic_finishes?: Json | null
-          extra_safe_cost?: number | null
           finish_color?: string | null
           finish_material?: string | null
           finish_notes?: string | null
           floor_id?: string | null
           id?: string
           image_3d_ref?: string | null
-          installation_cost?: number | null
           installation_start_date?: string | null
           installed?: boolean
           installed_date?: string | null
-          insurance_cost?: number | null
           is_active?: boolean | null
           is_custom?: boolean
           is_selected_option?: boolean | null
@@ -2776,7 +2741,6 @@ export type Database = {
             | Database["public"]["Enums"]["item_lifecycle_status"]
             | null
           locked_fields?: string[] | null
-          margin_percentage?: number | null
           notes?: string | null
           parent_item_id?: string | null
           po_number?: string | null
@@ -2794,14 +2758,11 @@ export type Database = {
           revision_number?: number | null
           room_id?: string | null
           room_number?: string | null
-          selling_price?: number | null
           sequence_number?: number | null
-          shifting_cost?: number | null
           site_movement_date?: string | null
           subcategory_id?: string | null
           supplier?: string | null
           technical_drawing_url?: string | null
-          unit_cost?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -4136,6 +4097,7 @@ export type Database = {
           installed_date: string | null
           insurance_cost: number | null
           is_active: boolean | null
+          is_custom: boolean | null
           is_selected_option: boolean | null
           item_code: string | null
           item_type_id: string | null
