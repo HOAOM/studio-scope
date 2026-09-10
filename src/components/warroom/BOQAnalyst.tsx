@@ -46,7 +46,7 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { ConfirmDeleteDialog } from '@/components/warroom/ConfirmDeleteDialog';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 type BOQCategory = Database['public']['Enums']['boq_category'];
 
 // ---- Color palette for room-based row coloring ----

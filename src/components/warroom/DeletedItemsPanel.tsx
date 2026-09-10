@@ -20,7 +20,7 @@ import { RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface DeletedItemsPanelProps {
   projectId: string;

@@ -23,7 +23,7 @@ import {
 import type { Database } from '@/integrations/supabase/types';
 import { uploadWithQuota, describeTierError } from '@/lib/tierLimits';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface FinishLine {
   label: string;

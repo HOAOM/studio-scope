@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
 import { Edit, Image as ImageIcon, ExternalLink, Eye } from 'lucide-react';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 type BOQCategory = Database['public']['Enums']['boq_category'];
 
 import { CATEGORY_LABELS } from '@/lib/categories';

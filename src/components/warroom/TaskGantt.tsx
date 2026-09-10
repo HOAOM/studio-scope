@@ -24,7 +24,7 @@ import { GanttGroupHeader } from './gantt/GanttGroupHeader';
 import { GanttRowComponent } from './gantt/GanttRow';
 import { GanttDependencyArrows } from './gantt/GanttDependencyArrows';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface TaskGanttProps {
   projectId: string;

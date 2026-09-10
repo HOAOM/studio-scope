@@ -23,7 +23,7 @@ import { getLifecycleIndex, LIFECYCLE_ORDER } from '@/lib/workflow';
 import { exportClientBoardPDF } from '@/lib/exportClientBoard';
 import { exportClientQuotationPDF } from '@/lib/exportClientQuotation';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface ClientBoard {
   id: string;

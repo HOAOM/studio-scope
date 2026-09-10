@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { RejectDialog } from './RejectDialog';
 import { supabase } from '@/integrations/supabase/client';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface ApprovalGatesPanelProps {
   items: ProjectItem[];

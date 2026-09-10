@@ -76,6 +76,7 @@ import { DirectMessagesPanel } from '@/components/warroom/DirectMessages';
 
 import { LIFECYCLE_LABELS, LIFECYCLE_COLORS as WF_LIFECYCLE_COLORS } from '@/lib/workflow';
 import { useProjectTasks } from '@/hooks/useTasks';
+import type { ProjectItem } from '@/types/projectItem';
 
 function LifecycleBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-xs text-muted-foreground">-</span>;
@@ -113,7 +114,6 @@ function AddonPlaceholder({
   );
 }
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type StatusLevel = 'safe' | 'at-risk' | 'unsafe';
 type BOQCategory = Database['public']['Enums']['boq_category'];
 
