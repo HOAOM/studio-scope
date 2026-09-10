@@ -211,7 +211,7 @@ export function useCreateProject() {
           owner_id: user.id,
           organization_id: (project as any).organization_id ?? activeId ?? null,
         })
-        .select()
+        .select('id')
         .single();
 
       if (error) throw error;
