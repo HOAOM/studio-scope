@@ -233,7 +233,7 @@ export function useUpdateProject() {
         .from('projects')
         .update(updates)
         .eq('id', id)
-        .select()
+        .select('id')
         .single();
       
       if (error) throw error;
