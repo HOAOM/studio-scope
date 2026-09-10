@@ -32,7 +32,7 @@ export function useProjects() {
     queryKey: ['projects', activeId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('projects')
+        .from('projects_safe')
         .select('*')
         .eq('organization_id', activeId!)
         .order('created_at', { ascending: false });
