@@ -401,3 +401,13 @@ Test: `src/test/orgChartV3.test.ts` (10 test) — albero, multi-squadra, assenza
 - `src/hooks/useProjectSetup.ts`: creazione progetto+contorno, ricerca persone org, documenti (upload con quota, download firmato, delete), aggiunta membri, chiusura checklist.
 - `src/components/warroom/ProjectSetupChecklist.tsx` in cima a `ProjectDetail`: 4 voci non bloccanti, richiudibile; si nasconde da sola con item presenti, dopo dismissal o dopo 7 giorni; resta raggiungibile dal link "Configurazione progetto". I documenti non modificano budget o altri campi.
 - Verifica reale (Playwright, admin@test.it): wizard → progetto `WIZ-2026-001` con budget 250.000, 7 macro-gruppi da template; setup manuale → progetto commerciale con 8 macro-gruppi; membro aggiunto; upload nelle 4 categorie con budget invariato. Typecheck pulito, Vitest 80/80. Dati di prova rimossi.
+
+---
+
+## Ruolo `logistics_manager` + reparto Logistica (set 2026)
+
+- Nuovo valore enum `app_role.logistics_manager` (15° AppRole) — il modello a 3 livelli e SoD restano invariati.
+- Catalogo posizioni: nuova area **Logistica** con `Logistics Manager` (lead, parent COO) e `Logistics Officer`, entrambe `default_app_role = logistics_manager`.
+- Frontend allineato: `AppRole` in `src/lib/workflow.ts`, `ROLE_VISIBLE_FIELDS` (design, dimensions, procurement, logistics, installation, internal_notes — **nessun accesso a costi/margini**), nuova macro-categoria `logistics`, `ORG_ROLES`/`ROLE_LABELS`, `usePermissions` (sezioni `approval` e `loading`).
+- HOA: Freshy → `project_manager`; Tegar e Jhon → `architectural_dept` (provvisorio, sotto Design); Jothi → `logistics_manager`. Margherita e Czarina restano senza ruolo di sistema ma visibili in organigramma.
+- Decisione aperta: ruolo dedicato "Draftman" collegabile a reparti diversi (architectural/MEP/HVAC).
