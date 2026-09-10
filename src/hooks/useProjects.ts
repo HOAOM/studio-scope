@@ -54,7 +54,7 @@ export function useProject(projectId: string | undefined) {
       if (!projectId) return null;
       
       const { data, error } = await supabase
-        .from('projects')
+        .from('projects_safe')
         .select('*')
         .eq('id', projectId)
         .maybeSingle();
