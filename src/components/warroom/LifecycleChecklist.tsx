@@ -72,6 +72,7 @@ const ROLE_DISPLAY: Partial<Record<AppRole, string>> = {
   accountant: 'Accountant',
   head_of_payments: 'Head of Payments',
   site_engineer: 'Site Engineer',
+  logistics_manager: 'Responsabile Logistica',
   ceo: 'CEO',
   coo: 'COO',
   mep_engineer: 'MEP Engineer',

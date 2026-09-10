@@ -19,6 +19,7 @@ const ROLE_LABELS: Record<string, string> = {
   client: 'Client',
   ceo: 'CEO',
   site_engineer: 'Site Engineer',
+  logistics_manager: 'Responsabile Logistica',
   project_manager: 'Project Manager',
   procurement_manager: 'Procurement Manager',
   mep_engineer: 'MEP Engineer',
