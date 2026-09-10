@@ -822,6 +822,13 @@ export const MACRO_ROLE_CATEGORIES: MacroRoleCategory[] = [
     roles: ['site_engineer', 'mep_engineer'],
     permissions: ['design', 'dimensions', 'logistics', 'installation', 'internal_notes'],
   },
+  {
+    id: 'logistics',
+    label: 'Logistica',
+    color: '#0ea5e9',
+    roles: ['logistics_manager'],
+    permissions: ['design', 'dimensions', 'procurement', 'logistics', 'installation', 'internal_notes'],
+  },
 ];
 
 export function getMacroCategory(role: AppRole): MacroRoleCategory | undefined {
