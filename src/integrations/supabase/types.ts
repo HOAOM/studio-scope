@@ -181,6 +181,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "boq_coverage_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       calendar_entries: {
@@ -269,6 +276,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
             referencedColumns: ["id"]
           },
           {
@@ -494,6 +508,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_boards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       company_settings: {
@@ -689,6 +710,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2340,6 +2368,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "presentations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -2408,6 +2443,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_documents: {
@@ -2447,6 +2489,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2536,6 +2585,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_item_costs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2792,6 +2848,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_items_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -2837,6 +2900,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_milestones: {
@@ -2879,6 +2949,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2993,6 +3070,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -3996,6 +4080,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_items_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -4124,6 +4215,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_items_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -4135,6 +4233,83 @@ export type Database = {
             columns: ["subcategory_id"]
             isOneToOne: false
             referencedRelation: "master_subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects_safe: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          boq_master_ref: string | null
+          boq_version: string | null
+          budget_estimate: number | null
+          client: string | null
+          code: string | null
+          created_at: string | null
+          id: string | null
+          last_update_date: string | null
+          location: string | null
+          name: string | null
+          organization_id: string | null
+          owner_id: string | null
+          project_manager: string | null
+          project_type: string | null
+          setup_dismissed_at: string | null
+          start_date: string | null
+          target_completion_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          boq_master_ref?: string | null
+          boq_version?: string | null
+          budget_estimate?: never
+          client?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_update_date?: string | null
+          location?: string | null
+          name?: string | null
+          organization_id?: string | null
+          owner_id?: string | null
+          project_manager?: string | null
+          project_type?: string | null
+          setup_dismissed_at?: string | null
+          start_date?: string | null
+          target_completion_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          boq_master_ref?: string | null
+          boq_version?: string | null
+          budget_estimate?: never
+          client?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_update_date?: string | null
+          location?: string | null
+          name?: string | null
+          organization_id?: string | null
+          owner_id?: string | null
+          project_manager?: string | null
+          project_type?: string | null
+          setup_dismissed_at?: string | null
+          start_date?: string | null
+          target_completion_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -4538,6 +4713,10 @@ export type Database = {
         Returns: string
       }
       project_boq_item_count: { Args: { p_project: string }; Returns: number }
+      project_budget_estimate: {
+        Args: { _project_id: string }
+        Returns: number
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

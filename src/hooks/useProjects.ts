@@ -32,7 +32,7 @@ export function useProjects() {
     queryKey: ['projects', activeId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('projects')
+        .from('projects_safe')
         .select('*')
         .eq('organization_id', activeId!)
         .order('created_at', { ascending: false });
@@ -54,7 +54,7 @@ export function useProject(projectId: string | undefined) {
       if (!projectId) return null;
       
       const { data, error } = await supabase
-        .from('projects')
+        .from('projects_safe')
         .select('*')
         .eq('id', projectId)
         .maybeSingle();
@@ -211,7 +211,7 @@ export function useCreateProject() {
           owner_id: user.id,
           organization_id: (project as any).organization_id ?? activeId ?? null,
         })
-        .select()
+        .select('id')
         .single();
 
       if (error) throw error;
@@ -233,7 +233,7 @@ export function useUpdateProject() {
         .from('projects')
         .update(updates)
         .eq('id', id)
-        .select()
+        .select('id')
         .single();
       
       if (error) throw error;
