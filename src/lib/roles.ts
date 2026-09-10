@@ -21,6 +21,7 @@ export const ORG_ROLES: AppRole[] = [
   'procurement_manager',
   'accountant',
   'head_of_payments',
+  'logistics_manager',
   'client',
 ];
 
@@ -38,6 +39,7 @@ export const ROLE_LABELS: Record<string, string> = {
   procurement_manager: 'Purchasing / Procurement',
   accountant: 'Accountant',
   head_of_payments: 'Head of Payments',
+  logistics_manager: 'Responsabile Logistica',
   client: 'Client',
 };
 

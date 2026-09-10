@@ -57,7 +57,8 @@ export type AppRole =
   | 'project_manager'
   | 'client'
   | 'site_engineer'
-  | 'mep_engineer';
+  | 'mep_engineer'
+  | 'logistics_manager';
 
 export type TaskMacroArea =
   | 'planning'
@@ -543,6 +544,7 @@ const ROLE_VISIBLE_FIELDS: Record<AppRole, FieldGroup[]> = {
   client:             ['design', 'finishes', 'dimensions', 'client_notes'],
   site_engineer:      ['design', 'dimensions', 'logistics', 'installation', 'internal_notes'],
   mep_engineer:       ['design', 'dimensions', 'logistics', 'installation', 'internal_notes'],
+  logistics_manager:  ['design', 'dimensions', 'procurement', 'logistics', 'installation', 'internal_notes'],
 };
 
 /** Check if a user with given roles can see a field group */
@@ -774,7 +776,7 @@ export function computeProjectKPIs(items: Array<{ lifecycle_status: string | nul
 // Macro Role Categories
 // ─────────────────────────────────────────
 
-export type RoleMacroCategory = 'management' | 'design' | 'operations' | 'finance' | 'site';
+export type RoleMacroCategory = 'management' | 'design' | 'operations' | 'finance' | 'site' | 'logistics';
 
 export interface MacroRoleCategory {
   id: RoleMacroCategory;
@@ -819,6 +821,13 @@ export const MACRO_ROLE_CATEGORIES: MacroRoleCategory[] = [
     color: '#8b5cf6',
     roles: ['site_engineer', 'mep_engineer'],
     permissions: ['design', 'dimensions', 'logistics', 'installation', 'internal_notes'],
+  },
+  {
+    id: 'logistics',
+    label: 'Logistica',
+    color: '#0ea5e9',
+    roles: ['logistics_manager'],
+    permissions: ['design', 'dimensions', 'procurement', 'logistics', 'installation', 'internal_notes'],
   },
 ];
 

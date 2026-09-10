@@ -33,6 +33,7 @@ const ROLE_LABELS: Record<string, string> = {
   qs: 'QS', accountant: 'Accountant', head_of_payments: 'Head of Payments',
   procurement_manager: 'Procurement Mgr', project_manager: 'Project Mgr',
   site_engineer: 'Site Engineer', mep_engineer: 'MEP Engineer', client: 'Client',
+  logistics_manager: 'Responsabile Logistica',
 };
 
 interface SectionResponsibilityPanelProps {

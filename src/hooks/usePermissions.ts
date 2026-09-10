@@ -40,7 +40,7 @@ const SECTION_ROLES: Record<ProjectSectionKey, string[] | null> = {
   approval: [
     'admin', 'ceo', 'coo', 'project_manager', 'head_of_design', 'designer',
     'architectural_dept', 'mep_engineer', 'site_engineer', 'qs',
-    'procurement_manager', 'accountant', 'head_of_payments',
+    'procurement_manager', 'accountant', 'head_of_payments', 'logistics_manager',
   ],
   'supplier-docs': [
     'admin', 'ceo', 'coo', 'project_manager', 'procurement_manager',
@@ -66,7 +66,7 @@ const SECTION_ROLES: Record<ProjectSectionKey, string[] | null> = {
   ],
   loading: [
     'admin', 'ceo', 'coo', 'project_manager', 'site_engineer',
-    'procurement_manager', 'qs',
+    'procurement_manager', 'qs', 'logistics_manager',
   ],
 };
 

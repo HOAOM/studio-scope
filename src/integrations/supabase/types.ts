@@ -4823,6 +4823,7 @@ export type Database = {
         | "coo"
         | "head_of_design"
         | "architectural_dept"
+        | "logistics_manager"
       approval_status: "pending" | "approved" | "rejected" | "revision"
       boq_category:
         | "joinery"
@@ -5069,6 +5070,7 @@ export const Constants = {
         "coo",
         "head_of_design",
         "architectural_dept",
+        "logistics_manager",
       ],
       approval_status: ["pending", "approved", "rejected", "revision"],
       boq_category: [
