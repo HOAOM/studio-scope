@@ -1,7 +1,7 @@
-import { Database } from '@/integrations/supabase/types';
 import { ProjectTask } from '@/hooks/useTasks';
+import type { ProjectItem } from '@/types/projectItem';
 
-export type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+export type { ProjectItem };
 export type ZoomLevel = 'day' | 'week' | 'month';
 
 export type ItemTag = 'on_hold' | 'cancelled' | 'at_risk' | 'delayed' | 'options' | 'revision';

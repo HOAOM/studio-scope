@@ -42,9 +42,9 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import type { ProjectItem } from '@/types/projectItem';
 
 type Project = Database['public']['Tables']['projects']['Row'];
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
 type StatusLevel = 'safe' | 'at-risk' | 'unsafe';
 
 function calculateProjectStatusFromItems(items: ProjectItem[]): StatusLevel {

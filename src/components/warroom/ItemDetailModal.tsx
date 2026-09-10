@@ -53,7 +53,7 @@ import { openFile } from '@/lib/fileUrls';
 
 import { DynamicFinishes, DynamicFinish } from './DynamicFinishes';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface ItemDetailModalProps {
   open: boolean;

@@ -1,6 +1,6 @@
 # Studio Scope — Documento Riepilogativo Totale
 
-> **Ultimo aggiornamento:** 9 settembre 2026 — isolamento DB costi/margini, Fasi 1–2  
+> **Ultimo aggiornamento:** 10 settembre 2026 — separazione fisica costi item completata  
 > **Stato progetto:** beta multi-tenant pronta, in attesa di rilascio  
 > **Versione corrente:** 2.6.0-beta (post-fix RBAC + modale super-admin + rimozione bug button)
 > **Manutenzione di questo file:** aggiornato automaticamente ad ogni fase/cambio significativo
@@ -66,6 +66,8 @@ Niente è stato rimosso. Tutte le tabelle pre-fasi sono intatte.
 `admin, coo, project_manager, head_of_design, designer, qs, finance, procurement, site_supervisor, client, supplier`
 
 Regola chiave: **costi e margini sono sempre nascosti** ai ruoli `client` e `designer`.
+
+Dal 10 settembre 2026 i 13 campi economici legacy sono stati rimossi fisicamente da `project_items` dopo verifica 132/132 del backfill. I dati vivono esclusivamente in `project_item_costs`, protetta da `user_can_see_project_costs()`; `project_items_safe` espone solo i dati tecnici.
 
 ---
 

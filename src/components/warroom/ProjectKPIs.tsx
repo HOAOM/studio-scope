@@ -3,7 +3,7 @@ import { KPIBlock } from './KPIBlock';
 import { Database } from '@/integrations/supabase/types';
 import { computeProjectKPIs as computeKPIsFromWorkflow, getLifecycleIndex, LIFECYCLE_ORDER } from '@/lib/workflow';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface ProjectKPIsProps {
   items: ProjectItem[];

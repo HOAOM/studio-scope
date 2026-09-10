@@ -5,7 +5,7 @@ import { Database } from '@/integrations/supabase/types';
 import { exportBOQToExcel } from '@/lib/exportBOQExcel';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 export function ExportExcelButton({ project, items }: { project: any; items: ProjectItem[] }) {
   const { data: companySettings } = useCompanySettings(project?.organization_id);

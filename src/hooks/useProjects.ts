@@ -8,14 +8,12 @@ import { syncTaskFromLifecycleChange } from '@/hooks/useGanttAutoGen';
 import { createNotification } from '@/hooks/useNotifications';
 import { LIFECYCLE_LABELS } from '@/lib/workflow';
 import { useItemCosts, mergeItemCosts, splitCostFields, upsertItemCosts } from '@/hooks/useItemCosts';
+import type { ProjectItem, ProjectItemInsert, ProjectItemUpdate } from '@/types/projectItem';
 
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
-type ProjectItemInsert = Database['public']['Tables']['project_items']['Insert'];
-type ProjectItemUpdate = Database['public']['Tables']['project_items']['Update'];
 type BOQCoverage = Database['public']['Tables']['boq_coverage']['Row'];
 
 /**

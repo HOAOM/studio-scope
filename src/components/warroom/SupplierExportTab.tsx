@@ -39,7 +39,7 @@ import {
   type SupplierItem,
 } from '@/lib/exportSupplierDocs';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface SupplierExportTabProps {
   projectId: string;

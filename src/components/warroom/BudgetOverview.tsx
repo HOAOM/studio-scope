@@ -10,7 +10,7 @@ import { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { CATEGORY_LABELS } from '@/lib/categories';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 type BOQCategory = Database['public']['Enums']['boq_category'];
 
 const CATEGORY_COLORS: Record<string, string> = {

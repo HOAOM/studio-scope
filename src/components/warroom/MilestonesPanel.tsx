@@ -15,7 +15,7 @@ import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, getLifecycleIndex, type ItemLifecycl
 import { Database } from '@/integrations/supabase/types';
 import { differenceInDays, parseISO } from 'date-fns';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface MilestonesPanelProps {
   projectId: string;

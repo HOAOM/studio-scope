@@ -27,7 +27,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSuppliers } from '@/hooks/useSuppliers';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 type BOQCategory = Database['public']['Enums']['boq_category'];
 type ApprovalStatus = Database['public']['Enums']['approval_status'];
 type LifecycleStatus = Database['public']['Enums']['item_lifecycle_status'];

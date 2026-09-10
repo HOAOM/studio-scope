@@ -7,7 +7,7 @@ import { Database } from '@/integrations/supabase/types';
 import { ITEM_TASK_CHAIN, addWorkingDays } from '@/lib/workflow';
 import { toast } from 'sonner';
 
-type ProjectItem = Database['public']['Tables']['project_items']['Row'];
+type ProjectItem = import('@/types/projectItem').ProjectItem;
 
 interface AutoGenOptions {
   projectId: string;
