@@ -4713,6 +4713,10 @@ export type Database = {
         Returns: string
       }
       project_boq_item_count: { Args: { p_project: string }; Returns: number }
+      project_budget_estimate: {
+        Args: { _project_id: string }
+        Returns: number
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
