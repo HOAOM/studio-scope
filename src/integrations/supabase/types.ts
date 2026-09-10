@@ -4173,9 +4173,6 @@ export type Database = {
         Returns: boolean
       }
       can_see_commercials: { Args: never; Returns: boolean }
-      can_see_costs:
-        | { Args: never; Returns: boolean }
-        | { Args: { _project_id: string; _user_id: string }; Returns: boolean }
       checkpoint_applies_to_item: {
         Args: { p_definition_id: string; p_item_id: string }
         Returns: boolean
@@ -4307,6 +4304,10 @@ export type Database = {
       is_admin_in_shared_org: { Args: { _target: string }; Returns: boolean }
       is_direct_manager_of: {
         Args: { _actor: string; _org: string; _target: string }
+        Returns: boolean
+      }
+      is_elevated_app_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
       is_item_project_owner: { Args: { p_item_id: string }; Returns: boolean }
@@ -4583,6 +4584,10 @@ export type Database = {
       }
       touch_login_session: { Args: { p_session_id: string }; Returns: boolean }
       trial_enabled: { Args: never; Returns: boolean }
+      user_can_see_project_costs: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_has_password: { Args: { _user_id: string }; Returns: boolean }
       users_share_org: { Args: { _a: string; _b: string }; Returns: boolean }
       validate_discount: {
