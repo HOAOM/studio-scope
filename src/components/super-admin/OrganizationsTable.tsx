@@ -20,12 +20,15 @@ import {
 import { CreateOrgDialog } from './CreateOrgDialog';
 import { OrgUsersDialog } from './OrgUsersDialog';
 import { DeleteOrgDialog } from './DeleteOrgDialog';
+import { EnterpriseLimitsDialog } from './EnterpriseLimitsDialog';
+import { PLAN_TIERS, PLAN_TIER_INFO, planSummary } from '@/lib/planTiers';
 import { useNavigate } from 'react-router-dom';
 
 const TIER_COLORS: Record<string, string> = {
   basic: 'bg-slate-500/15 text-slate-300',
   advanced: 'bg-blue-500/15 text-blue-300',
   pro: 'bg-emerald-500/15 text-emerald-300',
+  enterprise: 'bg-violet-500/15 text-violet-300',
 };
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-emerald-500/15 text-emerald-300',
@@ -113,11 +116,16 @@ export function OrganizationsTable() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="basic">Basic</SelectItem>
-                          <SelectItem value="advanced">Advanced</SelectItem>
-                          <SelectItem value="pro">Pro</SelectItem>
+                          {PLAN_TIERS.map((t) => (
+                            <SelectItem key={t} value={t}>{PLAN_TIER_INFO[t].label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      <div className="text-[10px] text-muted-foreground mt-1 max-w-[220px]">
+                        {o.tier === 'enterprise'
+                          ? 'Illimitato salvo limiti personalizzati'
+                          : planSummary(o.tier)}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Select
@@ -159,6 +167,9 @@ export function OrganizationsTable() {
                       {new Date(o.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
+                      {o.tier === 'enterprise' && (
+                        <EnterpriseLimitsDialog orgId={o.organization_id} orgName={o.name} />
+                      )}
                       <OrgUsersDialog orgId={o.organization_id} orgName={o.name} />
                       <Button
                         size="sm" variant="ghost"

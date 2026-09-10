@@ -26,7 +26,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-const ALLOWED_TIERS = ["basic", "advanced", "pro"] as const;
+const ALLOWED_TIERS = ["basic", "advanced", "pro", "enterprise"] as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

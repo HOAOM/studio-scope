@@ -23,12 +23,13 @@ interface TierLimitRow {
   max_storage_bytes: number | null;
 }
 
-const TIER_ORDER: OrgTier[] = ['basic', 'advanced', 'pro'];
+const TIER_ORDER: OrgTier[] = ['basic', 'advanced', 'pro', 'enterprise'] as OrgTier[];
 
-const TIER_META: Record<OrgTier, { label: string; tagline: string; icon: typeof Building }> = {
-  basic: { label: 'Basic', tagline: '1 utente per ruolo · 10 progetti · 5 GB · 1 addon', icon: Building },
-  advanced: { label: 'Advanced', tagline: '5 utenti per ruolo · 30 progetti · 20 GB · 3 addon', icon: Zap },
-  pro: { label: 'Pro', tagline: 'Tutto illimitato · addon inclusi', icon: Crown },
+const TIER_META: Record<string, { label: string; tagline: string; icon: typeof Building }> = {
+  basic: { label: 'Basic', tagline: '3 progetti · 5 GB · 1 addon · 3 utenti per ruolo', icon: Building },
+  advanced: { label: 'Advanced', tagline: '8 progetti · 10 GB · 3 addon · 8 utenti per ruolo', icon: Zap },
+  pro: { label: 'Pro', tagline: '15 progetti · 20 GB · 5 addon · 20 utenti per ruolo', icon: Crown },
+  enterprise: { label: 'Enterprise', tagline: 'Illimitato salvo limiti personalizzati', icon: Crown },
 };
 
 const STATUS_LABEL: Record<string, string> = {

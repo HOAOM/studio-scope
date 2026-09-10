@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Plus, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { PLAN_TIERS, planOptionLabel, PLAN_TIER_INFO, PlanTier } from '@/lib/planTiers';
 
 export function CreateOrgDialog() {
   const qc = useQueryClient();
@@ -126,11 +127,17 @@ export function CreateOrgDialog() {
                 <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="basic">Basic 79€ (10 progetti / 5GB)</SelectItem>
-                    <SelectItem value="advanced">Advanced 99€ (30 progetti / 20GB)</SelectItem>
-                    <SelectItem value="pro">Pro 135€ (illimitato)</SelectItem>
+                    {PLAN_TIERS.map((t) => (
+                      <SelectItem key={t} value={t}>{planOptionLabel(t)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  {PLAN_TIER_INFO[(form.tier as PlanTier)]?.note ?? ''}
+                  {form.tier === 'enterprise'
+                    ? ' — imposta i limiti personalizzati dalla riga dell’organizzazione dopo la creazione.'
+                    : ''}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="discount_code">Discount code (optional)</Label>

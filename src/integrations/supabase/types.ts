@@ -1940,6 +1940,50 @@ export type Database = {
           },
         ]
       }
+      organization_limit_overrides: {
+        Row: {
+          created_at: string
+          max_active_projects: number | null
+          max_addons: number | null
+          max_roles_per_user: number | null
+          max_storage_bytes: number | null
+          max_super_role_extra: number | null
+          max_users_per_role: number | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          max_active_projects?: number | null
+          max_addons?: number | null
+          max_roles_per_user?: number | null
+          max_storage_bytes?: number | null
+          max_super_role_extra?: number | null
+          max_users_per_role?: number | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          max_active_projects?: number | null
+          max_addons?: number | null
+          max_roles_per_user?: number | null
+          max_storage_bytes?: number | null
+          max_super_role_extra?: number | null
+          max_users_per_role?: number | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_limit_overrides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           complimentary_at: string | null
