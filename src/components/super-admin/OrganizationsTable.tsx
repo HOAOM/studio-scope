@@ -20,6 +20,8 @@ import {
 import { CreateOrgDialog } from './CreateOrgDialog';
 import { OrgUsersDialog } from './OrgUsersDialog';
 import { DeleteOrgDialog } from './DeleteOrgDialog';
+import { EnterpriseLimitsDialog } from './EnterpriseLimitsDialog';
+import { PLAN_TIERS, PLAN_TIER_INFO, planSummary } from '@/lib/planTiers';
 import { useNavigate } from 'react-router-dom';
 
 const TIER_COLORS: Record<string, string> = {
@@ -114,11 +116,16 @@ export function OrganizationsTable() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="basic">Basic</SelectItem>
-                          <SelectItem value="advanced">Advanced</SelectItem>
-                          <SelectItem value="pro">Pro</SelectItem>
+                          {PLAN_TIERS.map((t) => (
+                            <SelectItem key={t} value={t}>{PLAN_TIER_INFO[t].label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      <div className="text-[10px] text-muted-foreground mt-1 max-w-[220px]">
+                        {o.tier === 'enterprise'
+                          ? 'Illimitato salvo limiti personalizzati'
+                          : planSummary(o.tier)}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Select
