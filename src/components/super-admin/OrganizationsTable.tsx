@@ -167,6 +167,9 @@ export function OrganizationsTable() {
                       {new Date(o.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
+                      {o.tier === 'enterprise' && (
+                        <EnterpriseLimitsDialog orgId={o.organization_id} orgName={o.name} />
+                      )}
                       <OrgUsersDialog orgId={o.organization_id} orgName={o.name} />
                       <Button
                         size="sm" variant="ghost"
