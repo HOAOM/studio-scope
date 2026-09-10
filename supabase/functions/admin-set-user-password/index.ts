@@ -169,6 +169,134 @@ Deno.serve(async (req) => {
       }
     }
 
+    /**
+     * create_user_direct — crea l'account reale con password temporanea
+     * generata sul momento e lo aggiunge all'organizzazione SENZA inviare
+     * alcuna email (nessun invito, nessuna notifica). La posizione in
+     * organigramma viene creata con il ruolo di default del catalogo se il
+     * titolo e' mappato, altrimenti resta senza ruolo (No Access).
+     */
+    if (action === 'create_user_direct') {
+      const orgId = String(body?.organization_id ?? '')
+      const email = String(body?.email ?? '').trim().toLowerCase()
+      const displayName = String(body?.display_name ?? '').slice(0, 120)
+      const positionTitle = String(body?.position_title ?? '').slice(0, 160)
+      if (!UUID_RE.test(orgId)) return json({ error: 'organization_id non valido' }, 400)
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 255) {
+        return json({ error: 'Email non valida' }, 400)
+      }
+
+      const { data: org } = await admin
+        .from('organizations').select('name').eq('id', orgId).maybeSingle()
+      if (!org) return json({ error: 'Organizzazione non trovata' }, 404)
+
+      // Password temporanea casuale (alfanumerica + simbolo)
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+      const bytes = new Uint8Array(14)
+      crypto.getRandomValues(bytes)
+      const tempPassword =
+        Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('') + '#7'
+
+      const { data: existingProfile } = await admin
+        .from('profiles').select('id').ilike('email', email).maybeSingle()
+
+      let userId = existingProfile?.id ?? null
+      let created = false
+      if (userId) {
+        const { error: pwErr } = await admin.auth.admin.updateUserById(userId, {
+          password: tempPassword,
+          email_confirm: true,
+        })
+        if (pwErr) return json({ error: pwErr.message }, 400)
+      } else {
+        const { data: newUser, error: cErr } = await admin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { display_name: displayName, must_set_password: false },
+        })
+        if (cErr || !newUser?.user) return json({ error: cErr?.message ?? 'Creazione utente fallita' }, 400)
+        userId = newUser.user.id
+        created = true
+      }
+
+      if (displayName) {
+        await admin.from('profiles').update({ display_name: displayName }).eq('id', userId)
+      }
+
+      const { error: memErr } = await admin.from('organization_members').upsert({
+        organization_id: orgId,
+        user_id: userId,
+        is_owner: false,
+      }, { onConflict: 'organization_id,user_id' })
+      if (memErr) return json({ error: memErr.message }, 400)
+
+      // Posizione in organigramma: ruolo di default solo se il titolo e'
+      // presente nel catalogo, altrimenti nessuna mappatura (No Access).
+      let positionId: string | null = null
+      let mappedRole: string | null = null
+      if (positionTitle) {
+        const { data: cat } = await admin
+          .from('position_catalog')
+          .select('id, default_app_role')
+          .ilike('title', positionTitle)
+          .maybeSingle()
+        mappedRole = cat?.default_app_role ?? null
+
+        const { data: existingPos } = await admin
+          .from('org_positions')
+          .select('id')
+          .eq('organization_id', orgId)
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (existingPos) {
+          positionId = existingPos.id
+          await admin.from('org_positions').update({
+            title: positionTitle, catalog_id: cat?.id ?? null, base_role: mappedRole,
+          }).eq('id', existingPos.id)
+        } else {
+          const { data: pos, error: posErr } = await admin.from('org_positions').insert({
+            organization_id: orgId,
+            title: positionTitle,
+            user_id: userId,
+            catalog_id: cat?.id ?? null,
+            base_role: mappedRole,
+            node_kind: 'person',
+            created_by: user.id,
+          }).select('id').maybeSingle()
+          if (posErr) return json({ error: posErr.message }, 400)
+          positionId = pos?.id ?? null
+        }
+
+        // Ruolo funzionale assegnato SOLO se il catalogo lo prevede.
+        if (mappedRole) {
+          await admin.from('user_roles').upsert({
+            user_id: userId, role: mappedRole, organization_id: orgId,
+          }, { onConflict: 'user_id,role,organization_id' })
+        }
+      }
+
+      await admin.from('audit_log').insert({
+        entity_type: 'organization',
+        entity_id: orgId,
+        action: 'platform_admin_create_user_direct',
+        user_id: user.id,
+        summary: `Utente ${email} creato direttamente (senza email) su ${org.name} dal platform admin ${user.email ?? user.id}. Posizione: ${positionTitle || 'n/d'}. Ruolo: ${mappedRole ?? 'nessuno (No Access)'}`,
+      })
+
+      return json({
+        success: true,
+        user_id: userId,
+        email,
+        created,
+        temp_password: tempPassword,
+        position_id: positionId,
+        mapped_role: mappedRole,
+      })
+    }
+
+
     if (action === 'role_quota') {
       const orgId = String(body?.organization_id ?? '')
       const role = String(body?.role ?? '')
